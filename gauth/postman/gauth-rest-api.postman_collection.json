@@ -1,0 +1,634 @@
+{
+    "info": {
+        "_postman_id": "gauth-rest-api-collection",
+        "name": "GAuth REST API",
+        "description": "REST API collection for the GAuth service - HTTP endpoints that communicate with gRPC internally",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Health & Status",
+            "item": [
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/health",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "health"
+                            ]
+                        },
+                        "description": "Check the health status of the service"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Service Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/status",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "status"
+                            ]
+                        },
+                        "description": "Get detailed service status information"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Health and status endpoints"
+        },
+        {
+            "name": "Organizations",
+            "item": [
+                {
+                    "name": "Create Organization",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"{{test_organization_name}}\",\n  \"initial_user_email\": \"{{test_user_email}}\",\n  \"initial_user_public_key\": \"{{test_user_public_key}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/organizations",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "organizations"
+                            ]
+                        },
+                        "description": "Create a new organization with initial user"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Organization",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/organizations/{{organization_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "organizations",
+                                "{{organization_id}}"
+                            ]
+                        },
+                        "description": "Get organization details by ID"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Organization",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Updated Organization Name\",\n  \"root_quorum_threshold\": 2\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/organizations/{{organization_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "organizations",
+                                "{{organization_id}}"
+                            ]
+                        },
+                        "description": "Update organization details"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Organizations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/organizations?page_size=10&page_token={{page_token}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "organizations"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page_size",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "page_token",
+                                    "value": "{{page_token}}"
+                                }
+                            ]
+                        },
+                        "description": "List organizations with pagination"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Organization management endpoints"
+        },
+        {
+            "name": "Users",
+            "item": [
+                {
+                    "name": "Create User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"username\": \"testuser\",\n  \"email\": \"testuser@example.com\",\n  \"public_key\": \"user-public-key-here\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/users",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users"
+                            ]
+                        },
+                        "description": "Create a new user in an organization"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "{{user_id}}"
+                            ]
+                        },
+                        "description": "Get user details by ID"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update User",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"updatedusername\",\n  \"email\": \"updated@example.com\",\n  \"public_key\": \"updated-public-key\",\n  \"is_active\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "{{user_id}}"
+                            ]
+                        },
+                        "description": "Update user details"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Users",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/users?organization_id={{organization_id}}&page_size=20&page_token={{page_token}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users"
+                            ],
+                            "query": [
+                                {
+                                    "key": "organization_id",
+                                    "value": "{{organization_id}}"
+                                },
+                                {
+                                    "key": "page_size",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "page_token",
+                                    "value": "{{page_token}}"
+                                }
+                            ]
+                        },
+                        "description": "List users in an organization with pagination"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "User management endpoints"
+        },
+        {
+            "name": "Activities",
+            "item": [
+                {
+                    "name": "Create Activity",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"user_id\": \"{{user_id}}\",\n  \"type\": \"SEED_GENERATION\",\n  \"parameters\": {\n    \"strength\": 256,\n    \"purpose\": \"wallet_creation\"\n  },\n  \"signature\": \"{{test_signature}}\",\n  \"timestamp\": \"2025-08-21T12:00:00Z\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/activities",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "activities"
+                            ]
+                        },
+                        "description": "Create a new activity (critical operation)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Activity",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/activities/{{activity_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "activities",
+                                "{{activity_id}}"
+                            ]
+                        },
+                        "description": "Get activity details by ID"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Activities",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/activities?organization_id={{organization_id}}&page_size=20&page_token={{page_token}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "activities"
+                            ],
+                            "query": [
+                                {
+                                    "key": "organization_id",
+                                    "value": "{{organization_id}}"
+                                },
+                                {
+                                    "key": "page_size",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "page_token",
+                                    "value": "{{page_token}}"
+                                }
+                            ]
+                        },
+                        "description": "List activities in an organization with pagination"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Activity management endpoints"
+        },
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Authenticate User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"user_id\": \"{{user_id}}\",\n  \"auth_method_id\": \"{{auth_method_id}}\",\n  \"signature\": \"{{test_signature}}\",\n  \"timestamp\": \"{{timestamp}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/authenticate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "authenticate"
+                            ]
+                        },
+                        "description": "Authenticate a user and create a session"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Authorize Action",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"session_token\": \"{{session_token}}\",\n  \"activity_type\": \"SEED_GENERATION\",\n  \"parameters\": {\n    \"strength\": 256\n  }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/authorize",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "authorize"
+                            ]
+                        },
+                        "description": "Authorize an action for a user"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Authentication and authorization endpoints"
+        },
+        {
+            "name": "Renclave Integration",
+            "item": [
+                {
+                    "name": "Get Enclave Info",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/renclave/info",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "renclave",
+                                "info"
+                            ]
+                        },
+                        "description": "Get enclave information and status"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Generate Seed Phrase",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"user_id\": \"{{user_id}}\",\n  \"strength\": 256\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/renclave/seed/generate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "renclave",
+                                "seed",
+                                "generate"
+                            ]
+                        },
+                        "description": "Generate a BIP39 seed phrase via renclave"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Validate Seed Phrase",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/renclave/seed/validate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "renclave",
+                                "seed",
+                                "validate"
+                            ]
+                        },
+                        "description": "Validate a BIP39 seed phrase"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Renclave integration endpoints for cryptographic operations"
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8082",
+            "type": "string"
+        }
+    ]
+}
