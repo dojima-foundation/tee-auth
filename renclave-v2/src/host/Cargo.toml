@@ -1,0 +1,22 @@
+[package]
+name = "renclave-host"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "host"
+path = "src/main.rs"
+
+[dependencies]
+renclave-shared = { path = "../shared" }
+renclave-network = { path = "../network" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }
+uuid = { workspace = true }
+axum = { workspace = true }
+hyper = { workspace = true }
+tower = { workspace = true }

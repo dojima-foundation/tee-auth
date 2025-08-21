@@ -1,0 +1,11 @@
+[package]
+name = "renclave-network"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+renclave-shared = { path = "../shared" }
+anyhow = { workspace = true }
+log = { workspace = true }
+nix = { workspace = true }
+tokio = { workspace = true }

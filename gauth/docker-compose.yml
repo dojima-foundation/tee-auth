@@ -1,0 +1,158 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: gauth-postgres
+    environment:
+      POSTGRES_DB: gauth
+      POSTGRES_USER: gauth
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U gauth -d gauth" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gauth-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: gauth-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gauth-network
+
+  # gauth Service
+  gauth:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: gauth-service
+    ports:
+      - "9090:9090" # gRPC port
+      - "8080:8080" # HTTP port (if REST API is added)
+    environment:
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: gauth
+      DB_PASSWORD: password
+      DB_DATABASE: gauth
+      DB_SSL_MODE: disable
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      # Renclave
+      RENCLAVE_HOST: renclave-v2
+      RENCLAVE_PORT: 3000
+
+      # Auth
+      JWT_SECRET: development-secret-key-change-in-production
+      ENCRYPTION_KEY: development-32-byte-key-change-prod
+
+      # Logging
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "grpc_health_probe", "-addr=localhost:9090" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - gauth-network
+    restart: unless-stopped
+
+  # renclave-v2 Service (from the other project)
+  renclave-v2:
+    image: renclave-v2:latest
+    container_name: renclave-v2-service
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - gauth-network
+    restart: unless-stopped
+
+  # Database Migration (run once)
+  migrate:
+    image: migrate/migrate:v4.16.2
+    container_name: gauth-migrate
+    volumes:
+      - ./migrations:/migrations
+    command: [ "-path", "/migrations", "-database", "postgres://gauth:password@postgres:5432/gauth?sslmode=disable", "up" ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gauth-network
+    restart: "no"
+
+  # Development Tools
+  adminer:
+    image: adminer:4.8.1
+    container_name: gauth-adminer
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      - postgres
+    networks:
+      - gauth-network
+    profiles:
+      - dev
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: gauth-redis-commander
+    ports:
+      - "8082:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - gauth-network
+    profiles:
+      - dev
+
+# Volumes
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# Networks
+networks:
+  gauth-network:
+    driver: bridge

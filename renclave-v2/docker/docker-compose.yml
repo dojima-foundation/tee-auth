@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  renclave-v2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: renclave-v2-testing
+    ports:
+      - "3000:3000"
+    environment:
+      - RUST_LOG=debug
+    privileged: true # Required for TAP networking and QEMU
+    networks:
+      - renclave-net
+    volumes:
+      - /dev/net/tun:/dev/net/tun # TAP/TUN device access
+    cap_add:
+      - NET_ADMIN # Network administration
+      - SYS_ADMIN # System administration
+      - SYS_PTRACE # Process tracing (for debugging)
+    devices:
+      - /dev/kvm # KVM acceleration (if available)
+    command: /app/scripts/test-comprehensive.sh
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Separate service for host-only testing
+  renclave-host:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: renclave-host-only
+    ports:
+      - "3001:3000"
+    environment:
+      - RUST_LOG=info
+    networks:
+      - renclave-net
+    command: /app/bin/host
+    profiles:
+      - host-only
+
+  # Separate service for enclave-only testing
+  renclave-enclave:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: renclave-enclave-only
+    environment:
+      - RUST_LOG=debug
+    privileged: true
+    networks:
+      - renclave-net
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    command: /app/bin/enclave
+    profiles:
+      - enclave-only
+
+  # Network testing service
+  network-test:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: renclave-network-test
+    privileged: true
+    networks:
+      - renclave-net
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    command: /app/scripts/setup-tap.sh
+    profiles:
+      - network-test
+
+networks:
+  renclave-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
