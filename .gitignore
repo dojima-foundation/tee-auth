@@ -12,6 +12,11 @@ coverage/
 # Rust build artifacts
 target/
 
+# Environment files
+.env
+.env.local
+.env.*.local
+
 # Temporary files
 *.swp
 *~
