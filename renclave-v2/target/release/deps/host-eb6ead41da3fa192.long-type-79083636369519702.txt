@@ -1,1 +1,0 @@
-fn(axum::extract::State<AppState>, Json<renclave_shared::GenerateSeedRequest>) -> impl std::future::Future<Output = std::result::Result<Json<renclave_shared::GenerateSeedResponse>, RenclaveError>> {generate_seed}

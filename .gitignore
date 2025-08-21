@@ -1,0 +1,5 @@
+# Ignore gauth directory
+gauth/
+
+# Ignore renclave-v2 directory
+renclave-v2/
