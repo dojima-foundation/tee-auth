@@ -1,5 +1,18 @@
-# Ignore gauth directory
-gauth/
+# Go build artifacts
+bin/
+coverage/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
 
-# Ignore renclave-v2 directory
-renclave-v2/
+# Rust build artifacts
+target/
+
+# Temporary files
+*.swp
+*~
+.DS_Store
