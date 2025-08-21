@@ -12,6 +12,10 @@ coverage/
 # Rust build artifacts
 target/
 
+# Protobuf generated files
+*.pb.go
+*_grpc.pb.go
+
 # Environment files
 .env
 .env.local
