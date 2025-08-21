@@ -9,6 +9,31 @@ coverage/
 *.test
 *.out
 
+# Go binaries and executables
+gauth
+server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+*.trace
+*.cover
+*.coverprofile
+*.cov
+*.covprofile
+
+# Go build cache and profiling
+*.prof
+*.trace
+*.cover
+*.coverprofile
+*.cov
+*.covprofile
+
 # Rust build artifacts
 target/
 
