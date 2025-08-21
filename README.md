@@ -7,6 +7,43 @@ TEE-Auth is a secure authentication and key management system leveraging trusted
 - **gauth/**: The core authentication service written in Go.
 - **renclave-v2/**: The secure enclave component written in Rust for generating cryptographic seeds.
 
+## Architecture Overview
+
+```
+                          +-------------+
+                          |   Client    |
+                          | (gRPC/REST) |
+                          +------+------+
+                                 |
+                                 | Requests (Auth, Seed Gen, etc.)
+                                 v
+                    +------------+------------+
+                    |          Gauth           |
+                    | (Go Service)            |
+                    | - User/Org Management   |
+                    | - Policy Engine         |
+                    | - Session Handling      |
+                    +------------+------------+
+                                 |
+                                 | Seed Requests
+                                 v
+                    +------------+------------+
+                    |       Renclave-v2       |
+                    | (Rust Enclave)          |
+                    | - Seed Generation       |
+                    | - Validation            |
+                    | - Secure Isolation      |
+                    +------------+------------+
+                       ^                 ^
+                       |                 |
+                       |                 | Network (TAP)
+                       |                 v
++-------------+   +----+----+     +------+------+
+| PostgreSQL  |   |  Redis  |     | External Net |
+| (Data Store)|   | (Cache) |     | (if needed)  |
++-------------+   +---------+     +-------------+
+```
+
 ## Components Overview
 
 ### Gauth (Go Authentication Service)
@@ -53,6 +90,20 @@ Gauth integrates with renclave-v2 for secure cryptographic operations:
 4. Response is returned with cryptographic proofs.
 
 This integration is configured in gauth's environment variables (RENCLAVE_HOST, RENCLAVE_PORT) and demonstrated in the docker-compose.yml.
+
+### Integration Flow
+
+```
+Client ─► Gauth ─┬─► Validate Permissions
+                 │
+                 ├─► Forward to Renclave-v2 (HTTP)
+                 │
+                 └─► Store in DB/Redis
+
+Renclave-v2 ─► Generate Seed in Enclave
+            │
+            └─► Return with Proofs ─► Gauth ─► Client
+```
 
 ## Quick Start
 
