@@ -83,6 +83,10 @@ test-e2e: ## Run end-to-end tests
 	@echo "Running E2E tests..."
 	E2E_TESTS=true go test -v -timeout=10m ./test/e2e/...
 
+test-e2e-wallet: ## Run wallet workflow E2E tests only
+	@echo "Running wallet workflow E2E tests..."
+	E2E_TESTS=true go test -v -timeout=10m ./test/e2e/... -run TestWalletWorkflowE2ETestSuite
+
 test-short: ## Run short tests
 	@echo "Running short tests..."
 	go test -short -v ./...
