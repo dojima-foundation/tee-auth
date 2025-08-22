@@ -44,10 +44,10 @@ func (suite *E2ETestSuite) SetupSuite() {
 		suite.T().Skip("Skipping E2E tests. Set E2E_TESTS=true to run.")
 	}
 
-	// Skip if external services are not available and not starting them
-	if os.Getenv("E2E_START_SERVICES") != "true" {
-		suite.T().Skip("Skipping external service E2E tests. Set E2E_START_SERVICES=true to run with external services.")
-	}
+	// // Skip if external services are not available and not starting them
+	// if os.Getenv("E2E_START_SERVICES") != "true" {
+	// 	suite.T().Skip("Skipping external service E2E tests. Set E2E_START_SERVICES=true to run with external services.")
+	// }
 
 	suite.config = E2EConfig{
 		GAuthHost:    getEnvOrDefault("E2E_GAUTH_HOST", "localhost"),
@@ -152,64 +152,48 @@ func (suite *E2ETestSuite) stopServices() {
 func (suite *E2ETestSuite) connectToGAuth() {
 	address := fmt.Sprintf("%s:%s", suite.config.GAuthHost, suite.config.GAuthPort)
 
-	// Use WithBlock() to wait for connection and WithTimeout to limit the wait time
+	// Don't use WithBlock() to avoid hanging if service isn't available
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+
+	// Skip external service tests unless explicitly requested
+	if os.Getenv("E2E_START_SERVICES") != "true" {
+		suite.T().Skip("Skipping external service E2E tests: E2E_START_SERVICES is not set to true")
+		return
+	}
+
+	// Use a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	
-	// gRPC dial options with timeout and insecure credentials
-	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	}
-	
 	conn, err := grpc.DialContext(ctx, address, opts...)
 	if err != nil {
-		suite.T().Logf("Warning: Failed to establish connection to gRPC server: %v", err)
-		// If E2E_START_SERVICES is true, we should fail because we expect the service to be running
-		if os.Getenv("E2E_START_SERVICES") == "true" {
-			require.NoError(suite.T(), err, "Failed to connect to gauth service that should be running")
-		}
-		// Otherwise, we'll continue with a nil connection which will be handled in waitForServices
+		suite.T().Fatalf("Failed to establish connection to gRPC server: %v", err)
+		return
+	}
+
+	// Test the connection with a quick health check
+	client := pb.NewGAuthServiceClient(conn)
+	healthCtx, healthCancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer healthCancel()
+	
+	_, err = client.Health(healthCtx, &emptypb.Empty{})
+	if err != nil {
+		conn.Close()
+		suite.T().Fatalf("Service is not responding to health checks: %v", err)
+		return
 	}
 
 	suite.conn = conn
-	suite.client = pb.NewGAuthServiceClient(conn)
+	suite.client = client
 	suite.T().Logf("Connected to gauth service at %s", address)
 }
 
 func (suite *E2ETestSuite) waitForServices() {
-	suite.T().Log("Waiting for services to be ready...")
-
-	// Use a shorter timeout for each health check attempt
-	checkTimeout := 5 * time.Second
-	maxAttempts := 12 // 12 attempts * 5 seconds = 60 seconds total
-	
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		suite.T().Logf("Health check attempt %d/%d", attempt, maxAttempts)
-		
-		// Create a context with timeout for this attempt
-		ctx, cancel := context.WithTimeout(context.Background(), checkTimeout)
-		
-		// Try to check health
-		response, err := suite.client.Health(ctx, &emptypb.Empty{})
-		
-		// Always cancel the context when done with this attempt
-		cancel()
-		
-		// If successful, return
-		if err == nil && (response.Status == "healthy" || response.Status == "degraded") {
-			suite.T().Log("Services are ready")
-			return
-		}
-		
-		// If we've reached max attempts, fail the test
-		if attempt == maxAttempts {
-			suite.T().Fatal("Timeout waiting for services to be ready")
-		}
-		
-		suite.T().Log("Waiting for services...")
-		time.Sleep(1 * time.Second)
-	}
+	// We've already done a health check in connectToGAuth
+	// This is just a placeholder in case we need additional setup
+	suite.T().Log("Services are ready")
 }
 
 func (suite *E2ETestSuite) TestCompleteWorkflow() {
