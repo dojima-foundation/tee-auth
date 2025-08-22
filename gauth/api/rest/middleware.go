@@ -82,10 +82,15 @@ func (s *Server) rateLimitMiddleware() gin.HandlerFunc {
 
 // errorResponse creates a standardized error response
 func errorResponse(err error, message string) gin.H {
-	return gin.H{
-		"error":   message,
-		"details": err.Error(),
+	response := gin.H{
+		"error": message,
 	}
+	
+	if err != nil {
+		response["details"] = err.Error()
+	}
+	
+	return response
 }
 
 // successResponse creates a standardized success response
