@@ -190,7 +190,7 @@ export GRPC_PORT=9091 DB_HOST=localhost REDIS_HOST=localhost
 # Enable integration tests
 export INTEGRATION_TESTS=true
 
-# Enable E2E tests
+# Enable E2E tests (now optional, defaults to true)
 export E2E_TESTS=true
 
 # Test database configuration

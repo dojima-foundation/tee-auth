@@ -61,10 +61,8 @@ func (suite *E2ETestSuite) SetupSuite() {
 		StartupDelay: 10 * time.Second,
 	}
 
-	// Start dependencies if needed
-	if os.Getenv("E2E_START_SERVICES") == "true" {
-		suite.startServices()
-	}
+	// Start dependencies by default
+	suite.startServices()
 
 	// Connect to gauth service
 	suite.connectToGAuth()
@@ -78,10 +76,8 @@ func (suite *E2ETestSuite) TearDownSuite() {
 		suite.conn.Close()
 	}
 
-	// Stop services if we started them
-	if os.Getenv("E2E_START_SERVICES") == "true" {
-		suite.stopServices()
-	}
+	// Stop services
+	suite.stopServices()
 }
 
 func (suite *E2ETestSuite) startServices() {
@@ -172,11 +168,8 @@ func (suite *E2ETestSuite) connectToGAuth() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	// Skip external service tests unless explicitly requested
-	if os.Getenv("E2E_START_SERVICES") != "true" {
-		suite.T().Skip("Skipping external service E2E tests: E2E_START_SERVICES is not set to true")
-		return
-	}
+	// Always run external service tests by default
+	// The E2E_START_SERVICES flag is now optional and defaults to true
 
 	// Use a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

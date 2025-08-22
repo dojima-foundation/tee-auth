@@ -228,16 +228,16 @@ INTEGRATION_TESTS=true make test-integration
 
 #### End-to-End Tests
 ```bash
-# Wallet workflow E2E tests (self-contained, no external dependencies)
-E2E_TESTS=true make test-e2e-wallet
+# Run all E2E tests (includes external services)
+make test-e2e
 
-# Full E2E tests (requires external services - Docker containers)
-E2E_TESTS=true make test-e2e
+# Run wallet workflow E2E tests only (self-contained)
+make test-e2e-wallet
 
-# Note: Full E2E tests require:
-# - Docker containers for renclave-v2 service
-# - External PostgreSQL and Redis instances
-# - E2E_START_SERVICES=true environment variable
+# Note: Full E2E tests automatically start:
+# - gauth service binary
+# - PostgreSQL and Redis connections
+# - Docker containers for renclave-v2 service (if available)
 ```
 
 #### Full Test Suite
