@@ -152,8 +152,25 @@ func (suite *E2ETestSuite) stopServices() {
 func (suite *E2ETestSuite) connectToGAuth() {
 	address := fmt.Sprintf("%s:%s", suite.config.GAuthHost, suite.config.GAuthPort)
 
-	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	require.NoError(suite.T(), err, "Failed to connect to gauth service")
+	// Use WithBlock() to wait for connection and WithTimeout to limit the wait time
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	// gRPC dial options with timeout and insecure credentials
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	}
+	
+	conn, err := grpc.DialContext(ctx, address, opts...)
+	if err != nil {
+		suite.T().Logf("Warning: Failed to establish connection to gRPC server: %v", err)
+		// If E2E_START_SERVICES is true, we should fail because we expect the service to be running
+		if os.Getenv("E2E_START_SERVICES") == "true" {
+			require.NoError(suite.T(), err, "Failed to connect to gauth service that should be running")
+		}
+		// Otherwise, we'll continue with a nil connection which will be handled in waitForServices
+	}
 
 	suite.conn = conn
 	suite.client = pb.NewGAuthServiceClient(conn)
@@ -163,23 +180,35 @@ func (suite *E2ETestSuite) connectToGAuth() {
 func (suite *E2ETestSuite) waitForServices() {
 	suite.T().Log("Waiting for services to be ready...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), suite.config.TestTimeout)
-	defer cancel()
-
-	// Wait for gauth to be healthy
-	for {
-		select {
-		case <-ctx.Done():
-			suite.T().Fatal("Timeout waiting for services to be ready")
-		default:
-			response, err := suite.client.Health(ctx, &emptypb.Empty{})
-			if err == nil && (response.Status == "healthy" || response.Status == "degraded") {
-				suite.T().Log("Services are ready")
-				return
-			}
-			suite.T().Log("Waiting for services...")
-			time.Sleep(1 * time.Second)
+	// Use a shorter timeout for each health check attempt
+	checkTimeout := 5 * time.Second
+	maxAttempts := 12 // 12 attempts * 5 seconds = 60 seconds total
+	
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		suite.T().Logf("Health check attempt %d/%d", attempt, maxAttempts)
+		
+		// Create a context with timeout for this attempt
+		ctx, cancel := context.WithTimeout(context.Background(), checkTimeout)
+		
+		// Try to check health
+		response, err := suite.client.Health(ctx, &emptypb.Empty{})
+		
+		// Always cancel the context when done with this attempt
+		cancel()
+		
+		// If successful, return
+		if err == nil && (response.Status == "healthy" || response.Status == "degraded") {
+			suite.T().Log("Services are ready")
+			return
 		}
+		
+		// If we've reached max attempts, fail the test
+		if attempt == maxAttempts {
+			suite.T().Fatal("Timeout waiting for services to be ready")
+		}
+		
+		suite.T().Log("Waiting for services...")
+		time.Sleep(1 * time.Second)
 	}
 }
 
