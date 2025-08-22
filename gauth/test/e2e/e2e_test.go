@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -102,7 +103,21 @@ func (suite *E2ETestSuite) startServices() {
 	}
 
 	// Start gauth service
-	gauthBinary := getEnvOrDefault("E2E_GAUTH_BINARY", "./bin/gauth")
+	gauthBinary := getEnvOrDefault("E2E_GAUTH_BINARY", "bin/gauth")
+	
+	// If the binary doesn't exist, try to find it in the current directory
+	if _, err := os.Stat(gauthBinary); os.IsNotExist(err) {
+		// Try to find the binary in the project root
+		projectRoot := "../../"
+		altPath := projectRoot + gauthBinary
+		if _, err := os.Stat(altPath); err == nil {
+			gauthBinary = altPath
+		} else {
+			// Try absolute path from current directory
+			currentDir, _ := os.Getwd()
+			gauthBinary = filepath.Join(currentDir, "bin", "gauth")
+		}
+	}
 
 	suite.serverProcess = exec.Command(gauthBinary)
 	suite.serverProcess.Env = append(os.Environ(),
@@ -166,7 +181,7 @@ func (suite *E2ETestSuite) connectToGAuth() {
 	// Use a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	conn, err := grpc.DialContext(ctx, address, opts...)
 	if err != nil {
 		suite.T().Fatalf("Failed to establish connection to gRPC server: %v", err)
@@ -177,7 +192,7 @@ func (suite *E2ETestSuite) connectToGAuth() {
 	client := pb.NewGAuthServiceClient(conn)
 	healthCtx, healthCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer healthCancel()
-	
+
 	_, err = client.Health(healthCtx, &emptypb.Empty{})
 	if err != nil {
 		conn.Close()
