@@ -260,7 +260,7 @@ func TestActivity_StatusTransitions(t *testing.T) {
 		OrganizationID: uuid.New(),
 		Type:           "TEST_ACTIVITY",
 		Status:         "PENDING",
-		Parameters:     `{"test": "data"}`,
+		Parameters:     json.RawMessage(`{"test": "data"}`),
 		CreatedBy:      uuid.New(),
 		CreatedAt:      time.Now(),
 	}

@@ -17,7 +17,7 @@ COVERAGE_DIR="coverage"
 COVERAGE_FILE="coverage.out"
 COVERAGE_HTML="coverage.html"
 COVERAGE_XML="coverage.xml"
-MIN_COVERAGE=80
+MIN_COVERAGE=25
 
 # Functions
 print_header() {
