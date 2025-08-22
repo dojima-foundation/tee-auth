@@ -22,6 +22,18 @@ service GAuthService {
   rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
 
+  // Wallet management
+  rpc CreateWallet(CreateWalletRequest) returns (CreateWalletResponse);
+  rpc GetWallet(GetWalletRequest) returns (GetWalletResponse);
+  rpc ListWallets(ListWalletsRequest) returns (ListWalletsResponse);
+  rpc DeleteWallet(DeleteWalletRequest) returns (DeleteWalletResponse);
+
+  // Private key management
+  rpc CreatePrivateKey(CreatePrivateKeyRequest) returns (CreatePrivateKeyResponse);
+  rpc GetPrivateKey(GetPrivateKeyRequest) returns (GetPrivateKeyResponse);
+  rpc ListPrivateKeys(ListPrivateKeysRequest) returns (ListPrivateKeysResponse);
+  rpc DeletePrivateKey(DeletePrivateKeyRequest) returns (DeletePrivateKeyResponse);
+
   // Activity management (critical operations)
   rpc CreateActivity(CreateActivityRequest) returns (CreateActivityResponse);
   rpc GetActivity(GetActivityRequest) returns (GetActivityResponse);
@@ -368,4 +380,96 @@ message StatusResponse {
   string git_commit = 3;
   google.protobuf.Timestamp uptime = 4;
   map<string, string> metrics = 5;
+}
+
+// Wallet management messages
+message CreateWalletRequest {
+  string organization_id = 1;
+  string name = 2;
+  repeated CreateWalletAccount accounts = 3;
+  optional int32 mnemonic_length = 4; // 12, 15, 18, 21, 24 (default: 12)
+  repeated string tags = 5;
+}
+
+message CreateWalletAccount {
+  string curve = 1; // CURVE_SECP256K1, CURVE_ED25519
+  string path_format = 2; // PATH_FORMAT_BIP32
+  string path = 3; // e.g., m/44'/60'/0'/0/0
+  string address_format = 4; // ADDRESS_FORMAT_ETHEREUM, etc.
+}
+
+message CreateWalletResponse {
+  Wallet wallet = 1;
+  repeated string addresses = 2; // Generated addresses
+}
+
+message GetWalletRequest {
+  string id = 1;
+}
+
+message GetWalletResponse {
+  Wallet wallet = 1;
+}
+
+message ListWalletsRequest {
+  string organization_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListWalletsResponse {
+  repeated Wallet wallets = 1;
+  string next_page_token = 2;
+}
+
+message DeleteWalletRequest {
+  string id = 1;
+  optional bool delete_without_export = 2; // default: false
+}
+
+message DeleteWalletResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Private key management messages
+message CreatePrivateKeyRequest {
+  string organization_id = 1;
+  string name = 2;
+  string curve = 3; // CURVE_SECP256K1, CURVE_ED25519
+  optional string private_key_material = 4; // Optional: provide key material, otherwise generate
+  repeated string tags = 5;
+}
+
+message CreatePrivateKeyResponse {
+  PrivateKey private_key = 1;
+}
+
+message GetPrivateKeyRequest {
+  string id = 1;
+}
+
+message GetPrivateKeyResponse {
+  PrivateKey private_key = 1;
+}
+
+message ListPrivateKeysRequest {
+  string organization_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListPrivateKeysResponse {
+  repeated PrivateKey private_keys = 1;
+  string next_page_token = 2;
+}
+
+message DeletePrivateKeyRequest {
+  string id = 1;
+  optional bool delete_without_export = 2; // default: false
+}
+
+message DeletePrivateKeyResponse {
+  bool success = 1;
+  string message = 2;
 }

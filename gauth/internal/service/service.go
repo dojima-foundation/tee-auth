@@ -61,8 +61,11 @@ func (s *GAuthService) CreateOrganization(ctx context.Context, name, initialUser
 		OrganizationID: org.ID,
 		Username:       "admin",
 		Email:          initialUserEmail,
-		PublicKey:      initialUserPublicKey,
 		IsActive:       true,
+	}
+
+	if initialUserPublicKey != "" {
+		initialUser.PublicKey = initialUserPublicKey
 	}
 
 	err := s.db.Transaction(func(tx *gorm.DB) error {
@@ -90,6 +93,12 @@ func (s *GAuthService) CreateOrganization(ctx context.Context, name, initialUser
 	if err != nil {
 		s.logger.Error("Failed to create organization", "error", err)
 		return nil, err
+	}
+
+	// Load users for the organization before returning
+	if err := s.db.GetDB().WithContext(ctx).Preload("Users").First(org, org.ID).Error; err != nil {
+		s.logger.Error("Failed to load organization with users", "error", err)
+		return nil, fmt.Errorf("failed to load organization with users: %w", err)
 	}
 
 	s.logger.Info("Organization created successfully", "organization_id", org.ID.String())
@@ -189,9 +198,12 @@ func (s *GAuthService) CreateUser(ctx context.Context, organizationID, username,
 		OrganizationID: orgID,
 		Username:       username,
 		Email:          email,
-		PublicKey:      publicKey,
 		Tags:           tags,
 		IsActive:       true,
+	}
+
+	if publicKey != "" {
+		user.PublicKey = publicKey
 	}
 
 	if err := s.db.GetDB().WithContext(ctx).Create(user).Error; err != nil {
@@ -651,4 +663,241 @@ type QuorumMember struct {
 
 func (QuorumMember) TableName() string {
 	return "quorum_members"
+}
+
+// Wallet management methods
+
+func (s *GAuthService) CreateWallet(ctx context.Context, organizationID, name string, accounts []models.WalletAccount, mnemonicLength *int32, tags []string) (*models.Wallet, []string, error) {
+	s.logger.Info("Creating wallet", "organization_id", organizationID, "name", name)
+
+	// Default mnemonic length to 12 if not specified
+	length := int32(12)
+	if mnemonicLength != nil {
+		length = *mnemonicLength
+	}
+
+	// Validate mnemonic length
+	validLengths := []int32{12, 15, 18, 21, 24}
+	valid := false
+	for _, vl := range validLengths {
+		if length == vl {
+			valid = true
+			break
+		}
+	}
+	if !valid {
+		return nil, nil, fmt.Errorf("invalid mnemonic length: %d. Must be one of: 12, 15, 18, 21, 24", length)
+	}
+
+	wallet := &models.Wallet{
+		ID:             uuid.New(),
+		OrganizationID: uuid.MustParse(organizationID),
+		Name:           name,
+		Tags:           tags,
+		IsActive:       true,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+
+	// Generate addresses for each account
+	addresses := make([]string, len(accounts))
+	for i := range accounts {
+		// Set wallet ID for the account
+		accounts[i].ID = uuid.New()
+		accounts[i].WalletID = wallet.ID
+		accounts[i].IsActive = true
+		accounts[i].CreatedAt = time.Now()
+		accounts[i].UpdatedAt = time.Now()
+
+		// For now, generate mock addresses - in production, integrate with renclave
+		addresses[i] = fmt.Sprintf("0x%s%d", uuid.New().String()[:32], i)
+		accounts[i].Address = addresses[i]
+		accounts[i].PublicKey = fmt.Sprintf("pub_%s", uuid.New().String()[:16])
+	}
+
+	wallet.Accounts = accounts
+
+	// Save to database
+	if err := s.db.GetDB().WithContext(ctx).Create(wallet).Error; err != nil {
+		s.logger.Error("Failed to create wallet", "error", err)
+		return nil, nil, fmt.Errorf("failed to create wallet: %w", err)
+	}
+
+	s.logger.Info("Wallet created successfully", "wallet_id", wallet.ID.String())
+	return wallet, addresses, nil
+}
+
+func (s *GAuthService) GetWallet(ctx context.Context, walletID string) (*models.Wallet, error) {
+	s.logger.Debug("Getting wallet", "wallet_id", walletID)
+
+	var wallet models.Wallet
+	if err := s.db.GetDB().WithContext(ctx).Preload("Accounts").Where("id = ?", walletID).First(&wallet).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("wallet not found: %s", walletID)
+		}
+		return nil, fmt.Errorf("failed to get wallet: %w", err)
+	}
+
+	return &wallet, nil
+}
+
+func (s *GAuthService) ListWallets(ctx context.Context, organizationID string, pageSize int, pageToken string) ([]models.Wallet, string, error) {
+	s.logger.Debug("Listing wallets", "organization_id", organizationID)
+
+	var wallets []models.Wallet
+	query := s.db.GetDB().WithContext(ctx).Preload("Accounts").Where("organization_id = ?", organizationID)
+
+	// Handle pagination
+	if pageToken != "" {
+		query = query.Where("id > ?", pageToken)
+	}
+
+	query = query.Order("created_at ASC").Limit(pageSize + 1) // Get one extra to check if there's a next page
+
+	if err := query.Find(&wallets).Error; err != nil {
+		return nil, "", fmt.Errorf("failed to list wallets: %w", err)
+	}
+
+	var nextToken string
+	if len(wallets) > pageSize {
+		nextToken = wallets[pageSize-1].ID.String()
+		wallets = wallets[:pageSize]
+	}
+
+	return wallets, nextToken, nil
+}
+
+func (s *GAuthService) DeleteWallet(ctx context.Context, walletID string, deleteWithoutExport bool) error {
+	s.logger.Info("Deleting wallet", "wallet_id", walletID, "delete_without_export", deleteWithoutExport)
+
+	// For production: Check if wallet has been exported unless deleteWithoutExport is true
+	if !deleteWithoutExport {
+		// Check export status - for now, we'll allow deletion
+		s.logger.Warn("Wallet deletion without export check - implement export verification in production")
+	}
+
+	// Delete wallet accounts first (due to foreign key constraints)
+	if err := s.db.GetDB().WithContext(ctx).Where("wallet_id = ?", walletID).Delete(&models.WalletAccount{}).Error; err != nil {
+		return fmt.Errorf("failed to delete wallet accounts: %w", err)
+	}
+
+	// Delete the wallet
+	if err := s.db.GetDB().WithContext(ctx).Where("id = ?", walletID).Delete(&models.Wallet{}).Error; err != nil {
+		return fmt.Errorf("failed to delete wallet: %w", err)
+	}
+
+	s.logger.Info("Wallet deleted successfully", "wallet_id", walletID)
+	return nil
+}
+
+// Private key management methods
+
+func (s *GAuthService) CreatePrivateKey(ctx context.Context, organizationID, name, curve string, privateKeyMaterial *string, tags []string) (*models.PrivateKey, error) {
+	s.logger.Info("Creating private key", "organization_id", organizationID, "name", name, "curve", curve)
+
+	// Validate organization ID
+	orgID, err := uuid.Parse(organizationID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid organization ID: %w", err)
+	}
+
+	// Validate curve
+	validCurves := []string{"CURVE_SECP256K1", "CURVE_ED25519"}
+	valid := false
+	for _, vc := range validCurves {
+		if curve == vc {
+			valid = true
+			break
+		}
+	}
+	if !valid {
+		return nil, fmt.Errorf("invalid curve: %s. Must be one of: CURVE_SECP256K1, CURVE_ED25519", curve)
+	}
+
+	privateKey := &models.PrivateKey{
+		ID:             uuid.New(),
+		OrganizationID: orgID,
+		Name:           name,
+		Curve:          curve,
+		Tags:           tags,
+		IsActive:       true,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+
+	// Generate public key - in production, integrate with renclave
+	if privateKeyMaterial != nil {
+		// Use provided private key material to derive public key
+		privateKey.PublicKey = fmt.Sprintf("pub_from_material_%s", uuid.New().String()[:16])
+	} else {
+		// Generate new key pair
+		privateKey.PublicKey = fmt.Sprintf("pub_%s", uuid.New().String()[:32])
+	}
+
+	// Save to database
+	if err := s.db.GetDB().WithContext(ctx).Create(privateKey).Error; err != nil {
+		s.logger.Error("Failed to create private key", "error", err)
+		return nil, fmt.Errorf("failed to create private key: %w", err)
+	}
+
+	s.logger.Info("Private key created successfully", "private_key_id", privateKey.ID.String())
+	return privateKey, nil
+}
+
+func (s *GAuthService) GetPrivateKey(ctx context.Context, privateKeyID string) (*models.PrivateKey, error) {
+	s.logger.Debug("Getting private key", "private_key_id", privateKeyID)
+
+	var privateKey models.PrivateKey
+	if err := s.db.GetDB().WithContext(ctx).Where("id = ?", privateKeyID).First(&privateKey).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("private key not found: %s", privateKeyID)
+		}
+		return nil, fmt.Errorf("failed to get private key: %w", err)
+	}
+
+	return &privateKey, nil
+}
+
+func (s *GAuthService) ListPrivateKeys(ctx context.Context, organizationID string, pageSize int, pageToken string) ([]models.PrivateKey, string, error) {
+	s.logger.Debug("Listing private keys", "organization_id", organizationID)
+
+	var privateKeys []models.PrivateKey
+	query := s.db.GetDB().WithContext(ctx).Where("organization_id = ?", organizationID)
+
+	// Handle pagination
+	if pageToken != "" {
+		query = query.Where("id > ?", pageToken)
+	}
+
+	query = query.Order("created_at ASC").Limit(pageSize + 1) // Get one extra to check if there's a next page
+
+	if err := query.Find(&privateKeys).Error; err != nil {
+		return nil, "", fmt.Errorf("failed to list private keys: %w", err)
+	}
+
+	var nextToken string
+	if len(privateKeys) > pageSize {
+		nextToken = privateKeys[pageSize-1].ID.String()
+		privateKeys = privateKeys[:pageSize]
+	}
+
+	return privateKeys, nextToken, nil
+}
+
+func (s *GAuthService) DeletePrivateKey(ctx context.Context, privateKeyID string, deleteWithoutExport bool) error {
+	s.logger.Info("Deleting private key", "private_key_id", privateKeyID, "delete_without_export", deleteWithoutExport)
+
+	// For production: Check if private key has been exported unless deleteWithoutExport is true
+	if !deleteWithoutExport {
+		// Check export status - for now, we'll allow deletion
+		s.logger.Warn("Private key deletion without export check - implement export verification in production")
+	}
+
+	// Delete the private key
+	if err := s.db.GetDB().WithContext(ctx).Where("id = ?", privateKeyID).Delete(&models.PrivateKey{}).Error; err != nil {
+		return fmt.Errorf("failed to delete private key: %w", err)
+	}
+
+	s.logger.Info("Private key deleted successfully", "private_key_id", privateKeyID)
+	return nil
 }

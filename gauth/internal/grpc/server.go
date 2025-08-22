@@ -7,6 +7,7 @@ import (
 	"time"
 
 	pb "github.com/dojima-foundation/tee-auth/gauth/api/proto"
+	"github.com/dojima-foundation/tee-auth/gauth/internal/models"
 	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
@@ -386,5 +387,162 @@ func (s *Server) Status(ctx context.Context, req *emptypb.Empty) (*pb.StatusResp
 		GitCommit: statusResp.GitCommit,
 		Uptime:    timestamppb.New(statusResp.Uptime),
 		Metrics:   statusResp.Metrics,
+	}, nil
+}
+
+// Wallet management methods
+
+func (s *Server) CreateWallet(ctx context.Context, req *pb.CreateWalletRequest) (*pb.CreateWalletResponse, error) {
+	s.logger.Info("CreateWallet gRPC request received", "organization_id", req.OrganizationId, "name", req.Name)
+
+	// Convert protobuf accounts to models
+	accounts := make([]models.WalletAccount, len(req.Accounts))
+	for i, acc := range req.Accounts {
+		accounts[i] = models.WalletAccount{
+			Curve:         acc.Curve,
+			Path:          acc.Path,
+			AddressFormat: acc.AddressFormat,
+			// PathFormat is handled internally - we store the path but not the format
+		}
+	}
+
+	wallet, addresses, err := s.service.CreateWallet(ctx, req.OrganizationId, req.Name, accounts, req.MnemonicLength, req.Tags)
+	if err != nil {
+		s.logger.Error("Failed to create wallet", "error", err)
+		return nil, status.Errorf(codes.Internal, "failed to create wallet: %v", err)
+	}
+
+	// Convert to protobuf
+	pbWallet := convertWalletToProto(wallet)
+
+	return &pb.CreateWalletResponse{
+		Wallet:    pbWallet,
+		Addresses: addresses,
+	}, nil
+}
+
+func (s *Server) GetWallet(ctx context.Context, req *pb.GetWalletRequest) (*pb.GetWalletResponse, error) {
+	s.logger.Debug("GetWallet gRPC request received", "wallet_id", req.Id)
+
+	wallet, err := s.service.GetWallet(ctx, req.Id)
+	if err != nil {
+		s.logger.Error("Failed to get wallet", "error", err, "wallet_id", req.Id)
+		return nil, status.Errorf(codes.NotFound, "wallet not found: %v", err)
+	}
+
+	return &pb.GetWalletResponse{
+		Wallet: convertWalletToProto(wallet),
+	}, nil
+}
+
+func (s *Server) ListWallets(ctx context.Context, req *pb.ListWalletsRequest) (*pb.ListWalletsResponse, error) {
+	s.logger.Debug("ListWallets gRPC request received", "organization_id", req.OrganizationId)
+
+	wallets, nextToken, err := s.service.ListWallets(ctx, req.OrganizationId, int(req.PageSize), req.PageToken)
+	if err != nil {
+		s.logger.Error("Failed to list wallets", "error", err)
+		return nil, status.Errorf(codes.Internal, "failed to list wallets: %v", err)
+	}
+
+	// Convert to protobuf
+	pbWallets := make([]*pb.Wallet, len(wallets))
+	for i, wallet := range wallets {
+		pbWallets[i] = convertWalletToProto(&wallet)
+	}
+
+	return &pb.ListWalletsResponse{
+		Wallets:       pbWallets,
+		NextPageToken: nextToken,
+	}, nil
+}
+
+func (s *Server) DeleteWallet(ctx context.Context, req *pb.DeleteWalletRequest) (*pb.DeleteWalletResponse, error) {
+	s.logger.Info("DeleteWallet gRPC request received", "wallet_id", req.Id)
+
+	deleteWithoutExport := false
+	if req.DeleteWithoutExport != nil {
+		deleteWithoutExport = *req.DeleteWithoutExport
+	}
+
+	err := s.service.DeleteWallet(ctx, req.Id, deleteWithoutExport)
+	if err != nil {
+		s.logger.Error("Failed to delete wallet", "error", err, "wallet_id", req.Id)
+		return nil, status.Errorf(codes.Internal, "failed to delete wallet: %v", err)
+	}
+
+	return &pb.DeleteWalletResponse{
+		Success: true,
+		Message: "Wallet deleted successfully",
+	}, nil
+}
+
+// Private key management methods
+
+func (s *Server) CreatePrivateKey(ctx context.Context, req *pb.CreatePrivateKeyRequest) (*pb.CreatePrivateKeyResponse, error) {
+	s.logger.Info("CreatePrivateKey gRPC request received", "organization_id", req.OrganizationId, "name", req.Name)
+
+	privateKey, err := s.service.CreatePrivateKey(ctx, req.OrganizationId, req.Name, req.Curve, req.PrivateKeyMaterial, req.Tags)
+	if err != nil {
+		s.logger.Error("Failed to create private key", "error", err)
+		return nil, status.Errorf(codes.Internal, "failed to create private key: %v", err)
+	}
+
+	return &pb.CreatePrivateKeyResponse{
+		PrivateKey: convertPrivateKeyToProto(privateKey),
+	}, nil
+}
+
+func (s *Server) GetPrivateKey(ctx context.Context, req *pb.GetPrivateKeyRequest) (*pb.GetPrivateKeyResponse, error) {
+	s.logger.Debug("GetPrivateKey gRPC request received", "private_key_id", req.Id)
+
+	privateKey, err := s.service.GetPrivateKey(ctx, req.Id)
+	if err != nil {
+		s.logger.Error("Failed to get private key", "error", err, "private_key_id", req.Id)
+		return nil, status.Errorf(codes.NotFound, "private key not found: %v", err)
+	}
+
+	return &pb.GetPrivateKeyResponse{
+		PrivateKey: convertPrivateKeyToProto(privateKey),
+	}, nil
+}
+
+func (s *Server) ListPrivateKeys(ctx context.Context, req *pb.ListPrivateKeysRequest) (*pb.ListPrivateKeysResponse, error) {
+	s.logger.Debug("ListPrivateKeys gRPC request received", "organization_id", req.OrganizationId)
+
+	privateKeys, nextToken, err := s.service.ListPrivateKeys(ctx, req.OrganizationId, int(req.PageSize), req.PageToken)
+	if err != nil {
+		s.logger.Error("Failed to list private keys", "error", err)
+		return nil, status.Errorf(codes.Internal, "failed to list private keys: %v", err)
+	}
+
+	// Convert to protobuf
+	pbPrivateKeys := make([]*pb.PrivateKey, len(privateKeys))
+	for i, pk := range privateKeys {
+		pbPrivateKeys[i] = convertPrivateKeyToProto(&pk)
+	}
+
+	return &pb.ListPrivateKeysResponse{
+		PrivateKeys:   pbPrivateKeys,
+		NextPageToken: nextToken,
+	}, nil
+}
+
+func (s *Server) DeletePrivateKey(ctx context.Context, req *pb.DeletePrivateKeyRequest) (*pb.DeletePrivateKeyResponse, error) {
+	s.logger.Info("DeletePrivateKey gRPC request received", "private_key_id", req.Id)
+
+	deleteWithoutExport := false
+	if req.DeleteWithoutExport != nil {
+		deleteWithoutExport = *req.DeleteWithoutExport
+	}
+
+	err := s.service.DeletePrivateKey(ctx, req.Id, deleteWithoutExport)
+	if err != nil {
+		s.logger.Error("Failed to delete private key", "error", err, "private_key_id", req.Id)
+		return nil, status.Errorf(codes.Internal, "failed to delete private key: %v", err)
+	}
+
+	return &pb.DeletePrivateKeyResponse{
+		Success: true,
+		Message: "Private key deleted successfully",
 	}, nil
 }
