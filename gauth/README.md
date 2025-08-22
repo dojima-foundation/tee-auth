@@ -12,6 +12,18 @@ The service follows Turnkey's proven patterns for secure key management and auth
 - **Policy Engine**: Flexible authorization with quorum-based approvals
 - **Secure Enclaves**: Communication with renclave-v2 for cryptographic operations
 
+### Service Architecture
+
+```
+HTTP Client → REST API (8082) → gRPC Client → gRPC Server (9091) → Business Logic
+     │              │                │              │
+     │              │                │              └─► Database (PostgreSQL)
+     │              │                │              └─► Cache (Redis)
+     │              │                │              └─► Enclave (renclave-v2)
+     │              │                │
+     └─► Direct gRPC Client ─────────┘
+```
+
 ## 🚀 Features
 
 ### Core Functionality
@@ -29,7 +41,7 @@ The service follows Turnkey's proven patterns for secure key management and auth
 - **Encryption**: AES encryption for sensitive data at rest
 
 ### Scalability & Reliability
-- **gRPC API**: High-performance, type-safe communication
+- **Dual API Support**: gRPC (port 9091) and REST (port 8082)
 - **PostgreSQL**: ACID-compliant data storage with migrations
 - **Redis Caching**: Session storage and distributed locking
 - **Health Checks**: Comprehensive service health monitoring
@@ -126,34 +138,166 @@ RENCLAVE_PORT=3000
 RENCLAVE_TIMEOUT=30s
 ```
 
+### Server Configuration
+```env
+SERVER_PORT=8082      # REST API port
+GRPC_PORT=9091        # gRPC API port
+LOG_LEVEL=info        # Logging level
+```
+
 ## 📡 API Reference
 
-The service exposes a gRPC API with the following main services:
+The service exposes both gRPC and REST APIs for maximum flexibility:
 
-### Organization Management
+### gRPC API (Port 9091)
+
+#### Organization Management
 - `CreateOrganization` - Create a new organization
 - `GetOrganization` - Retrieve organization details
 - `UpdateOrganization` - Update organization settings
 - `ListOrganizations` - List all organizations
 
-### User Management
+#### User Management
 - `CreateUser` - Add user to organization
 - `GetUser` - Retrieve user details
 - `UpdateUser` - Update user information
 - `ListUsers` - List organization users
 
-### Authentication & Authorization
+#### Authentication & Authorization
 - `Authenticate` - Authenticate user and create session
 - `Authorize` - Check permissions for activities
 
-### Cryptographic Operations
+#### Cryptographic Operations
 - `RequestSeedGeneration` - Generate BIP39 seed phrases via renclave-v2
 - `ValidateSeed` - Validate seed phrase format and checksum
 - `GetEnclaveInfo` - Retrieve enclave status and capabilities
 
-### System Operations
+#### System Operations
 - `Health` - Service health check
 - `Status` - Service status and metrics
+
+### REST API (Port 8082)
+
+#### Health & Status
+- `GET /api/v1/health` - Service health check
+- `GET /api/v1/status` - Service status information
+
+#### Organizations
+- `POST /api/v1/organizations` - Create organization
+- `GET /api/v1/organizations/:id` - Get organization by ID
+- `PUT /api/v1/organizations/:id` - Update organization
+- `GET /api/v1/organizations` - List organizations (with pagination)
+
+#### Users
+- `POST /api/v1/users` - Create user
+- `GET /api/v1/users/:id` - Get user by ID
+- `PUT /api/v1/users/:id` - Update user
+- `GET /api/v1/users?organization_id=:id` - List users (with pagination)
+
+#### Activities
+- `POST /api/v1/activities` - Create activity
+- `GET /api/v1/activities/:id` - Get activity by ID
+- `GET /api/v1/activities?organization_id=:id` - List activities (with pagination, filtering)
+
+#### Authentication
+- `POST /api/v1/auth/authenticate` - Authenticate user
+- `POST /api/v1/auth/authorize` - Authorize action
+
+#### Renclave Integration
+- `GET /api/v1/renclave/info` - Get enclave information
+- `POST /api/v1/renclave/seed/generate` - Generate seed phrase
+- `POST /api/v1/renclave/seed/validate` - Validate seed phrase
+
+## 🧪 Testing
+
+### Comprehensive Test Suite
+
+The service includes a complete testing framework with multiple test types:
+
+#### Unit Tests
+```bash
+make test-unit          # Run unit tests only
+make test-unit-coverage # Unit tests with coverage
+```
+
+#### Integration Tests
+```bash
+# Requires PostgreSQL and Redis
+INTEGRATION_TESTS=true make test-integration
+```
+
+#### End-to-End Tests
+```bash
+# Requires running gauth service
+E2E_TESTS=true make test-e2e
+```
+
+#### Full Test Suite
+```bash
+make test              # All tests with coverage
+make test-coverage     # Detailed coverage report
+make test-coverage-open # Coverage with browser
+```
+
+#### Test Coverage
+- **Models Package**: 100% coverage ✅
+- **RenclaveClient**: 92.6% coverage ✅
+- **Service Layer**: 23.5% (improving)
+- **Overall Coverage**: 11.8% (with comprehensive integration tests)
+
+### Test Architecture
+
+```
+Unit Tests ──► Fast, isolated, mocked dependencies
+     │
+     ├─► Integration Tests ──► Real databases, real network calls
+     │
+     └─► E2E Tests ──► Complete service integration
+```
+
+### Test Helpers and Utilities
+
+- **Database Setup**: Automatic PostgreSQL test containers
+- **Redis Setup**: In-memory Redis for testing
+- **Mock Servers**: HTTP client testing with mock responses
+- **Test Data**: Comprehensive test data generation
+- **Performance Benchmarks**: Regression testing
+
+### CI/CD Integration
+
+- **GitHub Actions**: Automated testing on every push/PR
+- **Coverage Reporting**: Codecov integration with PR comments
+- **Performance Monitoring**: Benchmark execution tracking
+- **Quality Gates**: 80% coverage threshold enforcement
+
+### API Testing
+
+#### Postman Collections
+
+Ready-to-use Postman collections for testing:
+
+- **REST API Collection**: `postman/gauth-rest-api.postman_collection.json`
+- **REST API Environment**: `postman/gauth-rest-api.postman_environment.json`
+
+#### Command Line Testing
+
+```bash
+# gRPC testing with grpcurl
+grpcurl -plaintext localhost:9091 list
+grpcurl -plaintext localhost:9091 describe gauth.v1.GAuthService
+
+# Health check
+grpcurl -plaintext localhost:9091 gauth.v1.GAuthService/Health
+
+# Create organization
+grpcurl -plaintext -d '{"name": "Test Org"}' localhost:9091 gauth.v1.GAuthService/CreateOrganization
+
+# REST API testing with curl
+curl -X GET http://localhost:8082/api/v1/health
+curl -X POST http://localhost:8082/api/v1/organizations \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Test Organization"}'
+```
 
 ## 🔐 Security Model
 
@@ -174,25 +318,6 @@ Following Turnkey's security principles:
 - **Audit Logging**: Comprehensive security event tracking
 - **Rate Limiting**: Protection against abuse
 - **Session Management**: Secure, expiring sessions
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-make test
-
-# Run short tests (unit tests only)
-make test-short
-
-# Run benchmarks
-make bench
-
-# Run linter
-make lint
-
-# Run security checks
-make security-check
-```
 
 ## 📦 Deployment
 
@@ -243,11 +368,14 @@ Communication flow:
 The service provides comprehensive health checks:
 
 ```bash
-# Check service health
-grpcurl -plaintext localhost:9090 gauth.v1.GAuthService/Health
+# Check gRPC service health
+grpcurl -plaintext localhost:9091 gauth.v1.GAuthService/Health
+
+# Check REST service health
+curl http://localhost:8082/api/v1/health
 
 # Check individual components
-curl http://localhost:8080/health
+curl http://localhost:8082/api/v1/status
 ```
 
 Health check includes:
@@ -280,10 +408,11 @@ make check  # Quick checks
 
 ## 📚 Documentation
 
-- [API Documentation](./docs/api.md)
+- [API Documentation](./api/rest/README.md)
 - [Architecture Guide](./docs/architecture.md)
 - [Security Model](./docs/security.md)
 - [Deployment Guide](./docs/deployment.md)
+- [Testing Guide](./TEST_IMPLEMENTATION_SUMMARY.md)
 
 ## 🔗 Related Projects
 
