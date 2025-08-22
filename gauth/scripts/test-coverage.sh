@@ -59,12 +59,21 @@ go mod download
 go mod tidy
 print_success "Dependencies installed"
 
-# Install additional tools for coverage
+# Install additional tools for coverage (optional)
 print_header "Installing Coverage Tools"
-go install github.com/axw/gocov/gocov@latest
-go install github.com/AlekSi/gocov-xml@latest
-go install github.com/matm/gocov-html@latest
-print_success "Coverage tools installed"
+if go install github.com/axw/gocov/gocov@latest 2>/dev/null; then
+    print_success "gocov installed"
+else
+    print_warning "gocov installation failed, using built-in Go tools"
+fi
+
+if go install github.com/AlekSi/gocov-xml@latest 2>/dev/null; then
+    print_success "gocov-xml installed"
+else
+    print_warning "gocov-xml installation failed, XML reports will be skipped"
+fi
+
+print_success "Coverage tools setup completed"
 
 # Clean previous coverage data
 rm -f $COVERAGE_DIR/$COVERAGE_FILE
@@ -130,13 +139,21 @@ fi
 go tool cover -html=$COVERAGE_DIR/$COVERAGE_FILE -o $COVERAGE_DIR/$COVERAGE_HTML
 print_success "HTML coverage report generated: $COVERAGE_DIR/$COVERAGE_HTML"
 
-# Generate XML coverage report for CI/CD
-gocov convert $COVERAGE_DIR/$COVERAGE_FILE | gocov-xml > $COVERAGE_DIR/$COVERAGE_XML
-print_success "XML coverage report generated: $COVERAGE_DIR/$COVERAGE_XML"
-
-# Generate JSON coverage report
-gocov convert $COVERAGE_DIR/$COVERAGE_FILE > $COVERAGE_DIR/coverage.json
-print_success "JSON coverage report generated: $COVERAGE_DIR/coverage.json"
+# Generate XML coverage report for CI/CD (if tools available)
+if command -v gocov &> /dev/null && command -v gocov-xml &> /dev/null; then
+    gocov convert $COVERAGE_DIR/$COVERAGE_FILE | gocov-xml > $COVERAGE_DIR/$COVERAGE_XML
+    print_success "XML coverage report generated: $COVERAGE_DIR/$COVERAGE_XML"
+    
+    # Generate JSON coverage report
+    gocov convert $COVERAGE_DIR/$COVERAGE_FILE > $COVERAGE_DIR/coverage.json
+    print_success "JSON coverage report generated: $COVERAGE_DIR/coverage.json"
+else
+    print_warning "gocov tools not available, skipping XML and JSON reports"
+    # Create a simple JSON report using go tool cover
+    COVERAGE_PERCENT=$(go tool cover -func=$COVERAGE_DIR/$COVERAGE_FILE | grep total | grep -oE '[0-9]+\.[0-9]+')
+    echo '{"coverage_percent": "'$COVERAGE_PERCENT'"}' > $COVERAGE_DIR/coverage.json
+    print_success "Basic JSON coverage report generated: $COVERAGE_DIR/coverage.json"
+fi
 
 # Calculate coverage percentage
 COVERAGE_PERCENT=$(go tool cover -func=$COVERAGE_DIR/$COVERAGE_FILE | grep total | grep -oE '[0-9]+\.[0-9]+')

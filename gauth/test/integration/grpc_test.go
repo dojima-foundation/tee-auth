@@ -14,6 +14,7 @@ import (
 	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
+	"github.com/dojima-foundation/tee-auth/gauth/test/testhelpers"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,20 +45,20 @@ func (suite *GRPCIntegrationTestSuite) SetupSuite() {
 	// Setup test configuration
 	suite.config = &config.Config{
 		Database: config.DatabaseConfig{
-			Host:         getEnvOrDefault("TEST_DB_HOST", "localhost"),
+			Host:         testhelpers.GetEnvOrDefault("TEST_DB_HOST", "localhost"),
 			Port:         5432,
-			Username:     getEnvOrDefault("TEST_DB_USER", "gauth"),
-			Password:     getEnvOrDefault("TEST_DB_PASSWORD", "password"),
-			Database:     getEnvOrDefault("TEST_DB_NAME", "gauth_test"),
+			Username:     testhelpers.GetEnvOrDefault("TEST_DB_USER", "gauth"),
+			Password:     testhelpers.GetEnvOrDefault("TEST_DB_PASSWORD", "password"),
+			Database:     testhelpers.GetEnvOrDefault("TEST_DB_NAME", "gauth_test"),
 			SSLMode:      "disable",
 			MaxOpenConns: 10,
 			MaxIdleConns: 5,
 			MaxLifetime:  5 * time.Minute,
 		},
 		Redis: config.RedisConfig{
-			Host:         getEnvOrDefault("TEST_REDIS_HOST", "localhost"),
+			Host:         testhelpers.GetEnvOrDefault("TEST_REDIS_HOST", "localhost"),
 			Port:         6379,
-			Password:     getEnvOrDefault("TEST_REDIS_PASSWORD", ""),
+			Password:     testhelpers.GetEnvOrDefault("TEST_REDIS_PASSWORD", ""),
 			Database:     2, // Different database for gRPC tests
 			PoolSize:     10,
 			MinIdleConns: 5,
@@ -70,7 +71,7 @@ func (suite *GRPCIntegrationTestSuite) SetupSuite() {
 			SessionTimeout:         30 * time.Minute,
 		},
 		Renclave: config.RenclaveConfig{
-			Host:    getEnvOrDefault("TEST_RENCLAVE_HOST", "localhost"),
+			Host:    testhelpers.GetEnvOrDefault("TEST_RENCLAVE_HOST", "localhost"),
 			Port:    3000,
 			UseTLS:  false,
 			Timeout: 30 * time.Second,
@@ -193,7 +194,7 @@ func (suite *GRPCIntegrationTestSuite) TestOrganizationManagement() {
 	// Test UpdateOrganization
 	updateReq := &pb.UpdateOrganizationRequest{
 		Id:   orgID,
-		Name: stringPtr("Updated Test Organization"),
+		Name: testhelpers.StringPtr("Updated Test Organization"),
 	}
 
 	updateResp, err := suite.client.UpdateOrganization(ctx, updateReq)
@@ -268,7 +269,7 @@ func (suite *GRPCIntegrationTestSuite) TestUserManagement() {
 	// Test UpdateUser
 	updateUserReq := &pb.UpdateUserRequest{
 		Id:       userID,
-		Username: stringPtr("updateduser"),
+		Username: testhelpers.StringPtr("updateduser"),
 		Tags:     []string{"updated", "developer"},
 	}
 
@@ -365,7 +366,7 @@ func (suite *GRPCIntegrationTestSuite) TestActivityManagement() {
 	// Test filtering by type
 	filteredReq := &pb.ListActivitiesRequest{
 		OrganizationId: orgID,
-		Type:           stringPtr("SEED_GENERATION"),
+		Type:           testhelpers.StringPtr("SEED_GENERATION"),
 		PageSize:       10,
 	}
 
@@ -580,18 +581,18 @@ func BenchmarkGRPCOperations(b *testing.B) {
 	// Setup similar to test suite but simplified
 	config := &config.Config{
 		Database: config.DatabaseConfig{
-			Host:         getEnvOrDefault("TEST_DB_HOST", "localhost"),
+			Host:         testhelpers.GetEnvOrDefault("TEST_DB_HOST", "localhost"),
 			Port:         5432,
-			Username:     getEnvOrDefault("TEST_DB_USER", "gauth"),
-			Password:     getEnvOrDefault("TEST_DB_PASSWORD", "password"),
-			Database:     getEnvOrDefault("TEST_DB_NAME", "gauth_test"),
+			Username:     testhelpers.GetEnvOrDefault("TEST_DB_USER", "gauth"),
+			Password:     testhelpers.GetEnvOrDefault("TEST_DB_PASSWORD", "password"),
+			Database:     testhelpers.GetEnvOrDefault("TEST_DB_NAME", "gauth_test"),
 			SSLMode:      "disable",
 			MaxOpenConns: 25,
 			MaxIdleConns: 10,
 			MaxLifetime:  5 * time.Minute,
 		},
 		Redis: config.RedisConfig{
-			Host:         getEnvOrDefault("TEST_REDIS_HOST", "localhost"),
+			Host:         testhelpers.GetEnvOrDefault("TEST_REDIS_HOST", "localhost"),
 			Port:         6379,
 			Database:     3,
 			PoolSize:     25,

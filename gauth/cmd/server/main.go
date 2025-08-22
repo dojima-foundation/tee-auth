@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	restServer "github.com/dojima-foundation/tee-auth/gauth/api/rest"
 	"github.com/dojima-foundation/tee-auth/gauth/internal/db"
 	grpcServer "github.com/dojima-foundation/tee-auth/gauth/internal/grpc"
 	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
@@ -80,8 +81,9 @@ func main() {
 	// Initialize service layer
 	svc := service.NewGAuthService(cfg, lgr, database, redis)
 
-	// Initialize gRPC server
+	// Initialize servers
 	grpcSrv := grpcServer.NewServer(cfg, lgr, svc)
+	restSrv := restServer.NewServer(cfg, lgr)
 
 	// Create context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -102,6 +104,21 @@ func main() {
 		}
 	}()
 
+	// Start REST API server
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Wait a moment for gRPC server to start first
+		time.Sleep(1 * time.Second)
+
+		lgr.Info("Starting REST API server", "address", cfg.GetServerAddr())
+
+		if err := restSrv.Start(); err != nil {
+			lgr.Error("REST API server failed", "error", err)
+			cancel()
+		}
+	}()
+
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -116,8 +133,11 @@ func main() {
 	// Graceful shutdown
 	lgr.Info("Starting graceful shutdown...")
 
-	// Stop gRPC server
+	// Stop servers
 	grpcSrv.Stop()
+	if err := restSrv.Stop(); err != nil {
+		lgr.Error("Failed to stop REST API server", "error", err)
+	}
 
 	// Wait for all goroutines to finish with timeout
 	done := make(chan struct{})

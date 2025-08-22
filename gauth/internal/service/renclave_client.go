@@ -57,10 +57,6 @@ type InfoResponse struct {
 	Healthy      bool     `json:"healthy"`
 }
 
-type HealthResponse struct {
-	Status string `json:"status"`
-}
-
 // GenerateSeed requests seed generation from renclave-v2
 func (c *RenclaveClient) GenerateSeed(ctx context.Context, strength int, passphrase *string) (*GenerateSeedResponse, error) {
 	req := GenerateSeedRequest{
@@ -102,13 +98,26 @@ func (c *RenclaveClient) GetInfo(ctx context.Context) (*InfoResponse, error) {
 
 // Health checks the health of renclave-v2
 func (c *RenclaveClient) Health(ctx context.Context) error {
-	var resp HealthResponse
-	if err := c.makeRequest(ctx, "GET", "/health", nil, &resp); err != nil {
-		return fmt.Errorf("health check failed: %w", err)
+	// For health check, we only care about the status code, not the response body
+	// The renclave service returns 200 OK without a response body
+	url := c.baseURL + "/health"
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create health request: %w", err)
 	}
 
-	if resp.Status != "healthy" && resp.Status != "ok" {
-		return fmt.Errorf("renclave is unhealthy: %s", resp.Status)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("health check failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// For health check, any 2xx status code is considered healthy
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("health check failed with status %d", resp.StatusCode)
 	}
 
 	return nil

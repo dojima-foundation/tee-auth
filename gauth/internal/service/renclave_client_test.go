@@ -279,48 +279,29 @@ func TestRenclaveClient_GetInfo(t *testing.T) {
 
 func TestRenclaveClient_Health(t *testing.T) {
 	tests := []struct {
-		name           string
-		serverResponse HealthResponse
-		serverStatus   int
-		expectError    bool
+		name         string
+		serverStatus int
+		expectError  bool
 	}{
 		{
-			name: "healthy service",
-			serverResponse: HealthResponse{
-				Status: "healthy",
-			},
+			name:         "healthy service - 200 OK",
 			serverStatus: http.StatusOK,
 			expectError:  false,
 		},
 		{
-			name: "ok status",
-			serverResponse: HealthResponse{
-				Status: "ok",
-			},
-			serverStatus: http.StatusOK,
+			name:         "healthy service - 204 No Content",
+			serverStatus: http.StatusNoContent,
 			expectError:  false,
 		},
 		{
-			name: "unhealthy service",
-			serverResponse: HealthResponse{
-				Status: "unhealthy",
-			},
-			serverStatus: http.StatusOK,
+			name:         "server error - 500",
+			serverStatus: http.StatusInternalServerError,
 			expectError:  true,
 		},
 		{
-			name: "degraded service",
-			serverResponse: HealthResponse{
-				Status: "degraded",
-			},
-			serverStatus: http.StatusOK,
+			name:         "server error - 404",
+			serverStatus: http.StatusNotFound,
 			expectError:  true,
-		},
-		{
-			name:           "server error",
-			serverResponse: HealthResponse{},
-			serverStatus:   http.StatusInternalServerError,
-			expectError:    true,
 		},
 	}
 
@@ -333,9 +314,7 @@ func TestRenclaveClient_Health(t *testing.T) {
 				assert.Equal(t, "application/json", r.Header.Get("Accept"))
 
 				w.WriteHeader(tt.serverStatus)
-				if tt.serverStatus == http.StatusOK {
-					json.NewEncoder(w).Encode(tt.serverResponse)
-				}
+				// No response body for health check
 			}))
 			defer server.Close()
 
@@ -360,7 +339,7 @@ func TestRenclaveClient_Timeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(100 * time.Millisecond)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(HealthResponse{Status: "ok"})
+		// No response body for health check
 	}))
 	defer server.Close()
 
@@ -384,7 +363,7 @@ func TestRenclaveClient_ContextCancellation(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(200 * time.Millisecond)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(HealthResponse{Status: "ok"})
+		// No response body for health check
 	}))
 	defer server.Close()
 
@@ -428,7 +407,7 @@ func TestRenclaveClient_NetworkError(t *testing.T) {
 	// Request should fail due to network error
 	err := client.Health(ctx)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to make request")
+	assert.Contains(t, err.Error(), "health check failed")
 }
 
 // Benchmark tests
@@ -436,7 +415,7 @@ func BenchmarkRenclaveClient_Health(b *testing.B) {
 	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(HealthResponse{Status: "ok"})
+		// No response body for health check
 	}))
 	defer server.Close()
 
@@ -485,7 +464,7 @@ func TestRenclaveClient_ConcurrentRequests(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&requestCount, 1)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(HealthResponse{Status: "ok"})
+		// No response body for health check
 	}))
 	defer server.Close()
 

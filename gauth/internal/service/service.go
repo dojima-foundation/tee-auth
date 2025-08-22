@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -270,6 +271,7 @@ func (s *GAuthService) ListUsers(ctx context.Context, organizationID string, pag
 	var users []models.User
 	query := s.db.GetDB().WithContext(ctx).
 		Where("organization_id = ?", orgID).
+		Order("id ASC").
 		Limit(pageSize + 1)
 
 	if pageToken != "" {
@@ -304,12 +306,20 @@ func (s *GAuthService) CreateActivity(ctx context.Context, organizationID, activ
 		return nil, fmt.Errorf("invalid created_by user ID: %w", err)
 	}
 
+	// Validate and convert JSON parameters
+	var parametersRaw json.RawMessage
+	if parameters != "" {
+		if err := json.Unmarshal([]byte(parameters), &parametersRaw); err != nil {
+			return nil, fmt.Errorf("invalid JSON parameters: %w", err)
+		}
+	}
+
 	activity := &models.Activity{
 		ID:             uuid.New(),
 		OrganizationID: orgID,
 		Type:           activityType,
 		Status:         "PENDING",
-		Parameters:     parameters,
+		Parameters:     parametersRaw,
 		CreatedBy:      createdByID,
 	}
 

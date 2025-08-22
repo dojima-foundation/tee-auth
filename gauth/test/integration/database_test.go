@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -240,7 +241,7 @@ func (suite *DatabaseIntegrationTestSuite) TestActivityAuditTrail() {
 		OrganizationID: org.ID,
 		Type:           "SEED_GENERATION",
 		Status:         "PENDING",
-		Parameters:     `{"strength": 256, "passphrase": false}`,
+		Parameters:     json.RawMessage(`{"strength": 256, "passphrase": false}`),
 		Intent: models.ActivityIntent{
 			Fingerprint: "test-fingerprint",
 			Summary:     "Generate 256-bit seed phrase",
@@ -262,16 +263,17 @@ func (suite *DatabaseIntegrationTestSuite) TestActivityAuditTrail() {
 	err = db.WithContext(ctx).Create(proof).Error
 	require.NoError(suite.T(), err)
 
-	// Retrieve activity with proof
+	// Retrieve activity
 	var retrievedActivity models.Activity
-	err = db.WithContext(ctx).Preload("Proofs").First(&retrievedActivity, "id = ?", activity.ID).Error
+	err = db.WithContext(ctx).First(&retrievedActivity, "id = ?", activity.ID).Error
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), activity.Type, retrievedActivity.Type)
 	assert.Equal(suite.T(), activity.Status, retrievedActivity.Status)
 
 	// Update activity status
 	retrievedActivity.Status = "COMPLETED"
-	retrievedActivity.Result = `{"seed_phrase": "test phrase", "entropy": "test entropy"}`
+	resultData := json.RawMessage(`{"seed_phrase": "test phrase", "entropy": "test entropy"}`)
+	retrievedActivity.Result = resultData
 
 	err = db.WithContext(ctx).Save(&retrievedActivity).Error
 	require.NoError(suite.T(), err)

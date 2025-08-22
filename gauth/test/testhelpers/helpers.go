@@ -2,6 +2,7 @@ package testhelpers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -35,11 +36,11 @@ func NewTestDatabase(t *testing.T) *TestDatabase {
 	}
 
 	config := &config.DatabaseConfig{
-		Host:         getEnvOrDefault("TEST_DB_HOST", "localhost"),
+		Host:         GetEnvOrDefault("TEST_DB_HOST", "localhost"),
 		Port:         5432,
-		Username:     getEnvOrDefault("TEST_DB_USER", "gauth"),
-		Password:     getEnvOrDefault("TEST_DB_PASSWORD", "password"),
-		Database:     getEnvOrDefault("TEST_DB_NAME", "gauth_test"),
+		Username:     GetEnvOrDefault("TEST_DB_USER", "gauth"),
+		Password:     GetEnvOrDefault("TEST_DB_PASSWORD", "password"),
+		Database:     GetEnvOrDefault("TEST_DB_NAME", "gauth_test"),
 		SSLMode:      "disable",
 		MaxOpenConns: 10,
 		MaxIdleConns: 5,
@@ -67,9 +68,9 @@ func NewTestRedis(t *testing.T) *TestRedis {
 	}
 
 	config := &config.RedisConfig{
-		Host:         getEnvOrDefault("TEST_REDIS_HOST", "localhost"),
+		Host:         GetEnvOrDefault("TEST_REDIS_HOST", "localhost"),
 		Port:         6379,
-		Password:     getEnvOrDefault("TEST_REDIS_PASSWORD", ""),
+		Password:     GetEnvOrDefault("TEST_REDIS_PASSWORD", ""),
 		Database:     getTestRedisDB(),
 		PoolSize:     10,
 		MinIdleConns: 5,
@@ -175,7 +176,7 @@ func (td *TestDatabase) CreateTestActivity(ctx context.Context, orgID, userID uu
 		OrganizationID: orgID,
 		Type:           activityType,
 		Status:         "PENDING",
-		Parameters:     `{"test": "data"}`,
+		Parameters:     json.RawMessage(`{"test": "data"}`),
 		Intent: models.ActivityIntent{
 			Fingerprint: "test-fingerprint",
 			Summary:     "Test activity",
@@ -388,7 +389,7 @@ func SkipIfNotE2E(t *testing.T) {
 }
 
 // Helper functions
-func getEnvOrDefault(key, defaultValue string) string {
+func GetEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
@@ -415,6 +416,21 @@ func generateTestAddress(index int) string {
 		"1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2",
 	}
 	return addresses[index%len(addresses)]
+}
+
+// StringPtr returns a pointer to the given string
+func StringPtr(s string) *string {
+	return &s
+}
+
+// int32Ptr returns a pointer to the given int32
+func int32Ptr(i int32) *int32 {
+	return &i
+}
+
+// boolPtr returns a pointer to the given bool
+func boolPtr(b bool) *bool {
+	return &b
 }
 
 // Database migration helpers for tests

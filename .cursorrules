@@ -1,0 +1,42 @@
+# Turnkey API Integration Rules for Cursor
+
+## Documentation Sources
+- Full API Reference: docs/turnkey/llms-full.txt
+- Concise Reference: docs/turnkey/llms.txt
+- Online Documentation: https://docs.turnkey.com/llms-full.txt
+
+## Key API Endpoints
+- POST /public/v1/submit/approve_activity - Approve an activity
+- POST /public/v1/submit/create_api_keys - Create API keys for a user
+- POST /public/v1/submit/sign_transaction - Sign a transaction
+- POST /public/v1/submit/create_authenticators - Create authenticators
+
+## Authentication Requirements
+- All requests require X-Stamp header with cryptographically signed request
+- Organization ID is required for all endpoints
+- API keypair (public/private) needed for signing requests
+
+## Common Request Structure
+```json
+{
+  "type": "ACTIVITY_TYPE_*",
+  "timestampMs": "timestamp_in_milliseconds",
+  "organizationId": "your_organization_id",
+  "parameters": {
+    // endpoint-specific parameters
+  }
+}
+```
+
+## Activity Types
+- ACTIVITY_TYPE_APPROVE_ACTIVITY
+- ACTIVITY_TYPE_CREATE_API_KEYS_V2
+- ACTIVITY_TYPE_SIGN_TRANSACTION_V2
+- ACTIVITY_TYPE_CREATE_AUTHENTICATORS
+
+## When working with Turnkey API:
+1. Always include proper authentication headers
+2. Use correct activity types
+3. Include timestamp in milliseconds
+4. Reference the full documentation for specific endpoint details
+5. Handle responses according to Turnkey's response format

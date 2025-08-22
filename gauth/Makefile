@@ -75,6 +75,10 @@ test-integration: ## Run integration tests
 	@echo "Running integration tests..."
 	INTEGRATION_TESTS=true go test -v -race -timeout=5m ./test/integration/...
 
+test-rest: ## Run REST API tests
+	@echo "Running REST API integration tests..."
+	INTEGRATION_TESTS=true go test -v -race -timeout=5m ./test/integration/ -run TestRESTIntegrationSuite
+
 test-e2e: ## Run end-to-end tests
 	@echo "Running E2E tests..."
 	E2E_TESTS=true go test -v -timeout=10m ./test/e2e/...

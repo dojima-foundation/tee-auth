@@ -21,7 +21,7 @@ services:
       - SYS_PTRACE # Process tracing (for debugging)
     devices:
       - /dev/kvm # KVM acceleration (if available)
-    command: /app/scripts/test-comprehensive.sh
+    command: /app/scripts/start-services.sh
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
       interval: 30s
@@ -79,7 +79,7 @@ services:
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
-    command: /app/scripts/setup-tap.sh
+    command: /app/scripts/start-services.sh
     profiles:
       - network-test
 

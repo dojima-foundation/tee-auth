@@ -253,13 +253,18 @@ func convertActivityToProto(activity *models.Activity) *pb.Activity {
 		return nil
 	}
 
+	result := ""
+	if activity.Result != nil {
+		result = string(activity.Result)
+	}
+
 	return &pb.Activity{
 		Id:             activity.ID.String(),
 		OrganizationId: activity.OrganizationID.String(),
 		Type:           activity.Type,
 		Status:         activity.Status,
-		Parameters:     activity.Parameters,
-		Result:         &activity.Result,
+		Parameters:     string(activity.Parameters),
+		Result:         &result,
 		Intent:         convertActivityIntentToProto(&activity.Intent),
 		CreatedBy:      activity.CreatedBy.String(),
 		CreatedAt:      timestamppb.New(activity.CreatedAt),

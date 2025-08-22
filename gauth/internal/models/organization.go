@@ -134,16 +134,16 @@ type WalletAccount struct {
 
 // Activity represents critical operations within the system
 type Activity struct {
-	ID             uuid.UUID      `json:"id" db:"id" gorm:"type:uuid;primary_key"`
-	OrganizationID uuid.UUID      `json:"organizationId" db:"organization_id" gorm:"type:uuid;not null"`
-	Type           string         `json:"type" db:"type" gorm:"not null"`
-	Status         string         `json:"status" db:"status" gorm:"not null"` // PENDING, COMPLETED, FAILED
-	Parameters     string         `json:"parameters" db:"parameters" gorm:"type:jsonb"`
-	Result         string         `json:"result,omitempty" db:"result" gorm:"type:jsonb"`
-	Intent         ActivityIntent `json:"intent" db:"-" gorm:"embedded;embeddedPrefix:intent_"`
-	CreatedBy      uuid.UUID      `json:"createdBy" db:"created_by" gorm:"type:uuid;not null"`
-	CreatedAt      time.Time      `json:"createdAt" db:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt      time.Time      `json:"updatedAt" db:"updated_at" gorm:"autoUpdateTime"`
+	ID             uuid.UUID       `json:"id" db:"id" gorm:"type:uuid;primary_key"`
+	OrganizationID uuid.UUID       `json:"organizationId" db:"organization_id" gorm:"type:uuid;not null"`
+	Type           string          `json:"type" db:"type" gorm:"not null"`
+	Status         string          `json:"status" db:"status" gorm:"not null"` // PENDING, COMPLETED, FAILED
+	Parameters     json.RawMessage `json:"parameters" db:"parameters" gorm:"type:jsonb"`
+	Result         json.RawMessage `json:"result,omitempty" db:"result" gorm:"type:jsonb"`
+	Intent         ActivityIntent  `json:"intent" db:"-" gorm:"embedded;embeddedPrefix:intent_"`
+	CreatedBy      uuid.UUID       `json:"createdBy" db:"created_by" gorm:"type:uuid;not null"`
+	CreatedAt      time.Time       `json:"createdAt" db:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt      time.Time       `json:"updatedAt" db:"updated_at" gorm:"autoUpdateTime"`
 }
 
 // ActivityIntent represents the parsed intent of an activity request
