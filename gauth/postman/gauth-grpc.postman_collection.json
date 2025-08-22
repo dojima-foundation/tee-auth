@@ -225,7 +225,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"username\": \"{{test_username}}\",\n  \"email\": \"{{test_user_email}}\",\n  \"public_key\": \"{{test_user_public_key}}\",\n  \"tags\": [\"developer\", \"admin\"]\n}",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"username\": \"{{test_username}}\",\n  \"email\": \"{{test_user_email}}\",\n  \"tags\": [\"developer\", \"admin\"]\n  // \"public_key\": \"{{test_user_public_key}}\" // Optional field\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -244,7 +244,7 @@
                                 "CreateUser"
                             ]
                         },
-                        "description": "Create a new user in an organization"
+                        "description": "Create a new user in an organization (public key is optional)"
                     },
                     "response": []
                 },
