@@ -228,8 +228,16 @@ INTEGRATION_TESTS=true make test-integration
 
 #### End-to-End Tests
 ```bash
-# Requires running gauth service
+# Wallet workflow E2E tests (self-contained, no external dependencies)
+E2E_TESTS=true make test-e2e-wallet
+
+# Full E2E tests (requires external services - Docker containers)
 E2E_TESTS=true make test-e2e
+
+# Note: Full E2E tests require:
+# - Docker containers for renclave-v2 service
+# - External PostgreSQL and Redis instances
+# - E2E_START_SERVICES=true environment variable
 ```
 
 #### Full Test Suite
@@ -244,6 +252,8 @@ make test-coverage-open # Coverage with browser
 - **RenclaveClient**: 92.6% coverage ✅
 - **Service Layer**: 23.5% (improving)
 - **Overall Coverage**: 11.8% (with comprehensive integration tests)
+- **E2E Tests**: Wallet workflow tests passing ✅ (0.54s runtime)
+- **Integration Tests**: All tests passing ✅ (7.6s runtime)
 
 ### Test Architecture
 
@@ -252,7 +262,9 @@ Unit Tests ──► Fast, isolated, mocked dependencies
      │
      ├─► Integration Tests ──► Real databases, real network calls
      │
-     └─► E2E Tests ──► Complete service integration
+     ├─► E2E Tests (Wallet Workflow) ──► Self-contained service integration
+     │
+     └─► E2E Tests (Full System) ──► External services, Docker containers
 ```
 
 ### Test Helpers and Utilities
