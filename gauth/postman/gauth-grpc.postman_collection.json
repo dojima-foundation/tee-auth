@@ -1,8 +1,8 @@
 {
     "info": {
-        "_postman_id": "gauth-rest-api-collection",
-        "name": "GAuth REST API",
-        "description": "Complete REST API collection for the GAuth service - HTTP endpoints that communicate with gRPC internally. Includes all organization, user, wallet, private key, activity, and authentication endpoints.",
+        "_postman_id": "gauth-grpc-collection",
+        "name": "GAuth gRPC API",
+        "description": "Complete gRPC API collection for the GAuth service. Includes all organization, user, wallet, private key, activity, seed management, and authentication endpoints.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
@@ -12,22 +12,23 @@
                 {
                     "name": "Health Check",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/health",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/Health",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "health"
+                                "gauth.v1.GAuthService",
+                                "Health"
                             ]
                         },
                         "description": "Check the health status of the service"
@@ -37,22 +38,23 @@
                 {
                     "name": "Service Status",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/status",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/Status",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "status"
+                                "gauth.v1.GAuthService",
+                                "Status"
                             ]
                         },
                         "description": "Get detailed service status information"
@@ -72,7 +74,7 @@
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
@@ -85,14 +87,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/organizations",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/CreateOrganization",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "organizations"
+                                "gauth.v1.GAuthService",
+                                "CreateOrganization"
                             ]
                         },
                         "description": "Create a new organization with initial user"
@@ -102,23 +105,32 @@
                 {
                     "name": "Get Organization",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": \"{{organization_id}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/organizations/{{organization_id}}",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/GetOrganization",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "organizations",
-                                "{{organization_id}}"
+                                "gauth.v1.GAuthService",
+                                "GetOrganization"
                             ]
                         },
                         "description": "Get organization details by ID"
@@ -128,16 +140,16 @@
                 {
                     "name": "Update Organization",
                     "request": {
-                        "method": "PUT",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"{{updated_organization_name}}\"\n}",
+                            "raw": "{\n  \"id\": \"{{organization_id}}\",\n  \"name\": \"{{updated_organization_name}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -145,15 +157,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/organizations/{{organization_id}}",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/UpdateOrganization",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "organizations",
-                                "{{organization_id}}"
+                                "gauth.v1.GAuthService",
+                                "UpdateOrganization"
                             ]
                         },
                         "description": "Update organization details"
@@ -163,32 +175,32 @@
                 {
                     "name": "List Organizations",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/organizations?page_size=10&page_token={{page_token}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "organizations"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page_size",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "page_token",
-                                    "value": "{{page_token}}"
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"page_size\": 10,\n  \"page_token\": \"{{page_token}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
                                 }
+                            }
+                        },
+                        "url": {
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/ListOrganizations",
+                            "protocol": "grpc",
+                            "host": [
+                                "{{grpc_host}}"
+                            ],
+                            "port": "{{grpc_port}}",
+                            "path": [
+                                "gauth.v1.GAuthService",
+                                "ListOrganizations"
                             ]
                         },
                         "description": "List all organizations with pagination"
@@ -208,7 +220,7 @@
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
@@ -221,14 +233,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/users",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/CreateUser",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "users"
+                                "gauth.v1.GAuthService",
+                                "CreateUser"
                             ]
                         },
                         "description": "Create a new user in an organization"
@@ -238,23 +251,32 @@
                 {
                     "name": "Get User",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": \"{{user_id}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/GetUser",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "users",
-                                "{{user_id}}"
+                                "gauth.v1.GAuthService",
+                                "GetUser"
                             ]
                         },
                         "description": "Get user details by ID"
@@ -264,16 +286,16 @@
                 {
                     "name": "Update User",
                     "request": {
-                        "method": "PUT",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"username\": \"{{updated_username}}\",\n  \"email\": \"{{updated_email}}\",\n  \"tags\": [\"updated\", \"developer\"],\n  \"is_active\": true\n}",
+                            "raw": "{\n  \"id\": \"{{user_id}}\",\n  \"username\": \"{{updated_username}}\",\n  \"email\": \"{{updated_email}}\",\n  \"tags\": [\"updated\", \"developer\"],\n  \"is_active\": true\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -281,15 +303,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/UpdateUser",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "users",
-                                "{{user_id}}"
+                                "gauth.v1.GAuthService",
+                                "UpdateUser"
                             ]
                         },
                         "description": "Update user details"
@@ -299,36 +321,32 @@
                 {
                     "name": "List Users",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/users?organization_id={{organization_id}}&page_size=10&page_token={{page_token}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "users"
-                            ],
-                            "query": [
-                                {
-                                    "key": "organization_id",
-                                    "value": "{{organization_id}}"
-                                },
-                                {
-                                    "key": "page_size",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "page_token",
-                                    "value": "{{page_token}}"
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"page_size\": 10,\n  \"page_token\": \"{{page_token}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
                                 }
+                            }
+                        },
+                        "url": {
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/ListUsers",
+                            "protocol": "grpc",
+                            "host": [
+                                "{{grpc_host}}"
+                            ],
+                            "port": "{{grpc_port}}",
+                            "path": [
+                                "gauth.v1.GAuthService",
+                                "ListUsers"
                             ]
                         },
                         "description": "List users in an organization with pagination"
@@ -348,7 +366,7 @@
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
@@ -361,14 +379,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/wallets",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/CreateWallet",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "wallets"
+                                "gauth.v1.GAuthService",
+                                "CreateWallet"
                             ]
                         },
                         "description": "Create a new wallet with accounts"
@@ -378,23 +397,32 @@
                 {
                     "name": "Get Wallet",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": \"{{wallet_id}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/wallets/{{wallet_id}}",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/GetWallet",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "wallets",
-                                "{{wallet_id}}"
+                                "gauth.v1.GAuthService",
+                                "GetWallet"
                             ]
                         },
                         "description": "Get wallet details by ID"
@@ -404,36 +432,32 @@
                 {
                     "name": "List Wallets",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/wallets?organization_id={{organization_id}}&page_size=10&page_token={{page_token}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "wallets"
-                            ],
-                            "query": [
-                                {
-                                    "key": "organization_id",
-                                    "value": "{{organization_id}}"
-                                },
-                                {
-                                    "key": "page_size",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "page_token",
-                                    "value": "{{page_token}}"
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"page_size\": 10,\n  \"page_token\": \"{{page_token}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
                                 }
+                            }
+                        },
+                        "url": {
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/ListWallets",
+                            "protocol": "grpc",
+                            "host": [
+                                "{{grpc_host}}"
+                            ],
+                            "port": "{{grpc_port}}",
+                            "path": [
+                                "gauth.v1.GAuthService",
+                                "ListWallets"
                             ]
                         },
                         "description": "List wallets in an organization with pagination"
@@ -443,16 +467,16 @@
                 {
                     "name": "Delete Wallet",
                     "request": {
-                        "method": "DELETE",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"delete_without_export\": true\n}",
+                            "raw": "{\n  \"id\": \"{{wallet_id}}\",\n  \"delete_without_export\": true\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -460,15 +484,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/wallets/{{wallet_id}}",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/DeleteWallet",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "wallets",
-                                "{{wallet_id}}"
+                                "gauth.v1.GAuthService",
+                                "DeleteWallet"
                             ]
                         },
                         "description": "Delete a wallet (with option to export first)"
@@ -488,7 +512,7 @@
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
@@ -501,14 +525,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/private-keys",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/CreatePrivateKey",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "private-keys"
+                                "gauth.v1.GAuthService",
+                                "CreatePrivateKey"
                             ]
                         },
                         "description": "Create a new private key"
@@ -518,23 +543,32 @@
                 {
                     "name": "Get Private Key",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": \"{{private_key_id}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/private-keys/{{private_key_id}}",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/GetPrivateKey",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "private-keys",
-                                "{{private_key_id}}"
+                                "gauth.v1.GAuthService",
+                                "GetPrivateKey"
                             ]
                         },
                         "description": "Get private key details by ID"
@@ -544,36 +578,32 @@
                 {
                     "name": "List Private Keys",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/private-keys?organization_id={{organization_id}}&page_size=10&page_token={{page_token}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "private-keys"
-                            ],
-                            "query": [
-                                {
-                                    "key": "organization_id",
-                                    "value": "{{organization_id}}"
-                                },
-                                {
-                                    "key": "page_size",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "page_token",
-                                    "value": "{{page_token}}"
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"page_size\": 10,\n  \"page_token\": \"{{page_token}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
                                 }
+                            }
+                        },
+                        "url": {
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/ListPrivateKeys",
+                            "protocol": "grpc",
+                            "host": [
+                                "{{grpc_host}}"
+                            ],
+                            "port": "{{grpc_port}}",
+                            "path": [
+                                "gauth.v1.GAuthService",
+                                "ListPrivateKeys"
                             ]
                         },
                         "description": "List private keys in an organization with pagination"
@@ -583,16 +613,16 @@
                 {
                     "name": "Delete Private Key",
                     "request": {
-                        "method": "DELETE",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"delete_without_export\": true\n}",
+                            "raw": "{\n  \"id\": \"{{private_key_id}}\",\n  \"delete_without_export\": true\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -600,15 +630,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/private-keys/{{private_key_id}}",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/DeletePrivateKey",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "private-keys",
-                                "{{private_key_id}}"
+                                "gauth.v1.GAuthService",
+                                "DeletePrivateKey"
                             ]
                         },
                         "description": "Delete a private key (with option to export first)"
@@ -628,7 +658,7 @@
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
@@ -641,14 +671,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/activities",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/CreateActivity",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "activities"
+                                "gauth.v1.GAuthService",
+                                "CreateActivity"
                             ]
                         },
                         "description": "Create a new activity (critical operation)"
@@ -658,23 +689,32 @@
                 {
                     "name": "Get Activity",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": \"{{activity_id}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/activities/{{activity_id}}",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/GetActivity",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "activities",
-                                "{{activity_id}}"
+                                "gauth.v1.GAuthService",
+                                "GetActivity"
                             ]
                         },
                         "description": "Get activity details by ID"
@@ -684,44 +724,32 @@
                 {
                     "name": "List Activities",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/activities?organization_id={{organization_id}}&type={{activity_type}}&status={{activity_status}}&page_size=10&page_token={{page_token}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "activities"
-                            ],
-                            "query": [
-                                {
-                                    "key": "organization_id",
-                                    "value": "{{organization_id}}"
-                                },
-                                {
-                                    "key": "type",
-                                    "value": "{{activity_type}}"
-                                },
-                                {
-                                    "key": "status",
-                                    "value": "{{activity_status}}"
-                                },
-                                {
-                                    "key": "page_size",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "page_token",
-                                    "value": "{{page_token}}"
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"type\": \"{{activity_type}}\",\n  \"status\": \"{{activity_status}}\",\n  \"page_size\": 10,\n  \"page_token\": \"{{page_token}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
                                 }
+                            }
+                        },
+                        "url": {
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/ListActivities",
+                            "protocol": "grpc",
+                            "host": [
+                                "{{grpc_host}}"
+                            ],
+                            "port": "{{grpc_port}}",
+                            "path": [
+                                "gauth.v1.GAuthService",
+                                "ListActivities"
                             ]
                         },
                         "description": "List activities in an organization with filtering and pagination"
@@ -741,7 +769,7 @@
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
@@ -754,15 +782,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/seeds/generate",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/RequestSeedGeneration",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "seeds",
-                                "generate"
+                                "gauth.v1.GAuthService",
+                                "RequestSeedGeneration"
                             ]
                         },
                         "description": "Request seed phrase generation from renclave-v2"
@@ -776,7 +804,7 @@
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
@@ -789,15 +817,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/seeds/validate",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/ValidateSeed",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "seeds",
-                                "validate"
+                                "gauth.v1.GAuthService",
+                                "ValidateSeed"
                             ]
                         },
                         "description": "Validate a seed phrase"
@@ -807,23 +835,23 @@
                 {
                     "name": "Get Enclave Info",
                     "request": {
-                        "method": "GET",
+                        "method": "POST",
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/enclave/info",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/GetEnclaveInfo",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "enclave",
-                                "info"
+                                "gauth.v1.GAuthService",
+                                "GetEnclaveInfo"
                             ]
                         },
                         "description": "Get information about the renclave-v2 service"
@@ -843,7 +871,7 @@
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
@@ -856,15 +884,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/auth/authenticate",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/Authenticate",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "auth",
-                                "authenticate"
+                                "gauth.v1.GAuthService",
+                                "Authenticate"
                             ]
                         },
                         "description": "Authenticate a user with signature"
@@ -878,7 +906,7 @@
                         "header": [
                             {
                                 "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "application/grpc"
                             }
                         ],
                         "body": {
@@ -891,15 +919,15 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/auth/authorize",
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/Authorize",
+                            "protocol": "grpc",
                             "host": [
-                                "{{base_url}}"
+                                "{{grpc_host}}"
                             ],
+                            "port": "{{grpc_port}}",
                             "path": [
-                                "api",
-                                "v1",
-                                "auth",
-                                "authorize"
+                                "gauth.v1.GAuthService",
+                                "Authorize"
                             ]
                         },
                         "description": "Authorize an activity with session token"
@@ -912,8 +940,13 @@
     ],
     "variable": [
         {
-            "key": "base_url",
-            "value": "http://localhost:8082",
+            "key": "grpc_host",
+            "value": "localhost",
+            "type": "string"
+        },
+        {
+            "key": "grpc_port",
+            "value": "9091",
             "type": "string"
         },
         {
