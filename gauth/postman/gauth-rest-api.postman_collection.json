@@ -77,7 +77,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"{{test_organization_name}}\",\n  \"initial_user_email\": \"{{test_user_email}}\",\n  \"initial_user_public_key\": \"{{test_user_public_key}}\"\n}",
+                            "raw": "{\n  \"name\": \"{{test_organization_name}}\",\n  \"initial_user_email\": \"{{test_user_email}}\"\n  // \"initial_user_public_key\": \"{{test_user_public_key}}\" // Optional field\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -95,7 +95,7 @@
                                 "organizations"
                             ]
                         },
-                        "description": "Create a new organization with initial user"
+                        "description": "Create a new organization with initial user (public key is optional)"
                     },
                     "response": []
                 },
