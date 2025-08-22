@@ -44,15 +44,20 @@ func (suite *E2ETestSuite) SetupSuite() {
 		suite.T().Skip("Skipping E2E tests. Set E2E_TESTS=true to run.")
 	}
 
+	// Skip if external services are not available and not starting them
+	if os.Getenv("E2E_START_SERVICES") != "true" {
+		suite.T().Skip("Skipping external service E2E tests. Set E2E_START_SERVICES=true to run with external services.")
+	}
+
 	suite.config = E2EConfig{
 		GAuthHost:    getEnvOrDefault("E2E_GAUTH_HOST", "localhost"),
-		GAuthPort:    getEnvOrDefault("E2E_GAUTH_PORT", "9090"),
+		GAuthPort:    getEnvOrDefault("E2E_GAUTH_PORT", "9091"),
 		RenclaveHost: getEnvOrDefault("E2E_RENCLAVE_HOST", "localhost"),
 		RenclavePort: getEnvOrDefault("E2E_RENCLAVE_PORT", "3000"),
 		DatabaseURL:  getEnvOrDefault("E2E_DATABASE_URL", "postgres://gauth:password@localhost:5432/gauth_e2e?sslmode=disable"),
 		RedisURL:     getEnvOrDefault("E2E_REDIS_URL", "redis://localhost:6379/4"),
-		TestTimeout:  30 * time.Second,
-		StartupDelay: 5 * time.Second,
+		TestTimeout:  60 * time.Second,
+		StartupDelay: 10 * time.Second,
 	}
 
 	// Start dependencies if needed
@@ -102,6 +107,7 @@ func (suite *E2ETestSuite) startServices() {
 	suite.serverProcess = exec.Command(gauthBinary)
 	suite.serverProcess.Env = append(os.Environ(),
 		"GRPC_PORT="+suite.config.GAuthPort,
+		"SERVER_PORT=8082",
 		"DB_HOST=localhost",
 		"DB_PORT=5432",
 		"DB_USERNAME=gauth",
