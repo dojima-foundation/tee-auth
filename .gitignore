@@ -10,7 +10,6 @@ coverage/
 *.out
 
 # Go binaries and executables
-gauth
 server
 *.exe
 *.exe~
