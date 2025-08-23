@@ -1,0 +1,256 @@
+{
+    "info": {
+        "_postman_id": "renclave-v2-api-collection",
+        "name": "Renclave-v2 API",
+        "description": "Complete API collection for the Renclave-v2 secure enclave service. Includes seed generation, validation, and enclave information endpoints.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Health Check",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "url": {
+                    "raw": "{{renclave_base_url}}/health",
+                    "host": ["{{renclave_base_url}}"],
+                    "path": ["health"]
+                },
+                "description": "Check the health status of the renclave-v2 service"
+            },
+            "response": []
+        },
+        {
+            "name": "Get Enclave Info",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "url": {
+                    "raw": "{{renclave_base_url}}/info",
+                    "host": ["{{renclave_base_url}}"],
+                    "path": ["info"]
+                },
+                "description": "Get information about the enclave including version, enclave ID, and capabilities"
+            },
+            "response": []
+        },
+        {
+            "name": "Generate Seed",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"strength\": 256,\n  \"passphrase\": \"optional-passphrase\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{renclave_base_url}}/generate-seed",
+                    "host": ["{{renclave_base_url}}"],
+                    "path": ["generate-seed"]
+                },
+                "description": "Generate a secure seed phrase with specified strength (128 or 256 bits)"
+            },
+            "response": []
+        },
+        {
+            "name": "Generate Seed (128-bit)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"strength\": 128\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{renclave_base_url}}/generate-seed",
+                    "host": ["{{renclave_base_url}}"],
+                    "path": ["generate-seed"]
+                },
+                "description": "Generate a 128-bit seed phrase (12 words)"
+            },
+            "response": []
+        },
+        {
+            "name": "Generate Seed (256-bit)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"strength\": 256\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{renclave_base_url}}/generate-seed",
+                    "host": ["{{renclave_base_url}}"],
+                    "path": ["generate-seed"]
+                },
+                "description": "Generate a 256-bit seed phrase (24 words)"
+            },
+            "response": []
+        },
+        {
+            "name": "Validate Seed",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{renclave_base_url}}/validate-seed",
+                    "host": ["{{renclave_base_url}}"],
+                    "path": ["validate-seed"]
+                },
+                "description": "Validate a seed phrase and return validation results"
+            },
+            "response": []
+        },
+        {
+            "name": "Validate Seed (Invalid)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"seed_phrase\": \"invalid seed phrase with wrong number of words\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{renclave_base_url}}/validate-seed",
+                    "host": ["{{renclave_base_url}}"],
+                    "path": ["validate-seed"]
+                },
+                "description": "Test seed validation with an invalid seed phrase"
+            },
+            "response": []
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// Set default headers for all requests",
+                    "pm.request.headers.add({",
+                    "    key: 'User-Agent',",
+                    "    value: 'PostmanRuntime/7.45.0'",
+                    "});"
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// Common test script for all requests",
+                    "pm.test(\"Status code is 200\", function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "",
+                    "pm.test(\"Response time is less than 5000ms\", function () {",
+                    "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                    "});",
+                    "",
+                    "pm.test(\"Content-Type is application/json\", function () {",
+                    "    pm.response.to.have.header(\"Content-Type\");",
+                    "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                    "});"
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "renclave_base_url",
+            "value": "http://localhost:3000",
+            "type": "string"
+        },
+        {
+            "key": "test_seed_phrase",
+            "value": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            "type": "string"
+        }
+    ]
+}

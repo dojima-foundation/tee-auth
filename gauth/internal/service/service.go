@@ -21,6 +21,7 @@ type GAuthService struct {
 	db       db.DatabaseInterface
 	redis    db.RedisInterface
 	renclave *RenclaveClient
+	startTime time.Time
 }
 
 // NewGAuthService creates a new GAuthService instance
@@ -33,11 +34,12 @@ func NewGAuthService(
 	renclave := NewRenclaveClient(cfg.GetRenclaveAddr(), cfg.Renclave.Timeout)
 
 	return &GAuthService{
-		config:   cfg,
-		logger:   logger,
-		db:       database,
-		redis:    redis,
-		renclave: renclave,
+		config:    cfg,
+		logger:    logger,
+		db:        database,
+		redis:     redis,
+		renclave:  renclave,
+		startTime: time.Now(),
 	}
 }
 
