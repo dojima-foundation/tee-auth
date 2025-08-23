@@ -764,9 +764,11 @@ func (s *GAuthService) ListWallets(ctx context.Context, organizationID string, p
 
 	var nextToken string
 	if len(wallets) > pageSize {
+		// There are more items available, set nextToken to the last item of current page
 		nextToken = wallets[pageSize-1].ID.String()
 		wallets = wallets[:pageSize]
 	}
+	// If len(wallets) <= pageSize, nextToken remains empty string (no more pages)
 
 	return wallets, nextToken, nil
 }
