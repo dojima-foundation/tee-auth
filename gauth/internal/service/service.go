@@ -749,6 +749,10 @@ func (s *GAuthService) ListWallets(ctx context.Context, organizationID string, p
 
 	// Handle pagination
 	if pageToken != "" {
+		// Validate pageToken as UUID
+		if _, err := uuid.Parse(pageToken); err != nil {
+			return nil, "", fmt.Errorf("invalid page token: %w", err)
+		}
 		query = query.Where("id > ?", pageToken)
 	}
 
@@ -866,6 +870,10 @@ func (s *GAuthService) ListPrivateKeys(ctx context.Context, organizationID strin
 
 	// Handle pagination
 	if pageToken != "" {
+		// Validate pageToken as UUID
+		if _, err := uuid.Parse(pageToken); err != nil {
+			return nil, "", fmt.Errorf("invalid page token: %w", err)
+		}
 		query = query.Where("id > ?", pageToken)
 	}
 
