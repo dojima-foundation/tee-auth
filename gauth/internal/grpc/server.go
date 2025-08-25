@@ -479,9 +479,9 @@ func (s *Server) DeleteWallet(ctx context.Context, req *pb.DeleteWalletRequest) 
 // Private key management methods
 
 func (s *Server) CreatePrivateKey(ctx context.Context, req *pb.CreatePrivateKeyRequest) (*pb.CreatePrivateKeyResponse, error) {
-	s.logger.Info("CreatePrivateKey gRPC request received", "organization_id", req.OrganizationId, "name", req.Name)
+	s.logger.Info("CreatePrivateKey gRPC request received", "organization_id", req.OrganizationId, "wallet_id", req.WalletId, "name", req.Name)
 
-	privateKey, err := s.service.CreatePrivateKey(ctx, req.OrganizationId, req.Name, req.Curve, req.PrivateKeyMaterial, req.Tags)
+	privateKey, err := s.service.CreatePrivateKey(ctx, req.OrganizationId, req.WalletId, req.Name, req.Curve, req.PrivateKeyMaterial, req.Tags)
 	if err != nil {
 		s.logger.Error("Failed to create private key", "error", err)
 		return nil, status.Errorf(codes.Internal, "failed to create private key: %v", err)

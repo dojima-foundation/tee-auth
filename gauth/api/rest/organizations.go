@@ -47,8 +47,14 @@ func (s *Server) handleCreateOrganization(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, successResponse(gin.H{
-		"organization": convertProtoOrganizationToREST(resp.Organization),
+		"organization": ConvertProtoOrganizationToREST(resp.Organization),
 		"status":       resp.Status,
+		"user_id": func() string {
+			if len(resp.Organization.Users) > 0 {
+				return resp.Organization.Users[0].Id
+			}
+			return ""
+		}(),
 	}))
 }
 
@@ -73,7 +79,7 @@ func (s *Server) handleGetOrganization(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, successResponse(gin.H{
-		"organization": convertProtoOrganizationToREST(resp.Organization),
+		"organization": ConvertProtoOrganizationToREST(resp.Organization),
 	}))
 }
 
@@ -106,7 +112,7 @@ func (s *Server) handleUpdateOrganization(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, successResponse(gin.H{
-		"organization": convertProtoOrganizationToREST(resp.Organization),
+		"organization": ConvertProtoOrganizationToREST(resp.Organization),
 	}))
 }
 
@@ -138,7 +144,7 @@ func (s *Server) handleListOrganizations(c *gin.Context) {
 	// Convert organizations
 	organizations := make([]interface{}, len(resp.Organizations))
 	for i, org := range resp.Organizations {
-		organizations[i] = convertProtoOrganizationToREST(org)
+		organizations[i] = ConvertProtoOrganizationToREST(org)
 	}
 
 	c.JSON(http.StatusOK, successResponse(gin.H{
@@ -147,8 +153,8 @@ func (s *Server) handleListOrganizations(c *gin.Context) {
 	}))
 }
 
-// convertProtoOrganizationToREST converts a protobuf organization to REST format
-func convertProtoOrganizationToREST(org *pb.Organization) map[string]interface{} {
+// ConvertProtoOrganizationToREST converts a protobuf organization to REST format
+func ConvertProtoOrganizationToREST(org *pb.Organization) map[string]interface{} {
 	result := map[string]interface{}{
 		"id":      org.Id,
 		"version": org.Version,
@@ -167,6 +173,29 @@ func convertProtoOrganizationToREST(org *pb.Organization) map[string]interface{}
 		result["root_quorum"] = map[string]interface{}{
 			"threshold": org.RootQuorum.Threshold,
 		}
+	}
+
+	// Include users if present
+	if len(org.Users) > 0 {
+		users := make([]map[string]interface{}, len(org.Users))
+		for i, user := range org.Users {
+			users[i] = map[string]interface{}{
+				"id":              user.Id,
+				"organization_id": user.OrganizationId,
+				"username":        user.Username,
+				"email":           user.Email,
+				"public_key":      user.PublicKey,
+				"tags":            user.Tags,
+				"is_active":       user.IsActive,
+			}
+			if user.CreatedAt != nil {
+				users[i]["created_at"] = user.CreatedAt.AsTime()
+			}
+			if user.UpdatedAt != nil {
+				users[i]["updated_at"] = user.UpdatedAt.AsTime()
+			}
+		}
+		result["users"] = users
 	}
 
 	return result

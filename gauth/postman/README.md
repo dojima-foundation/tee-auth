@@ -1,12 +1,15 @@
 # 🚀 GAuth Service Postman Collections
 
-This directory contains comprehensive Postman collections for testing the GAuth service API, including both HTTP REST endpoints and gRPC endpoints.
+This directory contains comprehensive Postman collections for testing the GAuth service API and the Renclave-v2 secure enclave service, including both HTTP REST endpoints and gRPC endpoints.
 
 ## 📁 Files Overview
 
-- **`gauth-service.postman_collection.json`** - Main HTTP REST API collection
-- **`gauth-grpc.postman_collection.json`** - gRPC API collection
-- **`gauth-service.postman_environment.json`** - Environment variables
+- **`gauth-rest-api.postman_collection.json`** - GAuth HTTP REST API collection
+- **`gauth-grpc.postman_collection.json`** - GAuth gRPC API collection
+- **`gauth-rest-api.postman_environment.json`** - GAuth REST API environment variables
+- **`gauth-grpc.postman_environment.json`** - GAuth gRPC API environment variables
+- **`renclave-v2-api.postman_collection.json`** - Renclave-v2 secure enclave API collection
+- **`renclave-v2-api.postman_environment.json`** - Renclave-v2 API environment variables
 - **`README.md`** - This documentation file
 
 ## 🎯 Quick Start
@@ -16,31 +19,41 @@ This directory contains comprehensive Postman collections for testing the GAuth 
 1. Open Postman
 2. Click **Import** button
 3. Import the following files:
-   - `gauth-service.postman_collection.json`
+   - `gauth-rest-api.postman_collection.json`
    - `gauth-grpc.postman_collection.json`
-   - `gauth-service.postman_environment.json`
+   - `renclave-v2-api.postman_collection.json`
+   - `gauth-rest-api.postman_environment.json`
+   - `gauth-grpc.postman_environment.json`
+   - `renclave-v2-api.postman_environment.json`
 
 ### 2. Set Up Environment
 
-1. Select the **"GAuth Service Environment"** from the environment dropdown
-2. Verify the base URL is set to your service endpoint (default: `http://localhost:8080`)
-3. For gRPC testing, verify the gRPC URL is set (default: `localhost:9090`)
+1. Select the appropriate environment from the environment dropdown:
+   - **"GAuth REST API Environment"** for REST API testing
+   - **"GAuth gRPC API Environment"** for gRPC API testing
+   - **"Renclave-v2 API Environment"** for enclave service testing
+2. Verify the base URLs are set to your service endpoints:
+   - GAuth REST: `http://localhost:8082` (default)
+   - GAuth gRPC: `localhost:9090` (default)
+   - Renclave-v2: `http://localhost:3000` (default)
 
 ### 3. Start Testing
 
-1. **Health Check**: Start with the health check endpoint to verify service is running
+1. **Health Check**: Start with the health check endpoints to verify services are running
 2. **Create Organization**: Create your first organization
 3. **Create User**: Add users to the organization
-4. **Authentication**: Test authentication flows
-5. **Seed Generation**: Test cryptographic operations
+4. **Create Wallet**: Create wallets with accounts
+5. **Create Private Keys**: Generate private keys for signing
+6. **Authentication**: Test authentication flows
+7. **Seed Generation**: Test cryptographic operations via Renclave-v2
 
 ## 📊 Collection Structure
 
-### HTTP REST API Collection
+### GAuth REST API Collection
 
 #### 🔍 Health & Status
 - **Health Check** - Verify service health and dependencies
-- **Service Status** - Get detailed service information
+- **Service Status** - Get detailed service information and metrics
 
 #### 🏢 Organizations
 - **Create Organization** - Create new organization with admin user
@@ -54,36 +67,65 @@ This directory contains comprehensive Postman collections for testing the GAuth 
 - **Update User** - Modify user information
 - **List Users** - Paginated list of users in organization
 
-#### 🔐 Authentication
-- **Authenticate User** - Get session token
-- **Authorize Action** - Verify permissions for specific actions
+#### 💰 Wallets
+- **Create Wallet** - Create new wallet with accounts
+- **Get Wallet** - Retrieve wallet details
+- **Update Wallet** - Modify wallet information
+- **List Wallets** - Paginated list of wallets in organization
+- **Delete Wallet** - Delete wallet (with export option)
+
+#### 🔑 Private Keys
+- **Create Private Key** - Create new private key in wallet
+- **Get Private Key** - Retrieve private key details
+- **Update Private Key** - Modify private key information
+- **List Private Keys** - Paginated list of private keys in organization
+- **Delete Private Key** - Delete private key (with export option)
 
 #### 📝 Activities
 - **Create Activity** - Log audit trail activities
 - **Get Activity** - Retrieve activity details
 - **List Activities** - Paginated list with filtering
 
-#### 🔑 Seed Generation
-- **Request Seed Generation** - Generate BIP39 seed phrases via TEE
-- **Validate Seed** - Validate seed phrase format and checksum
+#### 🔐 Authentication
+- **Authenticate** - Get session token with signature
+- **Authorize** - Verify permissions for specific actions
 
-#### 🛡️ TEE Integration
-- **Get Enclave Info** - TEE enclave information
-- **Enclave Health Check** - TEE health status
-
-### gRPC API Collection
+### GAuth gRPC API Collection
 
 The gRPC collection provides the same functionality as the HTTP collection but uses gRPC protocol for direct service communication.
 
+### Renclave-v2 API Collection
+
+#### 🔍 Health & Status
+- **Health Check** - Verify enclave service health
+- **Get Enclave Info** - Get service information and capabilities
+- **Enclave Info** - Get detailed enclave information
+
+#### 🌱 Seed Management
+- **Generate Seed** - Generate BIP39 seed phrases (128-256 bits)
+- **Validate Seed** - Validate seed phrase format and checksum
+
+#### 🔑 Key Derivation
+- **Derive Key** - Derive private keys from seed phrases using BIP32 paths
+
+#### 📍 Address Derivation
+- **Derive Address** - Derive public addresses from seed phrases using BIP32 paths
+
+#### 🌐 Network Management
+- **Network Status** - Get network connectivity status
+- **Test Connectivity** - Test network connectivity to specific hosts
+
 ## 🔧 Environment Variables
 
-### Core Variables
-- `base_url` - HTTP API base URL (default: `http://localhost:8080`)
-- `grpc_url` - gRPC service URL (default: `localhost:9090`)
+### GAuth REST/gRPC Variables
+- `base_url` / `grpc_host` - Service base URL (default: `http://localhost:8082` / `localhost`)
+- `grpc_port` - gRPC service port (default: `9090`)
 
 ### Dynamic Variables (Auto-populated)
 - `organization_id` - Created organization ID
 - `user_id` - Created user ID
+- `wallet_id` - Created wallet ID
+- `private_key_id` - Created private key ID
 - `activity_id` - Created activity ID
 - `session_token` - Authentication session token
 - `page_token` - Pagination token
@@ -93,15 +135,24 @@ The gRPC collection provides the same functionality as the HTTP collection but u
 - `test_organization_name` - Default organization name
 - `test_user_email` - Default user email
 - `test_user_public_key` - Default user public key
-- `test_seed_phrase` - Sample BIP39 seed phrase
-- `test_signature` - Sample signature for testing
+- `wallet_name` - Default wallet name
+- `private_key_name` - Default private key name
+- `activity_type` - Default activity type
+- `parameters` - Default activity parameters
+
+### Renclave-v2 Variables
+- `renclave_base_url` - Enclave service URL (default: `http://localhost:3000`)
+- `test_seed_phrase` - Sample BIP39 seed phrase for testing
+- `test_derivation_path` - Sample BIP32 derivation path
+- `test_curve` - Sample cryptographic curve
+- `test_passphrase` - Sample passphrase for seed generation
 
 ## 🧪 Testing Workflows
 
 ### Basic Service Testing
-1. **Health Check** → Verify service is running
+1. **Health Check** → Verify services are running
 2. **Service Status** → Check version and metrics
-3. **TEE Health** → Verify enclave connectivity
+3. **Enclave Health** → Verify enclave connectivity
 
 ### Organization Management
 1. **Create Organization** → Set up new organization
@@ -115,163 +166,23 @@ The gRPC collection provides the same functionality as the HTTP collection but u
 3. **List Users** → View organization users
 4. **Update User** → Modify user details
 
+### Wallet Management
+1. **Create Wallet** → Create wallet with accounts
+2. **Get Wallet** → Verify wallet creation
+3. **List Wallets** → View organization wallets
+4. **Create Private Key** → Generate signing keys
+5. **List Private Keys** → View available keys
+
+### Cryptographic Operations
+1. **Generate Seed** → Create new seed phrase via Renclave-v2
+2. **Validate Seed** → Verify seed phrase validity
+3. **Derive Address** → Generate addresses from seed
+4. **Derive Key** → Generate private keys from seed
+
 ### Authentication Flow
-1. **Create Organization** → Set up organization
-2. **Create User** → Add user
-3. **Authenticate User** → Get session token
-4. **Authorize Action** → Test permissions
-
-### Seed Generation Workflow
-1. **Create Organization** → Set up organization
-2. **Create User** → Add user
-3. **Authenticate User** → Get session token
-4. **Request Seed Generation** → Generate seed phrase
-5. **Validate Seed** → Verify generated seed
-
-## 🔄 Automated Testing Features
-
-### Pre-request Scripts
-- **Auto-timestamp**: Sets current timestamp for authentication
-- **Auto-UUID**: Generates UUIDs for testing if not present
-- **Environment Setup**: Prepares test data
-
-### Test Scripts
-- **Status Validation**: Verifies response codes (200/201)
-- **Content Type Check**: Ensures JSON responses
-- **Performance Check**: Validates response times
-- **ID Extraction**: Automatically stores IDs from responses
-- **Token Management**: Captures session tokens
-
-### Environment Management
-- **Dynamic Variables**: Auto-populated from responses
-- **Test Data**: Pre-configured test values
-- **State Persistence**: Maintains context across requests
-
-## 🚨 Error Handling
-
-### Common Error Scenarios
-- **Service Unavailable**: Check if service is running
-- **Authentication Failed**: Verify credentials and timestamps
-- **Invalid UUID**: Check ID format and existence
-- **Permission Denied**: Verify user permissions and session tokens
-
-### Debugging Tips
-1. Check service logs for detailed error messages
-2. Verify environment variables are set correctly
-3. Ensure database and Redis are running
-4. Check TEE enclave connectivity for seed operations
-
-## 📈 Performance Testing
-
-### Response Time Expectations
-- **Health Checks**: < 100ms
-- **CRUD Operations**: < 500ms
-- **Seed Generation**: < 2000ms (depends on TEE)
-- **List Operations**: < 1000ms
-
-### Load Testing
-- Use Postman's **Runner** feature for concurrent testing
-- Monitor response times and error rates
-- Test with various data sizes and pagination
-
-## 🔒 Security Testing
-
-### Authentication Testing
-- Test with invalid credentials
-- Verify session token expiration
-- Test authorization with different user roles
-- Validate signature verification
-
-### Input Validation
-- Test with malformed JSON
-- Verify UUID format validation
-- Test with invalid email formats
-- Validate seed phrase format
-
-## 🛠️ Setup Instructions
-
-### Prerequisites
-1. **GAuth Service Running**
-   ```bash
-   # Build and start the service
-   make build-local
-   export GRPC_PORT=9090
-   export DB_HOST=localhost
-   export REDIS_HOST=localhost
-   ./bin/gauth
-   ```
-
-2. **Database Setup**
-   ```bash
-   # PostgreSQL
-   docker run -d --name gauth-postgres \
-     -e POSTGRES_USER=gauth \
-     -e POSTGRES_PASSWORD=password \
-     -e POSTGRES_DB=gauth \
-     -p 5432:5432 postgres:15
-
-   # Redis
-   docker run -d --name gauth-redis \
-     -p 6379:6379 redis:7
-   ```
-
-3. **TEE Integration** (Optional)
-   ```bash
-   # Start renclave-v2 service for seed generation
-   docker run -d --name gauth-renclave \
-     -p 3000:3000 renclave-v2:latest
-   ```
-
-### Environment Configuration
-1. **Development**
-   - `base_url`: `http://localhost:8080`
-   - `grpc_url`: `localhost:9090`
-
-2. **Staging**
-   - `base_url`: `https://staging-gauth.example.com`
-   - `grpc_url`: `staging-gauth.example.com:9090`
-
-3. **Production**
-   - `base_url`: `https://gauth.example.com`
-   - `grpc_url`: `gauth.example.com:9090`
-
-## 📋 Testing Checklist
-
-### Service Health
-- [ ] Health check returns 200
-- [ ] Service status shows correct version
-- [ ] TEE health check passes
-- [ ] Response times are acceptable
-
-### Organization Management
-- [ ] Create organization succeeds
-- [ ] Get organization returns correct data
-- [ ] Update organization works
-- [ ] List organizations with pagination
-
-### User Management
-- [ ] Create user succeeds
-- [ ] Get user returns correct data
-- [ ] Update user works
-- [ ] List users with filtering
-
-### Authentication
-- [ ] Authentication succeeds with valid credentials
-- [ ] Session token is generated
-- [ ] Authorization works with session token
-- [ ] Invalid credentials are rejected
-
-### Seed Generation
-- [ ] Seed generation succeeds
-- [ ] Generated seed is valid BIP39
-- [ ] Seed validation works
-- [ ] Invalid seeds are rejected
-
-### Error Handling
-- [ ] Invalid UUIDs return 400
-- [ ] Missing required fields return 400
-- [ ] Unauthorized requests return 401
-- [ ] Not found resources return 404
+1. **Authenticate** → Get session token
+2. **Authorize** → Verify permissions
+3. **Create Activity** → Log audit trail
 
 ## 🔄 Continuous Integration
 
@@ -280,27 +191,50 @@ The gRPC collection provides the same functionality as the HTTP collection but u
 # Install Newman (Postman CLI)
 npm install -g newman
 
-# Run collection tests
-newman run gauth-service.postman_collection.json \
-  --environment gauth-service.postman_environment.json \
+# Run GAuth REST collection tests
+newman run gauth-rest-api.postman_collection.json \
+  --environment gauth-rest-api.postman_environment.json \
   --reporters cli,json \
   --reporter-json-export results.json
+
+# Run GAuth gRPC collection tests
+newman run gauth-grpc.postman_collection.json \
+  --environment gauth-grpc.postman_environment.json \
+  --reporters cli,json \
+  --reporter-json-export grpc-results.json
+
+# Run Renclave-v2 collection tests
+newman run renclave-v2-api.postman_collection.json \
+  --environment renclave-v2-api.postman_environment.json \
+  --reporters cli,json \
+  --reporter-json-export renclave-results.json
 ```
 
 ### GitHub Actions Integration
 ```yaml
 - name: API Tests
   run: |
-    newman run postman/gauth-service.postman_collection.json \
-      --environment postman/gauth-service.postman_environment.json \
+    newman run postman/gauth-rest-api.postman_collection.json \
+      --environment postman/gauth-rest-api.postman_environment.json \
       --reporters cli,junit \
       --reporter-junit-export test-results.xml
+    
+    newman run postman/gauth-grpc.postman_collection.json \
+      --environment postman/gauth-grpc.postman_environment.json \
+      --reporters cli,junit \
+      --reporter-junit-export grpc-test-results.xml
+    
+    newman run postman/renclave-v2-api.postman_collection.json \
+      --environment postman/renclave-v2-api.postman_environment.json \
+      --reporters cli,junit \
+      --reporter-junit-export renclave-test-results.xml
 ```
 
 ## 📚 Additional Resources
 
 - **GAuth Service Documentation**: See main project README
 - **gRPC Testing**: Use gRPC collection for direct service testing
+- **Renclave-v2 Documentation**: See renclave-v2 project README
 - **Performance Monitoring**: Monitor response times and error rates
 - **Security Testing**: Validate authentication and authorization flows
 
@@ -318,23 +252,72 @@ When adding new endpoints or modifying existing ones:
 ### Common Issues
 
 **Service Not Responding**
-- Check if service is running: `curl http://localhost:8080/health`
-- Verify port configuration
-- Check service logs
+- Check if service is running: `curl http://localhost:8082/health`
+- Check if gRPC service is running: `grpcurl -plaintext localhost:9090 list`
+- Check if Renclave-v2 is running: `curl http://localhost:3000/health`
 
-**Database Connection Issues**
-- Verify PostgreSQL is running
-- Check connection credentials
-- Ensure database exists
+**Authentication Errors**
+- Verify organization_id and user_id are set
+- Check if session tokens are valid
+- Ensure proper signature format
 
 **gRPC Connection Issues**
-- Verify gRPC service is running
-- Check port configuration
-- Ensure protobuf definitions are current
+- Verify gRPC port is correct (default: 9090)
+- Check if gRPC server is running
+- Ensure proper TLS configuration if using secure connections
 
-**TEE Integration Issues**
-- Verify renclave-v2 service is running
-- Check enclave health endpoint
-- Ensure proper network connectivity
+**Enclave Communication Issues**
+- Verify Renclave-v2 service is running
+- Check network connectivity
+- Ensure proper enclave configuration
 
-For additional support, please refer to the main project documentation or create an issue in the repository.
+### Debug Mode
+Enable debug logging in your services to get more detailed error information.
+
+## 📋 Testing Checklist
+
+### GAuth Service
+- [ ] Health check returns 200
+- [ ] Service status includes version info
+- [ ] Create organization works
+- [ ] Get organization returns correct data
+- [ ] Update organization works
+- [ ] List organizations with pagination
+- [ ] Create user succeeds
+- [ ] Get user returns correct data
+- [ ] Update user works
+- [ ] List users with filtering
+- [ ] Create wallet with accounts
+- [ ] Get wallet returns correct data
+- [ ] Update wallet works
+- [ ] List wallets with pagination
+- [ ] Create private key succeeds
+- [ ] Get private key returns correct data
+- [ ] Update private key works
+- [ ] List private keys with pagination
+- [ ] Authentication succeeds with valid credentials
+- [ ] Session token is generated
+- [ ] Authorization works with session token
+- [ ] Invalid credentials are rejected
+- [ ] Create activity succeeds
+- [ ] Get activity returns correct data
+- [ ] List activities with pagination
+
+### Renclave-v2 Service
+- [ ] Health check returns 200
+- [ ] Enclave info includes version and capabilities
+- [ ] Seed generation succeeds
+- [ ] Generated seed is valid BIP39
+- [ ] Seed validation works
+- [ ] Invalid seeds are rejected
+- [ ] Key derivation works
+- [ ] Address derivation works
+- [ ] Network status is available
+- [ ] Connectivity testing works
+
+### Error Handling
+- [ ] Invalid UUIDs return 400
+- [ ] Missing required fields return 400
+- [ ] Unauthorized requests return 401
+- [ ] Not found resources return 404
+- [ ] Server errors return 500

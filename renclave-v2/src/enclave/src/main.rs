@@ -277,12 +277,71 @@ impl NitroEnclave {
                     "bip39_compliance".to_string(),
                     "secure_entropy".to_string(),
                     "network_connectivity".to_string(),
+                    "key_derivation".to_string(),
+                    "address_derivation".to_string(),
                 ];
 
                 EnclaveResult::Info {
                     version: env!("CARGO_PKG_VERSION").to_string(),
                     enclave_id: enclave_id.to_string(),
                     capabilities,
+                }
+            }
+
+            EnclaveOperation::DeriveKey {
+                seed_phrase,
+                path,
+                curve,
+            } => {
+                info!("🔑 Deriving key (path: {}, curve: {})", path, curve);
+
+                match seed_generator.derive_key(&seed_phrase, &path, &curve).await {
+                    Ok(key_result) => {
+                        info!("✅ Key derivation successful");
+                        EnclaveResult::KeyDerived {
+                            private_key: key_result.private_key,
+                            public_key: key_result.public_key,
+                            address: key_result.address,
+                            path,
+                            curve,
+                        }
+                    }
+                    Err(e) => {
+                        error!("❌ Failed to derive key: {}", e);
+                        EnclaveResult::Error {
+                            message: format!("Key derivation failed: {}", e),
+                            code: 500,
+                        }
+                    }
+                }
+            }
+
+            EnclaveOperation::DeriveAddress {
+                seed_phrase,
+                path,
+                curve,
+            } => {
+                info!("📍 Deriving address (path: {}, curve: {})", path, curve);
+
+                match seed_generator
+                    .derive_address(&seed_phrase, &path, &curve)
+                    .await
+                {
+                    Ok(address_result) => {
+                        info!("✅ Address derivation successful");
+                        EnclaveResult::AddressDerived {
+                            address: address_result.address,
+                            path,
+                            curve,
+                        }
+                    }
+                    Err(e) => {
+                        error!("❌ Failed to derive address: {}", e);
+                        EnclaveResult::Error {
+                            message: format!("Address derivation failed: {}", e),
+                            code: 500,
+                        }
+                    }
                 }
             }
         };

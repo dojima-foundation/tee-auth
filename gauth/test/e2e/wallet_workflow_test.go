@@ -55,7 +55,7 @@ func (suite *WalletWorkflowE2ETestSuite) SetupSuite() {
 	cfg := &config.Config{
 		GRPC: config.GRPCConfig{
 			Host:                "0.0.0.0",
-			Port:                9091,
+			Port:                9093,             // Use different port to avoid conflicts
 			MaxRecvMsgSize:      10 * 1024 * 1024, // 10MB
 			MaxSendMsgSize:      10 * 1024 * 1024, // 10MB
 			ConnectionTimeout:   10 * time.Second,
@@ -69,7 +69,7 @@ func (suite *WalletWorkflowE2ETestSuite) SetupSuite() {
 	}
 
 	// Create service instance
-	suite.service = service.NewGAuthService(cfg, testLogger, suite.db.DB, suite.redis.Client)
+	suite.service = service.NewGAuthServiceWithEnclave(cfg, testLogger, suite.db.DB, suite.redis.Client, service.NewMockRenclaveClient())
 
 	// Create gRPC server
 	suite.grpcServer = grpc.NewServer(cfg, testLogger, suite.service)
@@ -88,7 +88,7 @@ func (suite *WalletWorkflowE2ETestSuite) SetupSuite() {
 	suite.restServer = rest.NewServer(cfg, testLogger)
 
 	// Connect REST server to gRPC server
-	err = suite.restServer.ConnectToGRPCForTesting("localhost:9091")
+	err = suite.restServer.ConnectToGRPCForTesting("localhost:9093")
 	require.NoError(suite.T(), err)
 
 	// Set Gin to test mode
@@ -291,6 +291,7 @@ func (suite *WalletWorkflowE2ETestSuite) TestCompleteWalletWorkflow() {
 	// SECP256K1 key for Ethereum
 	ethKeyBody := map[string]interface{}{
 		"organization_id": organizationID,
+		"wallet_id":       simpleWalletID, // Add required wallet_id
 		"name":            "Ethereum Signing Key",
 		"curve":           "CURVE_SECP256K1",
 		"tags":            []string{"ethereum", "signing", "hot"},
@@ -311,6 +312,7 @@ func (suite *WalletWorkflowE2ETestSuite) TestCompleteWalletWorkflow() {
 	// ED25519 key for Solana
 	solKeyBody := map[string]interface{}{
 		"organization_id": organizationID,
+		"wallet_id":       multiWalletID, // Add required wallet_id
 		"name":            "Solana Validator Key",
 		"curve":           "CURVE_ED25519",
 		"tags":            []string{"solana", "validator", "staking"},
@@ -511,7 +513,7 @@ func (suite *WalletWorkflowE2ETestSuite) TestErrorHandlingWorkflow() {
 	}
 
 	w, resp = suite.makeRequest("POST", "/api/v1/private-keys", invalidKeyBody)
-	assert.Equal(suite.T(), http.StatusInternalServerError, w.Code)
+	assert.Equal(suite.T(), http.StatusBadRequest, w.Code)
 	assert.NotNil(suite.T(), resp["error"])
 
 	suite.T().Log("Error handling tests passed")

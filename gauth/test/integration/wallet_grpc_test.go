@@ -60,7 +60,7 @@ func (suite *WalletGRPCTestSuite) SetupSuite() {
 	}
 
 	// Create service instance
-	suite.service = service.NewGAuthService(cfg, testLogger, suite.db.DB, nil)
+	suite.service = service.NewGAuthServiceWithEnclave(cfg, testLogger, suite.db.DB, nil, service.NewMockRenclaveClient())
 
 	// Create gRPC server
 	suite.server = grpc.NewServer(cfg, testLogger, suite.service)

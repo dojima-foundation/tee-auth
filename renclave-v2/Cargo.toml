@@ -26,6 +26,8 @@ env_logger = "0.11"
 # Cryptography and BIP39
 bip39 = "2.0"
 rand = "0.8"
+bitcoin = "0.32"
+secp256k1 = "0.29"
 
 # HTTP server (for host)
 axum = "0.7"

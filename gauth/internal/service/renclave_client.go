@@ -43,6 +43,12 @@ type ValidateSeedRequest struct {
 	SeedPhrase string `json:"seed_phrase"`
 }
 
+// RawValidateSeedResponse represents the actual response from renclave-v2
+type RawValidateSeedResponse struct {
+	Valid     bool `json:"valid"`
+	WordCount int  `json:"word_count"`
+}
+
 type ValidateSeedResponse struct {
 	IsValid   bool     `json:"is_valid"`
 	Strength  int      `json:"strength"`
@@ -55,6 +61,33 @@ type InfoResponse struct {
 	EnclaveID    string   `json:"enclave_id"`
 	Capabilities []string `json:"capabilities"`
 	Healthy      bool     `json:"healthy"`
+}
+
+// New request/response types for key derivation
+type DeriveKeyRequest struct {
+	SeedPhrase string `json:"seed_phrase"`
+	Path       string `json:"path"`  // BIP32 derivation path (e.g., "m/44'/60'/0'/0/0")
+	Curve      string `json:"curve"` // CURVE_SECP256K1, CURVE_ED25519
+}
+
+type DeriveKeyResponse struct {
+	PrivateKey string `json:"private_key"` // Hex-encoded private key
+	PublicKey  string `json:"public_key"`  // Hex-encoded public key
+	Address    string `json:"address"`     // Derived address
+	Path       string `json:"path"`        // The derivation path used
+	Curve      string `json:"curve"`       // The curve used
+}
+
+type DeriveAddressRequest struct {
+	SeedPhrase string `json:"seed_phrase"`
+	Path       string `json:"path"`  // BIP32 derivation path
+	Curve      string `json:"curve"` // CURVE_SECP256K1, CURVE_ED25519
+}
+
+type DeriveAddressResponse struct {
+	Address string `json:"address"` // Derived address
+	Path    string `json:"path"`    // The derivation path used
+	Curve   string `json:"curve"`   // The curve used
 }
 
 // GenerateSeed requests seed generation from renclave-v2
@@ -78,12 +111,20 @@ func (c *RenclaveClient) ValidateSeed(ctx context.Context, seedPhrase string) (*
 		SeedPhrase: seedPhrase,
 	}
 
-	var resp ValidateSeedResponse
-	if err := c.makeRequest(ctx, "POST", "/validate-seed", req, &resp); err != nil {
+	var rawResp RawValidateSeedResponse
+	if err := c.makeRequest(ctx, "POST", "/validate-seed", req, &rawResp); err != nil {
 		return nil, fmt.Errorf("failed to validate seed: %w", err)
 	}
 
-	return &resp, nil
+	// Map the raw response to the expected format
+	resp := &ValidateSeedResponse{
+		IsValid:   rawResp.Valid,
+		Strength:  256, // Default strength for 24-word phrases
+		WordCount: rawResp.WordCount,
+		Errors:    []string{},
+	}
+
+	return resp, nil
 }
 
 // GetInfo requests information from renclave-v2
@@ -91,6 +132,38 @@ func (c *RenclaveClient) GetInfo(ctx context.Context) (*InfoResponse, error) {
 	var resp InfoResponse
 	if err := c.makeRequest(ctx, "GET", "/info", nil, &resp); err != nil {
 		return nil, fmt.Errorf("failed to get info: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// DeriveKey derives a private key and public key from a seed phrase using BIP32
+func (c *RenclaveClient) DeriveKey(ctx context.Context, seedPhrase, path, curve string) (*DeriveKeyResponse, error) {
+	req := DeriveKeyRequest{
+		SeedPhrase: seedPhrase,
+		Path:       path,
+		Curve:      curve,
+	}
+
+	var resp DeriveKeyResponse
+	if err := c.makeRequest(ctx, "POST", "/derive-key", req, &resp); err != nil {
+		return nil, fmt.Errorf("failed to derive key: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// DeriveAddress derives an address from a seed phrase using BIP32
+func (c *RenclaveClient) DeriveAddress(ctx context.Context, seedPhrase, path, curve string) (*DeriveAddressResponse, error) {
+	req := DeriveAddressRequest{
+		SeedPhrase: seedPhrase,
+		Path:       path,
+		Curve:      curve,
+	}
+
+	var resp DeriveAddressResponse
+	if err := c.makeRequest(ctx, "POST", "/derive-address", req, &resp); err != nil {
+		return nil, fmt.Errorf("failed to derive address: %w", err)
 	}
 
 	return &resp, nil

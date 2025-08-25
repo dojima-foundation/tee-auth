@@ -95,9 +95,11 @@ type Tag struct {
 type PrivateKey struct {
 	ID             uuid.UUID `json:"id" db:"id" gorm:"type:uuid;primary_key"`
 	OrganizationID uuid.UUID `json:"organizationId" db:"organization_id" gorm:"type:uuid;not null"`
+	WalletID       uuid.UUID `json:"walletId" db:"wallet_id" gorm:"type:uuid;not null"` // Link to wallet
 	Name           string    `json:"name" db:"name" gorm:"not null"`
 	PublicKey      string    `json:"publicKey" db:"public_key" gorm:"not null"`
 	Curve          string    `json:"curve" db:"curve" gorm:"not null"` // SECP256K1, ED25519, etc.
+	Path           string    `json:"path" db:"path" gorm:"not null"`   // BIP32 derivation path
 	Tags           []string  `json:"tags" db:"-" gorm:"-"`
 	IsActive       bool      `json:"isActive" db:"is_active" gorm:"default:true"`
 	CreatedAt      time.Time `json:"createdAt" db:"created_at" gorm:"autoCreateTime"`
@@ -109,6 +111,7 @@ type Wallet struct {
 	ID             uuid.UUID       `json:"id" db:"id" gorm:"type:uuid;primary_key"`
 	OrganizationID uuid.UUID       `json:"organizationId" db:"organization_id" gorm:"type:uuid;not null"`
 	Name           string          `json:"name" db:"name" gorm:"not null"`
+	SeedPhrase     string          `json:"seedPhrase" db:"seed_phrase" gorm:"type:text;not null"` // Encrypted seed phrase
 	PublicKey      string          `json:"publicKey" db:"public_key" gorm:"not null"`
 	Accounts       []WalletAccount `json:"accounts" db:"-" gorm:"foreignKey:WalletID"`
 	Tags           []string        `json:"tags" db:"-" gorm:"-"`

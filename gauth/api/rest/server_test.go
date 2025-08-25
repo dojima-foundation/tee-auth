@@ -147,7 +147,7 @@ func TestJSONBinding(t *testing.T) {
 		payload := CreateOrganizationRequest{
 			Name:                 "Test Org",
 			InitialUserEmail:     "admin@test.com",
-			InitialUserPublicKey: "public-key-123",
+			InitialUserPublicKey: stringPtr("public-key-123"),
 		}
 
 		jsonData, _ := json.Marshal(payload)
@@ -200,4 +200,9 @@ func TestJSONBinding(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
+}
+
+// Helper function to create string pointer
+func stringPtr(s string) *string {
+	return &s
 }

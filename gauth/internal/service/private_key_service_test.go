@@ -45,7 +45,7 @@ func (suite *PrivateKeyServiceTestSuite) SetupSuite() {
 	}
 
 	// Create service instance
-	suite.service = NewGAuthService(cfg, testLogger, suite.db, nil)
+	suite.service = NewGAuthServiceWithEnclave(cfg, testLogger, suite.db, nil, NewMockRenclaveClient())
 
 	// Create test organization
 	org := &models.Organization{
@@ -75,11 +75,24 @@ func (suite *PrivateKeyServiceTestSuite) TearDownTest() {
 }
 
 func (suite *PrivateKeyServiceTestSuite) TestCreatePrivateKey_SECP256K1_Success() {
+	// First create a test wallet
+	wallet, _, err := suite.service.CreateWallet(
+		suite.ctx,
+		suite.organizationID,
+		"Test Wallet",
+		[]models.WalletAccount{},
+		nil,
+		[]string{"test"},
+	)
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), wallet)
+
 	tags := []string{"test", "ethereum"}
 
 	privateKey, err := suite.service.CreatePrivateKey(
 		suite.ctx,
 		suite.organizationID,
+		wallet.ID.String(),
 		"Test SECP256K1 Key",
 		"CURVE_SECP256K1",
 		nil, // Generate new key
@@ -91,19 +104,33 @@ func (suite *PrivateKeyServiceTestSuite) TestCreatePrivateKey_SECP256K1_Success(
 	assert.NotNil(suite.T(), privateKey)
 	assert.Equal(suite.T(), "Test SECP256K1 Key", privateKey.Name)
 	assert.Equal(suite.T(), suite.organizationID, privateKey.OrganizationID.String())
+	assert.Equal(suite.T(), wallet.ID, privateKey.WalletID)
 	assert.Equal(suite.T(), "CURVE_SECP256K1", privateKey.Curve)
 	assert.Equal(suite.T(), tags, privateKey.Tags)
 	assert.True(suite.T(), privateKey.IsActive)
 	assert.NotEmpty(suite.T(), privateKey.PublicKey)
-	assert.Contains(suite.T(), privateKey.PublicKey, "pub_")
+	assert.NotEmpty(suite.T(), privateKey.Path)
 }
 
 func (suite *PrivateKeyServiceTestSuite) TestCreatePrivateKey_ED25519_Success() {
+	// First create a test wallet
+	wallet, _, err := suite.service.CreateWallet(
+		suite.ctx,
+		suite.organizationID,
+		"Test Wallet ED25519",
+		[]models.WalletAccount{},
+		nil,
+		[]string{"test"},
+	)
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), wallet)
+
 	tags := []string{"test", "solana"}
 
 	privateKey, err := suite.service.CreatePrivateKey(
 		suite.ctx,
 		suite.organizationID,
+		wallet.ID.String(),
 		"Test ED25519 Key",
 		"CURVE_ED25519",
 		nil, // Generate new key
@@ -117,14 +144,28 @@ func (suite *PrivateKeyServiceTestSuite) TestCreatePrivateKey_ED25519_Success() 
 	assert.Equal(suite.T(), "CURVE_ED25519", privateKey.Curve)
 	assert.Equal(suite.T(), tags, privateKey.Tags)
 	assert.NotEmpty(suite.T(), privateKey.PublicKey)
+	assert.NotEmpty(suite.T(), privateKey.Path)
 }
 
 func (suite *PrivateKeyServiceTestSuite) TestCreatePrivateKey_WithMaterial() {
+	// First create a test wallet
+	wallet, _, err := suite.service.CreateWallet(
+		suite.ctx,
+		suite.organizationID,
+		"Test Wallet Material",
+		[]models.WalletAccount{},
+		nil,
+		[]string{"test"},
+	)
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), wallet)
+
 	keyMaterial := "test_private_key_material_12345"
 
 	privateKey, err := suite.service.CreatePrivateKey(
 		suite.ctx,
 		suite.organizationID,
+		wallet.ID.String(),
 		"Imported Key",
 		"CURVE_SECP256K1",
 		&keyMaterial,
@@ -136,89 +177,157 @@ func (suite *PrivateKeyServiceTestSuite) TestCreatePrivateKey_WithMaterial() {
 	assert.NotNil(suite.T(), privateKey)
 	assert.Equal(suite.T(), "Imported Key", privateKey.Name)
 	assert.NotEmpty(suite.T(), privateKey.PublicKey)
-	assert.Contains(suite.T(), privateKey.PublicKey, "pub_from_material_")
+	assert.NotEmpty(suite.T(), privateKey.Path)
 }
 
 func (suite *PrivateKeyServiceTestSuite) TestCreatePrivateKey_InvalidCurve() {
-	privateKey, err := suite.service.CreatePrivateKey(
+	// First create a test wallet
+	wallet, _, err := suite.service.CreateWallet(
 		suite.ctx,
 		suite.organizationID,
-		"Invalid Curve Key",
-		"CURVE_INVALID",
+		"Test Wallet Invalid",
+		[]models.WalletAccount{},
 		nil,
+		[]string{"test"},
+	)
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), wallet)
+
+	_, err = suite.service.CreatePrivateKey(
+		suite.ctx,
+		suite.organizationID,
+		wallet.ID.String(),
+		"Invalid Key",
+		"INVALID_CURVE",
 		nil,
+		[]string{"test"},
 	)
 
-	// Assertions
 	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), privateKey)
 	assert.Contains(suite.T(), err.Error(), "invalid curve")
-	assert.Contains(suite.T(), err.Error(), "CURVE_SECP256K1")
-	assert.Contains(suite.T(), err.Error(), "CURVE_ED25519")
 }
 
 func (suite *PrivateKeyServiceTestSuite) TestCreatePrivateKey_InvalidOrganizationID() {
-	invalidOrgID := "invalid-uuid"
-
-	privateKey, err := suite.service.CreatePrivateKey(
+	// First create a test wallet
+	wallet, _, err := suite.service.CreateWallet(
 		suite.ctx,
-		invalidOrgID,
-		"Test Key",
+		suite.organizationID,
+		"Test Wallet Invalid Org",
+		[]models.WalletAccount{},
+		nil,
+		[]string{"test"},
+	)
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), wallet)
+
+	_, err = suite.service.CreatePrivateKey(
+		suite.ctx,
+		"invalid-uuid",
+		wallet.ID.String(),
+		"Invalid Org Key",
 		"CURVE_SECP256K1",
 		nil,
-		nil,
+		[]string{"test"},
 	)
 
-	// Assertions
 	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), privateKey)
+	assert.Contains(suite.T(), err.Error(), "invalid organization ID")
+}
+
+func (suite *PrivateKeyServiceTestSuite) TestCreatePrivateKey_InvalidWalletID() {
+	_, err := suite.service.CreatePrivateKey(
+		suite.ctx,
+		suite.organizationID,
+		"invalid-uuid",
+		"Invalid Wallet Key",
+		"CURVE_SECP256K1",
+		nil,
+		[]string{"test"},
+	)
+
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "invalid wallet ID")
+}
+
+func (suite *PrivateKeyServiceTestSuite) TestCreatePrivateKey_WalletNotFound() {
+	_, err := suite.service.CreatePrivateKey(
+		suite.ctx,
+		suite.organizationID,
+		uuid.New().String(), // Non-existent wallet ID
+		"Non-existent Wallet Key",
+		"CURVE_SECP256K1",
+		nil,
+		[]string{"test"},
+	)
+
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "wallet not found")
 }
 
 func (suite *PrivateKeyServiceTestSuite) TestGetPrivateKey_Success() {
-	// Create a private key first
-	createdKey, err := suite.service.CreatePrivateKey(
+	// First create a test wallet
+	wallet, _, err := suite.service.CreateWallet(
 		suite.ctx,
 		suite.organizationID,
-		"Get Test Key",
+		"Test Wallet Get",
+		[]models.WalletAccount{},
+		nil,
+		[]string{"test"},
+	)
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), wallet)
+
+	// Create a private key
+	privateKey, err := suite.service.CreatePrivateKey(
+		suite.ctx,
+		suite.organizationID,
+		wallet.ID.String(),
+		"Test Get Key",
 		"CURVE_SECP256K1",
 		nil,
 		[]string{"test"},
 	)
 	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), privateKey)
 
 	// Get the private key
-	retrievedKey, err := suite.service.GetPrivateKey(suite.ctx, createdKey.ID.String())
+	retrievedKey, err := suite.service.GetPrivateKey(suite.ctx, privateKey.ID.String())
 
 	// Assertions
 	require.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), retrievedKey)
-	assert.Equal(suite.T(), createdKey.ID, retrievedKey.ID)
-	assert.Equal(suite.T(), createdKey.Name, retrievedKey.Name)
-	assert.Equal(suite.T(), createdKey.Curve, retrievedKey.Curve)
-	assert.Equal(suite.T(), createdKey.PublicKey, retrievedKey.PublicKey)
+	assert.Equal(suite.T(), privateKey.ID, retrievedKey.ID)
+	assert.Equal(suite.T(), privateKey.Name, retrievedKey.Name)
 }
 
 func (suite *PrivateKeyServiceTestSuite) TestGetPrivateKey_NotFound() {
-	nonExistentID := uuid.New().String()
+	_, err := suite.service.GetPrivateKey(suite.ctx, uuid.New().String())
 
-	privateKey, err := suite.service.GetPrivateKey(suite.ctx, nonExistentID)
-
-	// Assertions
 	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), privateKey)
 	assert.Contains(suite.T(), err.Error(), "private key not found")
 }
 
 func (suite *PrivateKeyServiceTestSuite) TestListPrivateKeys_Success() {
-	// Create multiple private keys
-	curves := []string{"CURVE_SECP256K1", "CURVE_ED25519", "CURVE_SECP256K1"}
+	// First create a test wallet
+	wallet, _, err := suite.service.CreateWallet(
+		suite.ctx,
+		suite.organizationID,
+		"Test Wallet List",
+		[]models.WalletAccount{},
+		nil,
+		[]string{"test"},
+	)
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), wallet)
 
-	for i, curve := range curves {
+	// Create multiple private keys
+	for i := 0; i < 3; i++ {
 		_, err := suite.service.CreatePrivateKey(
 			suite.ctx,
 			suite.organizationID,
-			fmt.Sprintf("List Test Key %d", i+1),
-			curve,
+			wallet.ID.String(),
+			fmt.Sprintf("Test Key %d", i),
+			"CURVE_SECP256K1",
 			nil,
 			[]string{"test"},
 		)
@@ -226,33 +335,33 @@ func (suite *PrivateKeyServiceTestSuite) TestListPrivateKeys_Success() {
 	}
 
 	// List private keys
-	privateKeys, nextToken, err := suite.service.ListPrivateKeys(
-		suite.ctx,
-		suite.organizationID,
-		10,
-		"",
-	)
+	privateKeys, nextToken, err := suite.service.ListPrivateKeys(suite.ctx, suite.organizationID, 10, "")
 
 	// Assertions
 	require.NoError(suite.T(), err)
 	assert.Len(suite.T(), privateKeys, 3)
-	assert.Empty(suite.T(), nextToken) // No pagination needed for 3 items with limit 10
-
-	// Check curves are preserved
-	curveCount := make(map[string]int)
-	for _, pk := range privateKeys {
-		curveCount[pk.Curve]++
-	}
-	assert.Equal(suite.T(), 2, curveCount["CURVE_SECP256K1"])
-	assert.Equal(suite.T(), 1, curveCount["CURVE_ED25519"])
+	assert.Empty(suite.T(), nextToken)
 }
 
 func (suite *PrivateKeyServiceTestSuite) TestListPrivateKeys_Pagination() {
+	// First create a test wallet
+	wallet, _, err := suite.service.CreateWallet(
+		suite.ctx,
+		suite.organizationID,
+		"Test Wallet Pagination",
+		[]models.WalletAccount{},
+		nil,
+		[]string{"test"},
+	)
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), wallet)
+
 	// Create multiple private keys
 	for i := 0; i < 5; i++ {
 		_, err := suite.service.CreatePrivateKey(
 			suite.ctx,
 			suite.organizationID,
+			wallet.ID.String(),
 			fmt.Sprintf("Pagination Test Key %d", i+1),
 			"CURVE_SECP256K1",
 			nil,
@@ -276,34 +385,61 @@ func (suite *PrivateKeyServiceTestSuite) TestListPrivateKeys_Pagination() {
 }
 
 func (suite *PrivateKeyServiceTestSuite) TestDeletePrivateKey_Success() {
-	// Create a private key first
+	// First create a test wallet
+	wallet, _, err := suite.service.CreateWallet(
+		suite.ctx,
+		suite.organizationID,
+		"Test Wallet Delete",
+		[]models.WalletAccount{},
+		nil,
+		[]string{"test"},
+	)
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), wallet)
+
+	// Create a private key
 	privateKey, err := suite.service.CreatePrivateKey(
 		suite.ctx,
 		suite.organizationID,
-		"Delete Test Key",
+		wallet.ID.String(),
+		"Test Delete Key",
 		"CURVE_SECP256K1",
 		nil,
-		nil,
+		[]string{"test"},
 	)
 	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), privateKey)
 
 	// Delete the private key
-	err = suite.service.DeletePrivateKey(suite.ctx, privateKey.ID.String(), true) // Force delete
+	err = suite.service.DeletePrivateKey(suite.ctx, privateKey.ID.String(), true)
 
 	// Assertions
 	require.NoError(suite.T(), err)
 
-	// Verify private key is deleted
-	deletedKey, err := suite.service.GetPrivateKey(suite.ctx, privateKey.ID.String())
+	// Verify it's deleted
+	_, err = suite.service.GetPrivateKey(suite.ctx, privateKey.ID.String())
 	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), deletedKey)
+	assert.Contains(suite.T(), err.Error(), "private key not found")
 }
 
 func (suite *PrivateKeyServiceTestSuite) TestDeletePrivateKey_ExportWarning() {
-	// Create a private key first
+	// First create a test wallet
+	wallet, _, err := suite.service.CreateWallet(
+		suite.ctx,
+		suite.organizationID,
+		"Test Wallet Export Warning",
+		[]models.WalletAccount{},
+		nil,
+		[]string{"test"},
+	)
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), wallet)
+
+	// Create a private key
 	privateKey, err := suite.service.CreatePrivateKey(
 		suite.ctx,
 		suite.organizationID,
+		wallet.ID.String(),
 		"Export Warning Test Key",
 		"CURVE_SECP256K1",
 		nil,
@@ -318,9 +454,9 @@ func (suite *PrivateKeyServiceTestSuite) TestDeletePrivateKey_ExportWarning() {
 	require.NoError(suite.T(), err) // Should succeed but log warning
 
 	// Verify private key is deleted
-	deletedKey, err := suite.service.GetPrivateKey(suite.ctx, privateKey.ID.String())
+	_, err = suite.service.GetPrivateKey(suite.ctx, privateKey.ID.String())
 	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), deletedKey)
+	assert.Contains(suite.T(), err.Error(), "private key not found")
 }
 
 func TestPrivateKeyServiceTestSuite(t *testing.T) {

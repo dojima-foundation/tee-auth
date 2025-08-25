@@ -2,207 +2,314 @@
     "info": {
         "_postman_id": "renclave-v2-api-collection",
         "name": "Renclave-v2 API",
-        "description": "Complete API collection for the Renclave-v2 secure enclave service. Includes seed generation, validation, and enclave information endpoints.",
+        "description": "Complete API collection for the Renclave-v2 secure enclave service. Includes seed generation, validation, key derivation, address derivation, and enclave information endpoints.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
         {
-            "name": "Health Check",
-            "request": {
-                "method": "GET",
-                "header": [
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
-                    }
-                ],
-                "url": {
-                    "raw": "{{renclave_base_url}}/health",
-                    "host": ["{{renclave_base_url}}"],
-                    "path": ["health"]
-                },
-                "description": "Check the health status of the renclave-v2 service"
-            },
-            "response": []
-        },
-        {
-            "name": "Get Enclave Info",
-            "request": {
-                "method": "GET",
-                "header": [
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
-                    }
-                ],
-                "url": {
-                    "raw": "{{renclave_base_url}}/info",
-                    "host": ["{{renclave_base_url}}"],
-                    "path": ["info"]
-                },
-                "description": "Get information about the enclave including version, enclave ID, and capabilities"
-            },
-            "response": []
-        },
-        {
-            "name": "Generate Seed",
-            "request": {
-                "method": "POST",
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
+            "name": "Health & Status",
+            "item": [
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{renclave_base_url}}/health",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "health"
+                            ]
+                        },
+                        "description": "Check the health status of the renclave-v2 service"
                     },
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n  \"strength\": 256,\n  \"passphrase\": \"optional-passphrase\"\n}",
-                    "options": {
-                        "raw": {
-                            "language": "json"
-                        }
-                    }
+                    "response": []
                 },
-                "url": {
-                    "raw": "{{renclave_base_url}}/generate-seed",
-                    "host": ["{{renclave_base_url}}"],
-                    "path": ["generate-seed"]
+                {
+                    "name": "Get Enclave Info",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{renclave_base_url}}/info",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "info"
+                            ]
+                        },
+                        "description": "Get information about the enclave including version, enclave ID, and capabilities"
+                    },
+                    "response": []
                 },
-                "description": "Generate a secure seed phrase with specified strength (128 or 256 bits)"
-            },
-            "response": []
+                {
+                    "name": "Enclave Info",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{renclave_base_url}}/enclave/info",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "enclave",
+                                "info"
+                            ]
+                        },
+                        "description": "Get detailed enclave information and status"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Health and status monitoring endpoints"
         },
         {
-            "name": "Generate Seed (128-bit)",
-            "request": {
-                "method": "POST",
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
+            "name": "Seed Management",
+            "item": [
+                {
+                    "name": "Generate Seed",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"strength\": 256,\n  \"passphrase\": \"optional-secure-passphrase\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{renclave_base_url}}/generate-seed",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "generate-seed"
+                            ]
+                        },
+                        "description": "Generate a new BIP39 seed phrase with specified strength (128, 160, 192, 224, or 256 bits)"
                     },
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n  \"strength\": 128\n}",
-                    "options": {
-                        "raw": {
-                            "language": "json"
-                        }
-                    }
+                    "response": []
                 },
-                "url": {
-                    "raw": "{{renclave_base_url}}/generate-seed",
-                    "host": ["{{renclave_base_url}}"],
-                    "path": ["generate-seed"]
-                },
-                "description": "Generate a 128-bit seed phrase (12 words)"
-            },
-            "response": []
+                {
+                    "name": "Validate Seed",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{renclave_base_url}}/validate-seed",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "validate-seed"
+                            ]
+                        },
+                        "description": "Validate a BIP39 seed phrase for correctness and checksum"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Seed phrase generation and validation endpoints"
         },
         {
-            "name": "Generate Seed (256-bit)",
-            "request": {
-                "method": "POST",
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
+            "name": "Key Derivation",
+            "item": [
+                {
+                    "name": "Derive Key",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\",\n  \"path\": \"{{test_derivation_path}}\",\n  \"curve\": \"{{test_curve}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{renclave_base_url}}/derive-key",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "derive-key"
+                            ]
+                        },
+                        "description": "Derive a private key from a seed phrase using BIP32 derivation path"
                     },
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n  \"strength\": 256\n}",
-                    "options": {
-                        "raw": {
-                            "language": "json"
-                        }
-                    }
-                },
-                "url": {
-                    "raw": "{{renclave_base_url}}/generate-seed",
-                    "host": ["{{renclave_base_url}}"],
-                    "path": ["generate-seed"]
-                },
-                "description": "Generate a 256-bit seed phrase (24 words)"
-            },
-            "response": []
+                    "response": []
+                }
+            ],
+            "description": "Private key derivation endpoints"
         },
         {
-            "name": "Validate Seed",
-            "request": {
-                "method": "POST",
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
+            "name": "Address Derivation",
+            "item": [
+                {
+                    "name": "Derive Address",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\",\n  \"path\": \"{{test_derivation_path}}\",\n  \"curve\": \"{{test_curve}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{renclave_base_url}}/derive-address",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "derive-address"
+                            ]
+                        },
+                        "description": "Derive a public address from a seed phrase using BIP32 derivation path"
                     },
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\"\n}",
-                    "options": {
-                        "raw": {
-                            "language": "json"
-                        }
-                    }
-                },
-                "url": {
-                    "raw": "{{renclave_base_url}}/validate-seed",
-                    "host": ["{{renclave_base_url}}"],
-                    "path": ["validate-seed"]
-                },
-                "description": "Validate a seed phrase and return validation results"
-            },
-            "response": []
+                    "response": []
+                }
+            ],
+            "description": "Public address derivation endpoints"
         },
         {
-            "name": "Validate Seed (Invalid)",
-            "request": {
-                "method": "POST",
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
+            "name": "Network Management",
+            "item": [
+                {
+                    "name": "Network Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{renclave_base_url}}/network/status",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "network",
+                                "status"
+                            ]
+                        },
+                        "description": "Get network connectivity status and configuration"
                     },
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n  \"seed_phrase\": \"invalid seed phrase with wrong number of words\"\n}",
-                    "options": {
-                        "raw": {
-                            "language": "json"
-                        }
-                    }
+                    "response": []
                 },
-                "url": {
-                    "raw": "{{renclave_base_url}}/validate-seed",
-                    "host": ["{{renclave_base_url}}"],
-                    "path": ["validate-seed"]
-                },
-                "description": "Test seed validation with an invalid seed phrase"
-            },
-            "response": []
+                {
+                    "name": "Test Connectivity",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"target_host\": \"example.com\",\n  \"target_port\": 443,\n  \"timeout_seconds\": 5\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{renclave_base_url}}/network/test",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "network",
+                                "test"
+                            ]
+                        },
+                        "description": "Test network connectivity to a specific host and port"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Network connectivity and testing endpoints"
         }
     ],
     "event": [
@@ -236,7 +343,46 @@
                     "pm.test(\"Content-Type is application/json\", function () {",
                     "    pm.response.to.have.header(\"Content-Type\");",
                     "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
-                    "});"
+                    "});",
+                    "",
+                    "// Additional tests for specific endpoints",
+                    "if (pm.request.url.path.includes('generate-seed')) {",
+                    "    pm.test(\"Seed generation response has required fields\", function () {",
+                    "        const response = pm.response.json();",
+                    "        pm.expect(response).to.have.property('seed_phrase');",
+                    "        pm.expect(response).to.have.property('entropy');",
+                    "        pm.expect(response).to.have.property('strength');",
+                    "        pm.expect(response).to.have.property('word_count');",
+                    "    });",
+                    "}",
+                    "",
+                    "if (pm.request.url.path.includes('validate-seed')) {",
+                    "    pm.test(\"Seed validation response has required fields\", function () {",
+                    "        const response = pm.response.json();",
+                    "        pm.expect(response).to.have.property('is_valid');",
+                    "        pm.expect(response).to.have.property('word_count');",
+                    "        pm.expect(response).to.have.property('strength');",
+                    "    });",
+                    "}",
+                    "",
+                    "if (pm.request.url.path.includes('derive-address')) {",
+                    "    pm.test(\"Address derivation response has required fields\", function () {",
+                    "        const response = pm.response.json();",
+                    "        pm.expect(response).to.have.property('address');",
+                    "        pm.expect(response).to.have.property('path');",
+                    "        pm.expect(response).to.have.property('curve');",
+                    "    });",
+                    "}",
+                    "",
+                    "if (pm.request.url.path.includes('derive-key')) {",
+                    "    pm.test(\"Key derivation response has required fields\", function () {",
+                    "        const response = pm.response.json();",
+                    "        pm.expect(response).to.have.property('private_key');",
+                    "        pm.expect(response).to.have.property('public_key');",
+                    "        pm.expect(response).to.have.property('path');",
+                    "        pm.expect(response).to.have.property('curve');",
+                    "    });",
+                    "}"
                 ]
             }
         }
@@ -250,6 +396,21 @@
         {
             "key": "test_seed_phrase",
             "value": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            "type": "string"
+        },
+        {
+            "key": "test_derivation_path",
+            "value": "m/44'/60'/0'/0/0",
+            "type": "string"
+        },
+        {
+            "key": "test_curve",
+            "value": "CURVE_SECP256K1",
+            "type": "string"
+        },
+        {
+            "key": "test_passphrase",
+            "value": "optional-secure-passphrase",
             "type": "string"
         }
     ]

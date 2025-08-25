@@ -77,6 +77,8 @@ impl QemuHost {
             .route("/info", get(api_handlers::get_info))
             .route("/generate-seed", post(api_handlers::generate_seed))
             .route("/validate-seed", post(api_handlers::validate_seed))
+            .route("/derive-key", post(api_handlers::derive_key))
+            .route("/derive-address", post(api_handlers::derive_address))
             .route("/network/status", get(api_handlers::network_status))
             .route("/network/test", post(api_handlers::test_connectivity))
             .route("/enclave/info", get(api_handlers::enclave_info))

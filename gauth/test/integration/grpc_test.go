@@ -146,7 +146,7 @@ func (suite *GRPCIntegrationTestSuite) TestHealthCheck() {
 
 	assert.Contains(suite.T(), serviceMap, "database")
 	assert.Contains(suite.T(), serviceMap, "redis")
-	assert.Contains(suite.T(), serviceMap, "renclave")
+	assert.Contains(suite.T(), serviceMap, "enclave")
 }
 
 func (suite *GRPCIntegrationTestSuite) TestStatusCheck() {

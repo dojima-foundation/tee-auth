@@ -2,7 +2,7 @@
     "info": {
         "_postman_id": "gauth-grpc-collection",
         "name": "GAuth gRPC API",
-        "description": "Complete gRPC API collection for the GAuth service. Includes all organization, user, wallet, private key, activity, seed management, and authentication endpoints.",
+        "description": "Complete gRPC API collection for the GAuth service. Includes all organization, user, wallet, private key, activity, authentication, and renclave integration endpoints.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
@@ -57,12 +57,12 @@
                                 "Status"
                             ]
                         },
-                        "description": "Get detailed service status information"
+                        "description": "Get detailed service status and metrics"
                     },
                     "response": []
                 }
             ],
-            "description": "Health and status endpoints"
+            "description": "Health and status monitoring endpoints"
         },
         {
             "name": "Organizations",
@@ -79,7 +79,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"{{test_organization_name}}\",\n  \"initial_user_email\": \"{{test_user_email}}\"\n  // \"initial_user_public_key\": \"{{test_user_public_key}}\" // Optional field\n}",
+                            "raw": "{\n  \"name\": \"{{test_organization_name}}\",\n  \"initial_user_email\": \"{{test_user_email}}\",\n  \"initial_user_public_key\": \"{{test_user_public_key}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -98,7 +98,7 @@
                                 "CreateOrganization"
                             ]
                         },
-                        "description": "Create a new organization with initial user (public key is optional)"
+                        "description": "Create a new organization with an initial admin user. Response includes organization details and status."
                     },
                     "response": []
                 },
@@ -133,7 +133,7 @@
                                 "GetOrganization"
                             ]
                         },
-                        "description": "Get organization details by ID"
+                        "description": "Retrieve organization details by ID"
                     },
                     "response": []
                 },
@@ -168,7 +168,7 @@
                                 "UpdateOrganization"
                             ]
                         },
-                        "description": "Update organization details"
+                        "description": "Update organization information"
                     },
                     "response": []
                 },
@@ -184,7 +184,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"page_size\": 10,\n  \"page_token\": \"{{page_token}}\"\n}",
+                            "raw": "{\n  \"page_size\": {{page_size}},\n  \"page_token\": \"{{page_token}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -203,7 +203,7 @@
                                 "ListOrganizations"
                             ]
                         },
-                        "description": "List all organizations with pagination"
+                        "description": "List organizations with pagination"
                     },
                     "response": []
                 }
@@ -225,7 +225,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"username\": \"{{test_username}}\",\n  \"email\": \"{{test_user_email}}\",\n  \"tags\": [\"developer\", \"admin\"]\n  // \"public_key\": \"{{test_user_public_key}}\" // Optional field\n}",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"username\": \"{{test_username}}\",\n  \"email\": \"{{test_user_email}}\",\n  \"public_key\": \"{{test_user_public_key}}\",\n  \"tags\": [\"developer\", \"admin\"]\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -244,7 +244,7 @@
                                 "CreateUser"
                             ]
                         },
-                        "description": "Create a new user in an organization (public key is optional)"
+                        "description": "Create a new user in an organization"
                     },
                     "response": []
                 },
@@ -279,7 +279,7 @@
                                 "GetUser"
                             ]
                         },
-                        "description": "Get user details by ID"
+                        "description": "Retrieve user details by ID"
                     },
                     "response": []
                 },
@@ -295,7 +295,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"id\": \"{{user_id}}\",\n  \"username\": \"{{updated_username}}\",\n  \"email\": \"{{updated_email}}\",\n  \"tags\": [\"updated\", \"developer\"],\n  \"is_active\": true\n}",
+                            "raw": "{\n  \"id\": \"{{user_id}}\",\n  \"username\": \"{{updated_username}}\",\n  \"email\": \"{{updated_email}}\",\n  \"tags\": [\"updated\", \"user\"],\n  \"is_active\": true\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -314,7 +314,7 @@
                                 "UpdateUser"
                             ]
                         },
-                        "description": "Update user details"
+                        "description": "Update user information"
                     },
                     "response": []
                 },
@@ -330,7 +330,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"page_size\": 10,\n  \"page_token\": \"{{page_token}}\"\n}",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"page_size\": {{page_size}},\n  \"page_token\": \"{{page_token}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -425,7 +425,7 @@
                                 "GetWallet"
                             ]
                         },
-                        "description": "Get wallet details by ID"
+                        "description": "Retrieve wallet details by ID"
                     },
                     "response": []
                 },
@@ -441,7 +441,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"page_size\": 10,\n  \"page_token\": \"{{page_token}}\"\n}",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"page_size\": {{page_size}},\n  \"page_token\": \"{{page_token}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -517,7 +517,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"name\": \"{{private_key_name}}\",\n  \"curve\": \"CURVE_SECP256K1\",\n  \"tags\": [\"signing\", \"ethereum\"]\n}",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"wallet_id\": \"{{wallet_id}}\",\n  \"name\": \"{{private_key_name}}\",\n  \"curve\": \"CURVE_SECP256K1\",\n  \"tags\": [\"signing\", \"ethereum\"]\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -536,7 +536,7 @@
                                 "CreatePrivateKey"
                             ]
                         },
-                        "description": "Create a new private key"
+                        "description": "Create a new private key in a wallet"
                     },
                     "response": []
                 },
@@ -571,7 +571,7 @@
                                 "GetPrivateKey"
                             ]
                         },
-                        "description": "Get private key details by ID"
+                        "description": "Retrieve private key details by ID"
                     },
                     "response": []
                 },
@@ -587,7 +587,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"page_size\": 10,\n  \"page_token\": \"{{page_token}}\"\n}",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"page_size\": {{page_size}},\n  \"page_token\": \"{{page_token}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -663,7 +663,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"type\": \"SEED_GENERATION\",\n  \"parameters\": \"{\\\"strength\\\": 256, \\\"passphrase\\\": false}\",\n  \"created_by\": \"{{user_id}}\"\n}",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"type\": \"WALLET_CREATED\",\n  \"parameters\": \"{\\\"wallet_id\\\": \\\"{{wallet_id}}\\\", \\\"wallet_name\\\": \\\"{{wallet_name}}\\\"}\",\n  \"created_by\": \"{{user_id}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -682,7 +682,7 @@
                                 "CreateActivity"
                             ]
                         },
-                        "description": "Create a new activity (critical operation)"
+                        "description": "Create a new activity log entry"
                     },
                     "response": []
                 },
@@ -717,7 +717,7 @@
                                 "GetActivity"
                             ]
                         },
-                        "description": "Get activity details by ID"
+                        "description": "Retrieve activity details by ID"
                     },
                     "response": []
                 },
@@ -733,7 +733,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"type\": \"{{activity_type}}\",\n  \"status\": \"{{activity_status}}\",\n  \"page_size\": 10,\n  \"page_token\": \"{{page_token}}\"\n}",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"page_size\": {{page_size}},\n  \"page_token\": \"{{page_token}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -752,114 +752,12 @@
                                 "ListActivities"
                             ]
                         },
-                        "description": "List activities in an organization with filtering and pagination"
+                        "description": "List activities in an organization with pagination"
                     },
                     "response": []
                 }
             ],
-            "description": "Activity management endpoints (critical operations)"
-        },
-        {
-            "name": "Seed Management",
-            "item": [
-                {
-                    "name": "Request Seed Generation",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/grpc"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"user_id\": \"{{user_id}}\",\n  \"strength\": 256,\n  \"passphrase\": \"optional-passphrase\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/RequestSeedGeneration",
-                            "protocol": "grpc",
-                            "host": [
-                                "{{grpc_host}}"
-                            ],
-                            "port": "{{grpc_port}}",
-                            "path": [
-                                "gauth.v1.GAuthService",
-                                "RequestSeedGeneration"
-                            ]
-                        },
-                        "description": "Request seed phrase generation from renclave-v2"
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Validate Seed",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/grpc"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"seed_phrase\": \"{{seed_phrase}}\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/ValidateSeed",
-                            "protocol": "grpc",
-                            "host": [
-                                "{{grpc_host}}"
-                            ],
-                            "port": "{{grpc_port}}",
-                            "path": [
-                                "gauth.v1.GAuthService",
-                                "ValidateSeed"
-                            ]
-                        },
-                        "description": "Validate a seed phrase"
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Get Enclave Info",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/grpc"
-                            }
-                        ],
-                        "url": {
-                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/GetEnclaveInfo",
-                            "protocol": "grpc",
-                            "host": [
-                                "{{grpc_host}}"
-                            ],
-                            "port": "{{grpc_port}}",
-                            "path": [
-                                "gauth.v1.GAuthService",
-                                "GetEnclaveInfo"
-                            ]
-                        },
-                        "description": "Get information about the renclave-v2 service"
-                    },
-                    "response": []
-                }
-            ],
-            "description": "Seed management and enclave communication endpoints"
+            "description": "Activity logging and audit trail endpoints"
         },
         {
             "name": "Authentication",
@@ -911,7 +809,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"session_token\": \"{{session_token}}\",\n  \"activity_type\": \"{{activity_type}}\",\n  \"parameters\": \"{{parameters}}\"\n}",
+                            "raw": "{\n  \"session_token\": \"{{session_token}}\",\n  \"activity_type\": \"{{activity_type}}\",\n  \"parameters\": \"{\\\"wallet_id\\\": \\\"{{wallet_id}}\\\"}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -936,6 +834,117 @@
                 }
             ],
             "description": "Authentication and authorization endpoints"
+        },
+        {
+            "name": "Renclave Integration",
+            "item": [
+                {
+                    "name": "Get Enclave Info",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/grpc"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/GetEnclaveInfo",
+                            "protocol": "grpc",
+                            "host": [
+                                "{{grpc_host}}"
+                            ],
+                            "port": "{{grpc_port}}",
+                            "path": [
+                                "gauth.v1.GAuthService",
+                                "GetEnclaveInfo"
+                            ]
+                        },
+                        "description": "Get information about the renclave-v2 service"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Request Seed Generation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/grpc"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"organization_id\": \"{{organization_id}}\",\n  \"user_id\": \"{{user_id}}\",\n  \"strength\": 256,\n  \"passphrase\": \"optional-secure-passphrase\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/RequestSeedGeneration",
+                            "protocol": "grpc",
+                            "host": [
+                                "{{grpc_host}}"
+                            ],
+                            "port": "{{grpc_port}}",
+                            "path": [
+                                "gauth.v1.GAuthService",
+                                "RequestSeedGeneration"
+                            ]
+                        },
+                        "description": "Request seed phrase generation from renclave-v2"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Validate Seed",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/grpc"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "grpc://{{grpc_host}}:{{grpc_port}}/gauth.v1.GAuthService/ValidateSeed",
+                            "protocol": "grpc",
+                            "host": [
+                                "{{grpc_host}}"
+                            ],
+                            "port": "{{grpc_port}}",
+                            "path": [
+                                "gauth.v1.GAuthService",
+                                "ValidateSeed"
+                            ]
+                        },
+                        "description": "Validate a seed phrase"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Renclave-v2 integration endpoints"
         }
     ],
     "variable": [
@@ -946,7 +955,7 @@
         },
         {
             "key": "grpc_port",
-            "value": "9091",
+            "value": "9090",
             "type": "string"
         },
         {
@@ -982,6 +991,11 @@
         {
             "key": "page_token",
             "value": "",
+            "type": "string"
+        },
+        {
+            "key": "page_size",
+            "value": "10",
             "type": "string"
         },
         {
@@ -1026,22 +1040,7 @@
         },
         {
             "key": "private_key_name",
-            "value": "Signing Key",
-            "type": "string"
-        },
-        {
-            "key": "activity_type",
-            "value": "SEED_GENERATION",
-            "type": "string"
-        },
-        {
-            "key": "activity_status",
-            "value": "PENDING",
-            "type": "string"
-        },
-        {
-            "key": "seed_phrase",
-            "value": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            "value": "My Signing Key",
             "type": "string"
         },
         {
@@ -1051,17 +1050,22 @@
         },
         {
             "key": "signature",
-            "value": "signature-data",
+            "value": "test-signature-123",
             "type": "string"
         },
         {
             "key": "timestamp",
-            "value": "2025-01-01T00:00:00Z",
+            "value": "{{$timestamp}}",
             "type": "string"
         },
         {
-            "key": "parameters",
-            "value": "{\"action\": \"create_wallet\"}",
+            "key": "activity_type",
+            "value": "WALLET_CREATED",
+            "type": "string"
+        },
+        {
+            "key": "test_seed_phrase",
+            "value": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
             "type": "string"
         }
     ]

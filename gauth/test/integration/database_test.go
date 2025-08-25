@@ -469,23 +469,25 @@ func (suite *DatabaseIntegrationTestSuite) TestTransactionRollback() {
 
 func (suite *DatabaseIntegrationTestSuite) runTestMigrations() {
 	// This is a simplified version - in production, you'd use proper migrations
-	db := suite.db.GetDB()
-
-	// Auto-migrate for testing (not recommended for production)
-	err := db.AutoMigrate(
-		&models.Organization{},
-		&models.User{},
-		&models.AuthMethod{},
-		&models.Invitation{},
-		&models.Policy{},
-		&models.Tag{},
-		&models.PrivateKey{},
-		&models.Wallet{},
-		&models.WalletAccount{},
-		&models.Activity{},
-		&models.Proof{},
-	)
-	require.NoError(suite.T(), err)
+	// Skip AutoMigrate since we already have proper migrations applied
+	// AutoMigrate conflicts with existing constraints from our migration files
+	/*
+		db := suite.db.GetDB()
+		err := db.AutoMigrate(
+			&models.Organization{},
+			&models.User{},
+			&models.AuthMethod{},
+			&models.Invitation{},
+			&models.Policy{},
+			&models.Tag{},
+			&models.PrivateKey{},
+			&models.Wallet{},
+			&models.WalletAccount{},
+			&models.Activity{},
+			&models.Proof{},
+		)
+		require.NoError(suite.T(), err)
+	*/
 }
 
 func (suite *DatabaseIntegrationTestSuite) cleanupTestData() {

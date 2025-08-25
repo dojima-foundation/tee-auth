@@ -1,7 +1,10 @@
 use anyhow::{anyhow, Result};
 use bip39::{Language, Mnemonic};
+use bitcoin::bip32::{DerivationPath, Xpriv, Xpub};
 use log::{debug, info, warn};
 use rand::{RngCore, SeedableRng};
+use secp256k1::Secp256k1;
+use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -16,6 +19,18 @@ pub struct SeedResult {
     pub entropy: String,
     pub strength: u32,
     pub word_count: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct KeyDerivationResult {
+    pub private_key: String,
+    pub public_key: String,
+    pub address: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AddressDerivationResult {
+    pub address: String,
 }
 
 impl SeedGenerator {
@@ -220,6 +235,72 @@ impl SeedGenerator {
             .map_err(|e| anyhow!("Invalid entropy: {}", e))?;
 
         Ok(expected_mnemonic.to_string() == mnemonic)
+    }
+
+    /// Derive key from seed phrase
+    pub async fn derive_key(
+        &self,
+        seed_phrase: &str,
+        path: &str,
+        curve: &str,
+    ) -> Result<KeyDerivationResult> {
+        info!("🔑 Deriving key (path: {}, curve: {})", path, curve);
+
+        // Parse derivation path
+        let derivation_path = DerivationPath::from_str(path)
+            .map_err(|e| anyhow!("Invalid derivation path: {}", e))?;
+
+        // Derive seed from mnemonic
+        let seed = self.derive_seed(seed_phrase, None).await?;
+
+        // Create extended private key
+        let secp = Secp256k1::new();
+        let master_key = Xpriv::new_master(bitcoin::Network::Bitcoin, &seed)
+            .map_err(|e| anyhow!("Failed to create master key: {}", e))?;
+
+        // Derive child key
+        let child_key = master_key
+            .derive_priv(&secp, &derivation_path)
+            .map_err(|e| anyhow!("Failed to derive child key: {}", e))?;
+
+        // Get public key
+        let public_key = Xpub::from_priv(&secp, &child_key);
+
+        // Generate address (simplified - in production you'd use proper address generation)
+        let address = format!(
+            "0x{}",
+            hex::encode(&public_key.public_key.serialize()[..20])
+        );
+
+        let result = KeyDerivationResult {
+            private_key: hex::encode(&child_key.private_key.secret_bytes()),
+            public_key: hex::encode(&public_key.public_key.serialize()),
+            address,
+        };
+
+        info!("✅ Key derivation successful");
+        Ok(result)
+    }
+
+    /// Derive address from seed phrase
+    pub async fn derive_address(
+        &self,
+        seed_phrase: &str,
+        path: &str,
+        curve: &str,
+    ) -> Result<AddressDerivationResult> {
+        info!("📍 Deriving address (path: {}, curve: {})", path, curve);
+
+        // For now, we'll derive the key and return just the address
+        // In production, you might want to optimize this to only derive the public key
+        let key_result = self.derive_key(seed_phrase, path, curve).await?;
+
+        let result = AddressDerivationResult {
+            address: key_result.address,
+        };
+
+        info!("✅ Address derivation successful");
+        Ok(result)
     }
 }
 

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dojima-foundation/tee-auth/gauth/internal/models"
@@ -18,6 +19,16 @@ type OrganizationService struct {
 // CreateOrganization creates a new organization with an initial user
 func (s *OrganizationService) CreateOrganization(ctx context.Context, name, initialUserEmail, initialUserPublicKey string) (*models.Organization, error) {
 	s.logger.Info("Creating organization", "name", name, "initial_user_email", initialUserEmail)
+
+	// Check if a user with this email already exists
+	var existingUser models.User
+	if err := s.db.GetDB().WithContext(ctx).Where("email = ?", initialUserEmail).First(&existingUser).Error; err == nil {
+		// User with this email already exists
+		return nil, fmt.Errorf("user with email %s already exists", initialUserEmail)
+	} else if err != gorm.ErrRecordNotFound {
+		// Database error occurred
+		return nil, fmt.Errorf("failed to check email uniqueness: %w", err)
+	}
 
 	org := &models.Organization{
 		ID:      uuid.New(),
@@ -49,6 +60,10 @@ func (s *OrganizationService) CreateOrganization(ctx context.Context, name, init
 
 		// Create initial user
 		if err := tx.Create(&initialUser).Error; err != nil {
+			// Check if it's a duplicate email error
+			if strings.Contains(err.Error(), "users_email_unique") {
+				return fmt.Errorf("user with email %s already exists", initialUserEmail)
+			}
 			return fmt.Errorf("failed to create initial user: %w", err)
 		}
 

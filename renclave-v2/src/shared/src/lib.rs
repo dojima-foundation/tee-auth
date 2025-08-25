@@ -17,6 +17,16 @@ pub enum EnclaveOperation {
     ValidateSeed {
         seed_phrase: String,
     },
+    DeriveKey {
+        seed_phrase: String,
+        path: String,
+        curve: String,
+    },
+    DeriveAddress {
+        seed_phrase: String,
+        path: String,
+        curve: String,
+    },
     GetInfo,
 }
 
@@ -38,6 +48,18 @@ pub enum EnclaveResult {
     SeedValidated {
         valid: bool,
         word_count: usize,
+    },
+    KeyDerived {
+        private_key: String,
+        public_key: String,
+        address: String,
+        path: String,
+        curve: String,
+    },
+    AddressDerived {
+        address: String,
+        path: String,
+        curve: String,
     },
     Info {
         version: String,
@@ -74,6 +96,36 @@ pub struct ValidateSeedRequest {
 pub struct ValidateSeedResponse {
     pub valid: bool,
     pub word_count: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeriveKeyRequest {
+    pub seed_phrase: String,
+    pub path: String,
+    pub curve: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeriveKeyResponse {
+    pub private_key: String,
+    pub public_key: String,
+    pub address: String,
+    pub path: String,
+    pub curve: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeriveAddressRequest {
+    pub seed_phrase: String,
+    pub path: String,
+    pub curve: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeriveAddressResponse {
+    pub address: String,
+    pub path: String,
+    pub curve: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

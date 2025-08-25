@@ -53,29 +53,61 @@ func (s *WalletService) CreateWallet(ctx context.Context, organizationID, name s
 
 	s.logger.Info("Seed generated successfully", "strength", seedResp.Strength, "word_count", seedResp.WordCount)
 
-	// Create wallet
+	// Create wallet with the generated seed phrase
 	wallet := &models.Wallet{
 		ID:             uuid.New(),
 		OrganizationID: orgID,
 		Name:           name,
+		SeedPhrase:     seedResp.SeedPhrase, // Store the seed phrase
+		PublicKey:      "",                  // Will be set after deriving the first account
 		Tags:           tags,
 		IsActive:       true,
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
 
-	// Generate addresses for each account
+	// Generate addresses for each account using the enclave
 	addresses := make([]string, len(accounts))
-	for i, account := range accounts {
-		account.ID = uuid.New()
-		account.WalletID = wallet.ID
-		account.IsActive = true
-		account.CreatedAt = time.Now()
-		account.UpdatedAt = time.Now()
 
-		// Generate address using enclave (in production, this would use the seed)
-		// For now, generate mock addresses - in production, integrate with renclave
-		addresses[i] = fmt.Sprintf("0x%s%d", uuid.New().String()[:32], i)
+	for i := range accounts {
+		accounts[i].ID = uuid.New()
+		accounts[i].WalletID = wallet.ID
+		accounts[i].IsActive = true
+		accounts[i].CreatedAt = time.Now()
+		accounts[i].UpdatedAt = time.Now()
+
+		// Derive address using enclave
+		// Use standard BIP44 paths: m/44'/60'/0'/0/{index} for Ethereum, m/44'/501'/0'/0/{index} for Solana
+		var derivationPath string
+		switch accounts[i].Curve {
+		case "CURVE_SECP256K1": // Ethereum
+			derivationPath = fmt.Sprintf("m/44'/60'/0'/0/%d", i)
+		case "CURVE_ED25519": // Solana
+			derivationPath = fmt.Sprintf("m/44'/501'/0'/0/%d", i)
+		default:
+			derivationPath = fmt.Sprintf("m/44'/60'/0'/0/%d", i) // Default to Ethereum
+		}
+
+		// Derive address from seed using enclave
+		addressResp, err := s.renclave.DeriveAddress(ctx, seedResp.SeedPhrase, derivationPath, accounts[i].Curve)
+		if err != nil {
+			s.logger.Error("Failed to derive address from enclave", "error", err, "path", derivationPath)
+			return nil, nil, fmt.Errorf("failed to derive address: %w", err)
+		}
+
+		accounts[i].Path = derivationPath
+		accounts[i].Address = addressResp.Address
+		accounts[i].PublicKey = addressResp.Address // For now, use address as public key
+		// Keep the original AddressFormat from the input
+		if accounts[i].AddressFormat == "" {
+			accounts[i].AddressFormat = "standard"
+		}
+		addresses[i] = addressResp.Address
+
+		// Set wallet's public key to the first account's public key
+		if i == 0 {
+			wallet.PublicKey = addressResp.Address
+		}
 	}
 
 	err = s.db.Transaction(func(tx *gorm.DB) error {
@@ -99,8 +131,15 @@ func (s *WalletService) CreateWallet(ctx context.Context, organizationID, name s
 		return nil, nil, err
 	}
 
+	// Reload the wallet with accounts
+	var reloadedWallet models.Wallet
+	if err := s.db.GetDB().WithContext(ctx).Preload("Accounts").First(&reloadedWallet, "id = ?", wallet.ID).Error; err != nil {
+		s.logger.Error("Failed to reload wallet with accounts", "error", err)
+		return nil, nil, fmt.Errorf("failed to reload wallet: %w", err)
+	}
+
 	s.logger.Info("Wallet created successfully", "wallet_id", wallet.ID.String(), "name", name)
-	return wallet, addresses, nil
+	return &reloadedWallet, addresses, nil
 }
 
 // GetWallet retrieves a wallet by ID

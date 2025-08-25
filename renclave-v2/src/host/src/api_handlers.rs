@@ -362,3 +362,219 @@ pub async fn enclave_info(
         }
     }
 }
+
+/// Derive key from seed phrase
+pub async fn derive_key(
+    State(state): State<AppState>,
+    Json(request): Json<DeriveKeyRequest>,
+) -> std::result::Result<Json<DeriveKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("🔑 Key derivation requested (ID: {})", request_id);
+
+    // Validate request
+    if request.seed_phrase.trim().is_empty() {
+        warn!("❌ Empty seed phrase provided");
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Seed phrase cannot be empty".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    if request.path.trim().is_empty() {
+        warn!("❌ Empty derivation path provided");
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Derivation path cannot be empty".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    if request.curve.trim().is_empty() {
+        warn!("❌ Empty curve provided");
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Curve cannot be empty".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    debug!(
+        "📋 Request validated - path: {}, curve: {}",
+        request.path, request.curve
+    );
+
+    // Send request to enclave
+    match state
+        .enclave_client
+        .derive_key(request.seed_phrase, request.path, request.curve)
+        .await
+    {
+        Ok(enclave_response) => match enclave_response.result {
+            EnclaveResult::KeyDerived {
+                private_key,
+                public_key,
+                address,
+                path,
+                curve,
+            } => {
+                info!("✅ Key derivation successful (ID: {})", request_id);
+                Ok(Json(DeriveKeyResponse {
+                    private_key,
+                    public_key,
+                    address,
+                    path,
+                    curve,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                error!("❌ Enclave error during key derivation: {}", message);
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: message,
+                        code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                error!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response from enclave".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Enclave communication failed: {}", e),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Derive address from seed phrase
+pub async fn derive_address(
+    State(state): State<AppState>,
+    Json(request): Json<DeriveAddressRequest>,
+) -> std::result::Result<Json<DeriveAddressResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("📍 Address derivation requested (ID: {})", request_id);
+
+    // Validate request
+    if request.seed_phrase.trim().is_empty() {
+        warn!("❌ Empty seed phrase provided");
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Seed phrase cannot be empty".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    if request.path.trim().is_empty() {
+        warn!("❌ Empty derivation path provided");
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Derivation path cannot be empty".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    if request.curve.trim().is_empty() {
+        warn!("❌ Empty curve provided");
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Curve cannot be empty".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    debug!(
+        "📋 Request validated - path: {}, curve: {}",
+        request.path, request.curve
+    );
+
+    // Send request to enclave
+    match state
+        .enclave_client
+        .derive_address(request.seed_phrase, request.path, request.curve)
+        .await
+    {
+        Ok(enclave_response) => match enclave_response.result {
+            EnclaveResult::AddressDerived {
+                address,
+                path,
+                curve,
+            } => {
+                info!("✅ Address derivation successful (ID: {})", request_id);
+                Ok(Json(DeriveAddressResponse {
+                    address,
+                    path,
+                    curve,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                error!("❌ Enclave error during address derivation: {}", message);
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: message,
+                        code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                error!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response from enclave".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Enclave communication failed: {}", e),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}

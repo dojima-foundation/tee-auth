@@ -16,13 +16,19 @@ type PrivateKeyService struct {
 }
 
 // CreatePrivateKey creates a new private key using enclave for key generation
-func (s *PrivateKeyService) CreatePrivateKey(ctx context.Context, organizationID, name, curve string, privateKeyMaterial *string, tags []string) (*models.PrivateKey, error) {
-	s.logger.Info("Creating private key", "organization_id", organizationID, "name", name, "curve", curve)
+func (s *PrivateKeyService) CreatePrivateKey(ctx context.Context, organizationID, walletID, name, curve string, privateKeyMaterial *string, tags []string) (*models.PrivateKey, error) {
+	s.logger.Info("Creating private key", "organization_id", organizationID, "wallet_id", walletID, "name", name, "curve", curve)
 
 	// Validate organization ID
 	orgID, err := uuid.Parse(organizationID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid organization ID: %w", err)
+	}
+
+	// Validate wallet ID
+	walletUUID, err := uuid.Parse(walletID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid wallet ID: %w", err)
 	}
 
 	// Validate curve
@@ -38,26 +44,45 @@ func (s *PrivateKeyService) CreatePrivateKey(ctx context.Context, organizationID
 		return nil, fmt.Errorf("invalid curve: %s. Must be one of: CURVE_SECP256K1, CURVE_ED25519", curve)
 	}
 
+	// Get the wallet to access its seed phrase
+	var wallet models.Wallet
+	if err := s.db.GetDB().WithContext(ctx).Where("id = ? AND organization_id = ?", walletUUID, orgID).First(&wallet).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("wallet not found or does not belong to organization")
+		}
+		return nil, fmt.Errorf("failed to get wallet: %w", err)
+	}
+
+	// Determine derivation path based on curve
+	var derivationPath string
+	switch curve {
+	case "CURVE_SECP256K1": // Ethereum
+		derivationPath = fmt.Sprintf("m/44'/60'/0'/0/%d", time.Now().UnixNano()%1000) // Use timestamp for uniqueness
+	case "CURVE_ED25519": // Solana
+		derivationPath = fmt.Sprintf("m/44'/501'/0'/0/%d", time.Now().UnixNano()%1000)
+	default:
+		derivationPath = fmt.Sprintf("m/44'/60'/0'/0/%d", time.Now().UnixNano()%1000)
+	}
+
+	// Derive private key from wallet's seed phrase using enclave
+	keyResp, err := s.renclave.DeriveKey(ctx, wallet.SeedPhrase, derivationPath, curve)
+	if err != nil {
+		s.logger.Error("Failed to derive private key from enclave", "error", err, "path", derivationPath)
+		return nil, fmt.Errorf("failed to derive private key: %w", err)
+	}
+
 	privateKey := &models.PrivateKey{
 		ID:             uuid.New(),
 		OrganizationID: orgID,
+		WalletID:       walletUUID,
 		Name:           name,
+		PublicKey:      keyResp.PublicKey,
 		Curve:          curve,
+		Path:           derivationPath,
 		Tags:           tags,
 		IsActive:       true,
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
-	}
-
-	// Generate public key using enclave
-	if privateKeyMaterial != nil {
-		// Use provided private key material to derive public key
-		// In production, this would use the enclave to derive the public key
-		privateKey.PublicKey = fmt.Sprintf("pub_from_material_%s", uuid.New().String()[:16])
-	} else {
-		// Generate new key pair using enclave
-		// In production, this would request key generation from the enclave
-		privateKey.PublicKey = fmt.Sprintf("pub_%s", uuid.New().String()[:32])
 	}
 
 	// Save to database
@@ -66,7 +91,7 @@ func (s *PrivateKeyService) CreatePrivateKey(ctx context.Context, organizationID
 		return nil, fmt.Errorf("failed to create private key: %w", err)
 	}
 
-	s.logger.Info("Private key created successfully", "private_key_id", privateKey.ID.String())
+	s.logger.Info("Private key created successfully", "private_key_id", privateKey.ID.String(), "path", derivationPath)
 	return privateKey, nil
 }
 

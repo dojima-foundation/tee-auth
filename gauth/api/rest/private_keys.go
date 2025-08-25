@@ -11,6 +11,7 @@ import (
 // CreatePrivateKeyRequest represents the request payload for creating a private key
 type CreatePrivateKeyRequest struct {
 	OrganizationID     string   `json:"organization_id" binding:"required"`
+	WalletID           string   `json:"wallet_id" binding:"required"` // Link to wallet
 	Name               string   `json:"name" binding:"required"`
 	Curve              string   `json:"curve" binding:"required"`       // CURVE_SECP256K1, CURVE_ED25519
 	PrivateKeyMaterial *string  `json:"private_key_material,omitempty"` // Optional: provide key material, otherwise generate
@@ -34,6 +35,7 @@ func (s *Server) handleCreatePrivateKey(c *gin.Context) {
 	// Call gRPC service
 	grpcReq := &pb.CreatePrivateKeyRequest{
 		OrganizationId: req.OrganizationID,
+		WalletId:       req.WalletID,
 		Name:           req.Name,
 		Curve:          req.Curve,
 		Tags:           req.Tags,

@@ -132,13 +132,15 @@ message Tag {
 message PrivateKey {
   string id = 1;
   string organization_id = 2;
-  string name = 3;
-  string public_key = 4;
-  string curve = 5; // SECP256K1, ED25519, etc.
-  repeated string tags = 6;
-  bool is_active = 7;
-  google.protobuf.Timestamp created_at = 8;
-  google.protobuf.Timestamp updated_at = 9;
+  string wallet_id = 3; // Link to wallet
+  string name = 4;
+  string public_key = 5;
+  string curve = 6; // SECP256K1, ED25519, etc.
+  string path = 7; // BIP32 derivation path
+  repeated string tags = 8;
+  bool is_active = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
 }
 
 message Wallet {
@@ -435,10 +437,11 @@ message DeleteWalletResponse {
 // Private key management messages
 message CreatePrivateKeyRequest {
   string organization_id = 1;
-  string name = 2;
-  string curve = 3; // CURVE_SECP256K1, CURVE_ED25519
-  optional string private_key_material = 4; // Optional: provide key material, otherwise generate
-  repeated string tags = 5;
+  string wallet_id = 2; // Link to wallet
+  string name = 3;
+  string curve = 4; // CURVE_SECP256K1, CURVE_ED25519
+  optional string private_key_material = 5; // Optional: provide key material, otherwise generate
+  repeated string tags = 6;
 }
 
 message CreatePrivateKeyResponse {

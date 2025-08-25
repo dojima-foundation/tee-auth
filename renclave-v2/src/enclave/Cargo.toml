@@ -20,5 +20,7 @@ bip39 = { workspace = true }
 rand = { workspace = true }
 hex = { workspace = true }
 uuid = { workspace = true }
+bitcoin = { workspace = true }
+secp256k1 = { workspace = true }
 
 # Note: AWS Nitro libraries removed for QEMU compatibility

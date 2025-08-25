@@ -191,8 +191,8 @@ func (s *Server) SetupAPIRoutes(router *gin.Engine) {
 		privateKeys := v1.Group("/private-keys")
 		{
 			privateKeys.POST("", s.handleCreatePrivateKey)
-			privateKeys.GET("/:id", s.handleGetPrivateKey)
 			privateKeys.GET("", s.handleListPrivateKeys)
+			privateKeys.GET("/:id", s.handleGetPrivateKey)
 			privateKeys.DELETE("/:id", s.handleDeletePrivateKey)
 		}
 

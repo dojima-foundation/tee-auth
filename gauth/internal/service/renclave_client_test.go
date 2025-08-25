@@ -116,47 +116,58 @@ func TestRenclaveClient_ValidateSeed(t *testing.T) {
 	tests := []struct {
 		name           string
 		seedPhrase     string
-		serverResponse ValidateSeedResponse
+		serverResponse RawValidateSeedResponse
 		serverStatus   int
 		expectError    bool
+		expectedResult *ValidateSeedResponse
 	}{
 		{
 			name:       "valid seed phrase",
 			seedPhrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-			serverResponse: ValidateSeedResponse{
-				IsValid:   true,
-				Strength:  128,
+			serverResponse: RawValidateSeedResponse{
+				Valid:     true,
 				WordCount: 12,
-				Errors:    []string{},
 			},
 			serverStatus: http.StatusOK,
 			expectError:  false,
+			expectedResult: &ValidateSeedResponse{
+				IsValid:   true,
+				Strength:  256, // Default strength for 24-word phrases
+				WordCount: 12,
+				Errors:    []string{},
+			},
 		},
 		{
 			name:       "invalid seed phrase",
 			seedPhrase: "invalid seed phrase",
-			serverResponse: ValidateSeedResponse{
-				IsValid:   false,
-				Strength:  0,
+			serverResponse: RawValidateSeedResponse{
+				Valid:     false,
 				WordCount: 3,
-				Errors:    []string{"Invalid word count", "Invalid checksum"},
 			},
 			serverStatus: http.StatusOK,
 			expectError:  false,
+			expectedResult: &ValidateSeedResponse{
+				IsValid:   false,
+				Strength:  256, // Default strength for 24-word phrases
+				WordCount: 3,
+				Errors:    []string{},
+			},
 		},
 		{
 			name:           "server error",
 			seedPhrase:     "test phrase",
-			serverResponse: ValidateSeedResponse{},
+			serverResponse: RawValidateSeedResponse{},
 			serverStatus:   http.StatusInternalServerError,
 			expectError:    true,
+			expectedResult: nil,
 		},
 		{
 			name:           "empty seed phrase",
 			seedPhrase:     "",
-			serverResponse: ValidateSeedResponse{},
+			serverResponse: RawValidateSeedResponse{},
 			serverStatus:   http.StatusBadRequest,
 			expectError:    true,
+			expectedResult: nil,
 		},
 	}
 
@@ -194,10 +205,10 @@ func TestRenclaveClient_ValidateSeed(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, response)
-				assert.Equal(t, tt.serverResponse.IsValid, response.IsValid)
-				assert.Equal(t, tt.serverResponse.Strength, response.Strength)
-				assert.Equal(t, tt.serverResponse.WordCount, response.WordCount)
-				assert.Equal(t, tt.serverResponse.Errors, response.Errors)
+				assert.Equal(t, tt.expectedResult.IsValid, response.IsValid)
+				assert.Equal(t, tt.expectedResult.Strength, response.Strength)
+				assert.Equal(t, tt.expectedResult.WordCount, response.WordCount)
+				assert.Equal(t, tt.expectedResult.Errors, response.Errors)
 			}
 		})
 	}

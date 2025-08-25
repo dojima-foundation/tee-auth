@@ -435,22 +435,27 @@ func BoolPtr(b bool) *bool {
 
 // Database migration helpers for tests
 func (td *TestDatabase) RunMigrations(ctx context.Context) error {
-	db := td.DB.GetDB()
+	// Skip AutoMigrate since we already have proper migrations applied
+	// AutoMigrate conflicts with existing constraints from our migration files
+	/*
+		db := td.DB.GetDB()
 
-	// Auto-migrate for testing (not recommended for production)
-	return db.WithContext(ctx).AutoMigrate(
-		&models.Organization{},
-		&models.User{},
-		&models.AuthMethod{},
-		&models.Invitation{},
-		&models.Policy{},
-		&models.Tag{},
-		&models.PrivateKey{},
-		&models.Wallet{},
-		&models.WalletAccount{},
-		&models.Activity{},
-		&models.Proof{},
-	)
+		// Auto-migrate for testing (not recommended for production)
+		return db.WithContext(ctx).AutoMigrate(
+			&models.Organization{},
+			&models.User{},
+			&models.AuthMethod{},
+			&models.Invitation{},
+			&models.Policy{},
+			&models.Tag{},
+			&models.PrivateKey{},
+			&models.Wallet{},
+			&models.WalletAccount{},
+			&models.Activity{},
+			&models.Proof{},
+		)
+	*/
+	return nil
 }
 
 // Check if database is ready for testing

@@ -165,6 +165,46 @@ impl EnclaveClient {
         self.send_request(operation).await
     }
 
+    /// Derive key from seed phrase via enclave
+    pub async fn derive_key(
+        &self,
+        seed_phrase: String,
+        path: String,
+        curve: String,
+    ) -> Result<EnclaveResponse> {
+        info!(
+            "🔑 Requesting key derivation (path: {}, curve: {})",
+            path, curve
+        );
+
+        let operation = EnclaveOperation::DeriveKey {
+            seed_phrase,
+            path,
+            curve,
+        };
+        self.send_request(operation).await
+    }
+
+    /// Derive address from seed phrase via enclave
+    pub async fn derive_address(
+        &self,
+        seed_phrase: String,
+        path: String,
+        curve: String,
+    ) -> Result<EnclaveResponse> {
+        info!(
+            "📍 Requesting address derivation (path: {}, curve: {})",
+            path, curve
+        );
+
+        let operation = EnclaveOperation::DeriveAddress {
+            seed_phrase,
+            path,
+            curve,
+        };
+        self.send_request(operation).await
+    }
+
     /// Check enclave health
     pub async fn health_check(&self) -> Result<bool> {
         debug!("🏥 Performing enclave health check");

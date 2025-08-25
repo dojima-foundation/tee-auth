@@ -191,9 +191,11 @@ func convertPrivateKeyToProto(pk *models.PrivateKey) *pb.PrivateKey {
 	return &pb.PrivateKey{
 		Id:             pk.ID.String(),
 		OrganizationId: pk.OrganizationID.String(),
+		WalletId:       pk.WalletID.String(),
 		Name:           pk.Name,
 		PublicKey:      pk.PublicKey,
 		Curve:          pk.Curve,
+		Path:           pk.Path,
 		Tags:           pk.Tags,
 		IsActive:       pk.IsActive,
 		CreatedAt:      timestamppb.New(pk.CreatedAt),
