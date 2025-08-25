@@ -33,12 +33,86 @@ server
 *.cov
 *.covprofile
 
+# Go module cache and vendor
+go.sum
+vendor/
+go.work
+go.work.sum
+
+# Go build cache
+go-build/
+*.o
+*.a
+
+# Go test cache
+go-test-cache/
+
 # Rust build artifacts
 target/
+**/target/
 
-# Protobuf generated files
-*.pb.go
-*_grpc.pb.go
+# Rust Cargo files
+Cargo.lock
+*.rlib
+*.rmeta
+*.pdb
+
+# Rust build outputs
+*.d
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Rust documentation
+doc/
+
+# Test files and outputs
+test-results/
+test-output/
+*.test
+*.test.out
+*.test.log
+test.log
+coverage.html
+coverage.xml
+coverage.json
+*.lcov
+.nyc_output/
+junit.xml
+test-report.xml
+
+# Benchmark files
+*.bench
+*.bench.out
+bench.out
+
+# Temporary and cache files
+*.tmp
+*.temp
+*.cache
+.cache/
+tmp/
+temp/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+logs/
+*.log.*
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
 # Environment files
 .env
@@ -47,6 +121,10 @@ target/
 env
 env.local
 env.*.local
+
+# Protobuf generated files
+*.pb.go
+*_grpc.pb.go
 
 # Temporary files
 *.swp
