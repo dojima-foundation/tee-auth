@@ -11,6 +11,7 @@ import (
 	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 	"github.com/dojima-foundation/tee-auth/gauth/test/testhelpers"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -62,8 +63,22 @@ func (suite *WalletGRPCTestSuite) SetupSuite() {
 	// Create service instance
 	suite.service = service.NewGAuthServiceWithEnclave(cfg, testLogger, suite.db.DB, nil, service.NewMockRenclaveClient())
 
+	// Initialize telemetry (disabled for tests)
+	telemetry, err := telemetry.New(context.Background(), telemetry.Config{
+		ServiceName:        "gauth-test",
+		ServiceVersion:     "test",
+		Environment:        "test",
+		TracingEnabled:     false,
+		MetricsEnabled:     false,
+		OTLPEndpoint:       "",
+		OTLPInsecure:       false,
+		TraceSamplingRatio: 0.1,
+		MetricsPort:        0,
+	})
+	require.NoError(suite.T(), err)
+
 	// Create gRPC server
-	suite.server = grpc.NewServer(cfg, testLogger, suite.service)
+	suite.server = grpc.NewServer(cfg, testLogger, suite.service, telemetry)
 
 	// Create test organization
 	org, _, err := suite.db.CreateTestOrganization(suite.ctx, "Test Organization", 1)

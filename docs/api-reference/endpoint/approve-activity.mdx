@@ -1,0 +1,136 @@
+---
+title: 'Approve Activity'
+api: 'POST https://api.example.com/public/v1/submit/approve_activity'
+description: 'Approve an activity in the system'
+version: '0.1.0'
+---
+
+## Approve Activity
+
+This endpoint allows you to approve a pending activity in the system.
+
+### Request
+
+<ParamField body="type" type="string" required>
+  The activity type, must be `ACTIVITY_TYPE_APPROVE_ACTIVITY`
+</ParamField>
+
+<ParamField body="timestampMs" type="string" required>
+  The timestamp in milliseconds when the request was created
+</ParamField>
+
+<ParamField body="organizationId" type="string" required>
+  Your organization ID
+</ParamField>
+
+<ParamField body="parameters" type="object" required>
+  The parameters object containing activity-specific data
+</ParamField>
+
+<ParamField body="parameters.activityId" type="string" required>
+  The ID of the activity to approve
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="activityId" type="string">
+  The ID of the approved activity
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The status of the activity after approval
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_APPROVE_ACTIVITY",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "activityId": "activity_67890fghij"
+  }
+}
+```
+
+```bash cURL
+curl -X POST "https://api.example.com/public/v1/submit/approve_activity" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_APPROVE_ACTIVITY",
+    "timestampMs": "1625097600000",
+    "organizationId": "org_12345abcde",
+    "parameters": {
+      "activityId": "activity_67890fghij"
+    }
+  }'
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "activityId": "activity_67890fghij",
+  "status": "APPROVED"
+}
+```
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_APPROVE_ACTIVITY",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "activityId": "activity_67890fghij"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "activityId": "activity_67890fghij",
+  "status": "APPROVED"
+}
+```
+</ResponseExample>
+
+## Try it out
+
+<ApiRequestExample>
+```bash cURL
+curl -X POST "https://api.example.com/public/v1/submit/approve_activity" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_APPROVE_ACTIVITY",
+    "timestampMs": "1625097600000",
+    "organizationId": "org_12345abcde",
+    "parameters": {
+      "activityId": "activity_67890fghij"
+    }
+  }'
+```
+</ApiRequestExample>
+
+<ApiResponseExample>
+```json Response
+{
+  "success": true,
+  "activityId": "activity_67890fghij",
+  "status": "APPROVED"
+}
+```
+</ApiResponseExample>

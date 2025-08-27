@@ -1,0 +1,138 @@
+---
+title: 'Delete Organization'
+api: 'DELETE /public/v1/organizations/{organizationId}'
+description: 'Delete an organization'
+version: '0.1.0'
+---
+
+## Delete Organization
+
+This endpoint allows you to delete an organization and all its associated data.
+
+### Request
+
+<ParamField path="organizationId" type="string" required>
+  The ID of the organization to delete
+</ParamField>
+
+<ParamField body="type" type="string" required>
+  The activity type, must be `ACTIVITY_TYPE_DELETE_ORGANIZATION`
+</ParamField>
+
+<ParamField body="timestampMs" type="string" required>
+  The timestamp in milliseconds when the request was created
+</ParamField>
+
+<ParamField body="parameters" type="object" required>
+  The parameters object containing deletion information
+</ParamField>
+
+<ParamField body="parameters.confirmDeletion" type="boolean" required>
+  Must be true to confirm the deletion of the organization
+</ParamField>
+
+<ParamField body="parameters.deleteAllData" type="boolean">
+  Whether to delete all associated data (users, wallets, keys) (default: false)
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="organizationId" type="string">
+  The ID of the deleted organization
+</ResponseField>
+
+<ResponseField name="deletedAt" type="string">
+  The timestamp when the organization was deleted
+</ResponseField>
+
+<ResponseField name="deletedDataCount" type="object">
+  Count of deleted associated data
+</ResponseField>
+
+<ResponseField name="deletedDataCount.users" type="number">
+  Number of users deleted
+</ResponseField>
+
+<ResponseField name="deletedDataCount.wallets" type="number">
+  Number of wallets deleted
+</ResponseField>
+
+<ResponseField name="deletedDataCount.privateKeys" type="number">
+  Number of private keys deleted
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_DELETE_ORGANIZATION",
+  "timestampMs": "1625097600000",
+  "parameters": {
+    "confirmDeletion": true,
+    "deleteAllData": true
+  }
+}
+```
+
+```bash cURL
+curl -X DELETE "https://api.example.com/public/v1/organizations/org_12345abcde" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_DELETE_ORGANIZATION",
+    "timestampMs": "1625097600000",
+    "parameters": {
+      "confirmDeletion": true,
+      "deleteAllData": true
+    }
+  }'
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "organizationId": "org_12345abcde",
+  "deletedAt": "2023-03-15T14:30:00Z",
+  "deletedDataCount": {
+    "users": 25,
+    "wallets": 15,
+    "privateKeys": 30
+  }
+}
+```
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_DELETE_ORGANIZATION",
+  "timestampMs": "1625097600000",
+  "parameters": {
+    "confirmDeletion": true,
+    "deleteAllData": true
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "organizationId": "org_12345abcde",
+  "deletedAt": "2023-03-15T14:30:00Z",
+  "deletedDataCount": {
+    "users": 25,
+    "wallets": 15,
+    "privateKeys": 30
+  }
+}
+```
+</ResponseExample>

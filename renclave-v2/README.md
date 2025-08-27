@@ -231,7 +231,7 @@ make docker-test
 
 ### Benchmarks
 
-- **Seed Generation**: ~5-10ms per request
+- **Seed Generation**: 5-10ms per request
 - **Concurrent Requests**: 100+ requests/second
 - **Memory Usage**: <50MB total
 - **Network Latency**: <1ms (TAP interface)
@@ -248,9 +248,9 @@ make docker-test
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `RUST_LOG` | `info` | Logging level |
-| `HOST_PORT` | `3000` | HTTP server port |
-| `ENCLAVE_SOCKET` | `/tmp/enclave.sock` | Unix socket path |
+| RUST_LOG | info | Logging level |
+| HOST_PORT | 3000 | HTTP server port |
+| ENCLAVE_SOCKET | /tmp/enclave.sock | Unix socket path |
 
 ### Network Configuration
 

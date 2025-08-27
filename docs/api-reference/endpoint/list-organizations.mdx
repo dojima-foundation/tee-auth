@@ -1,0 +1,137 @@
+---
+title: 'List Organizations'
+api: 'GET /public/v1/organizations'
+description: 'List all organizations'
+version: '0.1.0'
+---
+
+## List Organizations
+
+This endpoint allows you to retrieve a list of all organizations.
+
+### Request
+
+<ParamField query="limit" type="number">
+  Maximum number of organizations to return (default: 50)
+</ParamField>
+
+<ParamField query="offset" type="number">
+  Number of organizations to skip for pagination (default: 0)
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search term to filter organizations by name or email
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="organizations" type="array">
+  Array of organization objects
+</ResponseField>
+
+<ResponseField name="organizations[].id" type="string">
+  The ID of the organization
+</ResponseField>
+
+<ResponseField name="organizations[].name" type="string">
+  The name of the organization
+</ResponseField>
+
+<ResponseField name="organizations[].email" type="string">
+  The primary email address of the organization
+</ResponseField>
+
+<ResponseField name="organizations[].description" type="string">
+  The description of the organization
+</ResponseField>
+
+<ResponseField name="organizations[].createdAt" type="string">
+  The timestamp when the organization was created
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total number of organizations
+</ResponseField>
+
+<ResponseField name="limit" type="number">
+  Number of organizations returned
+</ResponseField>
+
+<ResponseField name="offset" type="number">
+  Number of organizations skipped
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations?limit=10&offset=0" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+
+```bash cURL with search
+curl -X GET "https://api.example.com/public/v1/organizations?search=acme&limit=5" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "organizations": [
+    {
+      "id": "org_12345abcde",
+      "name": "Acme Corporation",
+      "email": "admin@acme.com",
+      "description": "A leading technology company",
+      "createdAt": "2023-01-15T10:30:00Z"
+    },
+    {
+      "id": "org_67890fghij",
+      "name": "Tech Solutions Inc",
+      "email": "contact@techsolutions.com",
+      "description": "Innovative software solutions",
+      "createdAt": "2023-02-20T14:45:00Z"
+    }
+  ],
+  "total": 2,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations?limit=10&offset=0" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "organizations": [
+    {
+      "id": "org_12345abcde",
+      "name": "Acme Corporation",
+      "email": "admin@acme.com",
+      "description": "A leading technology company",
+      "createdAt": "2023-01-15T10:30:00Z"
+    }
+  ],
+  "total": 1,
+  "limit": 10,
+  "offset": 0
+}
+```
+</ResponseExample>

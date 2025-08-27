@@ -1,0 +1,114 @@
+---
+title: 'Create Organization'
+api: 'POST /api/v1/organizations'
+description: 'Create a new organization'
+version: '0.1.0'
+---
+
+## Create Organization
+
+This endpoint allows you to create a new organization in the TEE Auth system.
+
+### Request
+
+<ParamField body="name" type="string" required>
+  The name of the organization
+</ParamField>
+
+<ParamField body="initial_user_email" type="string" required>
+  The email address of the initial admin user
+</ParamField>
+
+<ParamField body="initial_user_public_key" type="string">
+  The public key of the initial admin user (optional)
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="data.organization.id" type="string">
+  The ID of the created organization
+</ResponseField>
+
+<ResponseField name="data.organization.name" type="string">
+  The name of the organization
+</ResponseField>
+
+<ResponseField name="data.user_id" type="string">
+  The ID of the created admin user
+</ResponseField>
+
+<ResponseField name="data.status" type="string">
+  The status of the creation operation
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```json Request
+{
+  "name": "Acme Corporation",
+  "initial_user_email": "admin@acme.com",
+  "initial_user_public_key": "acme-public-key"
+}
+```
+
+```bash cURL
+curl -X POST "http://localhost:8082/api/v1/organizations" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Acme Corporation",
+    "initial_user_email": "admin@acme.com",
+    "initial_user_public_key": "acme-public-key"
+  }'
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "organization": {
+      "id": "e79b0c0d-137b-4877-9d95-e4ace33221d5",
+      "name": "Acme Corporation",
+      "created_at": "2025-08-27T14:58:28.151836Z",
+      "updated_at": "2025-08-27T14:58:28.151836Z"
+    },
+    "user_id": "3602a064-da0b-4c63-b777-658417c35f9e",
+    "status": "created"
+  }
+}
+```
+
+<RequestExample>
+```json Request
+{
+  "name": "Acme Corporation",
+  "initial_user_email": "admin@acme.com",
+  "initial_user_public_key": "acme-public-key"
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "data": {
+    "organization": {
+      "id": "e79b0c0d-137b-4877-9d95-e4ace33221d5",
+      "name": "Acme Corporation",
+      "created_at": "2025-08-27T14:58:28.151836Z",
+      "updated_at": "2025-08-27T14:58:28.151836Z"
+    },
+    "user_id": "3602a064-da0b-4c63-b777-658417c35f9e",
+    "status": "created"
+  }
+}
+```
+</ResponseExample>

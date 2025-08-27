@@ -16,6 +16,7 @@ import (
 	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 )
 
 const (
@@ -78,12 +79,37 @@ func main() {
 		"database", cfg.Redis.Database,
 	)
 
+	// Initialize telemetry
+	ctx := context.Background()
+	tel, err := telemetry.New(ctx, telemetry.Config{
+		ServiceName:            serviceName,
+		ServiceVersion:         serviceVersion,
+		Environment:            os.Getenv("ENVIRONMENT"),
+		TracingEnabled:         cfg.Telemetry.TracingEnabled,
+		MetricsEnabled:         cfg.Telemetry.MetricsEnabled,
+		OTLPEndpoint:           cfg.Telemetry.OTLPEndpoint,
+		OTLPInsecure:           cfg.Telemetry.OTLPInsecure,
+		TraceSamplingRatio:     cfg.Telemetry.TraceSamplingRatio,
+		MetricsReportingPeriod: time.Second * 30,
+		MetricsPort:            cfg.Telemetry.MetricsPort,
+	})
+	if err != nil {
+		lgr.Error("Failed to initialize telemetry", "error", err)
+		os.Exit(1)
+	}
+
+	lgr.Info("Telemetry initialized",
+		"tracing_enabled", cfg.Telemetry.TracingEnabled,
+		"metrics_enabled", cfg.Telemetry.MetricsEnabled,
+		"otlp_endpoint", cfg.Telemetry.OTLPEndpoint,
+	)
+
 	// Initialize service layer
 	svc := service.NewGAuthService(cfg, lgr, database, redis)
 
 	// Initialize servers
-	grpcSrv := grpcServer.NewServer(cfg, lgr, svc)
-	restSrv := restServer.NewServer(cfg, lgr)
+	grpcSrv := grpcServer.NewServer(cfg, lgr, svc, tel)
+	restSrv := restServer.NewServer(cfg, lgr, tel)
 
 	// Create context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -137,6 +163,18 @@ func main() {
 	grpcSrv.Stop()
 	if err := restSrv.Stop(); err != nil {
 		lgr.Error("Failed to stop REST API server", "error", err)
+	}
+
+	// Shutdown telemetry
+	if tel != nil && tel.Shutdown != nil {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+
+		if err := tel.Shutdown(shutdownCtx); err != nil {
+			lgr.Error("Failed to shutdown telemetry", "error", err)
+		} else {
+			lgr.Info("Telemetry shutdown completed")
+		}
 	}
 
 	// Wait for all goroutines to finish with timeout

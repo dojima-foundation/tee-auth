@@ -9,8 +9,10 @@ import (
 	pb "github.com/dojima-foundation/tee-auth/gauth/api/proto"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -23,13 +25,15 @@ type Server struct {
 	grpcConn   *grpc.ClientConn
 	router     *gin.Engine
 	httpServer *http.Server
+	telemetry  *telemetry.Telemetry
 }
 
 // NewServer creates a new REST API server instance
-func NewServer(cfg *config.Config, logger *logger.Logger) *Server {
+func NewServer(cfg *config.Config, logger *logger.Logger, tel *telemetry.Telemetry) *Server {
 	return &Server{
-		config: cfg,
-		logger: logger,
+		config:    cfg,
+		logger:    logger,
+		telemetry: tel,
 	}
 }
 
@@ -90,10 +94,20 @@ func (s *Server) connectToGRPC() error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.config.GRPC.ConnectionTimeout)
 	defer cancel()
 
-	conn, err := grpc.DialContext(ctx, grpcAddr,
+	// Configure gRPC client options
+	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
-	)
+	}
+
+	// Add OpenTelemetry middleware if telemetry is available and tracing is enabled
+	if s.telemetry != nil && s.config.Telemetry.TracingEnabled {
+		dialOpts = append(dialOpts,
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		)
+	}
+
+	conn, err := grpc.DialContext(ctx, grpcAddr, dialOpts...)
 	if err != nil {
 		return fmt.Errorf("failed to connect to gRPC server at %s: %w", grpcAddr, err)
 	}
@@ -117,8 +131,15 @@ func (s *Server) setupRouter() {
 	s.router = gin.New()
 
 	// Add middleware
-	s.router.Use(s.loggingMiddleware())
 	s.router.Use(s.recoveryMiddleware())
+
+	// Add OpenTelemetry middleware if telemetry is available and tracing is enabled
+	if s.telemetry != nil && s.config.Telemetry.TracingEnabled {
+		s.router.Use(telemetry.HTTPMiddleware(s.telemetry, s.logger))
+	} else {
+		// Fall back to basic logging middleware
+		s.router.Use(s.loggingMiddleware())
+	}
 
 	if s.config.Security.CORSEnabled {
 		s.router.Use(s.corsMiddleware())
@@ -136,10 +157,20 @@ func (s *Server) ConnectToGRPCForTesting(grpcAddr string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	conn, err := grpc.DialContext(ctx, grpcAddr,
+	// Configure gRPC client options
+	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
-	)
+	}
+
+	// Add OpenTelemetry middleware if telemetry is available and tracing is enabled
+	if s.telemetry != nil && s.config.Telemetry.TracingEnabled {
+		dialOpts = append(dialOpts,
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		)
+	}
+
+	conn, err := grpc.DialContext(ctx, grpcAddr, dialOpts...)
 	if err != nil {
 		return fmt.Errorf("failed to connect to gRPC server at %s: %w", grpcAddr, err)
 	}

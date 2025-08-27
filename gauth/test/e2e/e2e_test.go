@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,6 +12,7 @@ import (
 
 	pb "github.com/dojima-foundation/tee-auth/gauth/api/proto"
 	"github.com/google/uuid"
+	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -61,6 +63,9 @@ func (suite *E2ETestSuite) SetupSuite() {
 		StartupDelay: 10 * time.Second,
 	}
 
+	// Clean database before starting tests
+	suite.cleanDatabase()
+
 	// Start dependencies by default
 	suite.startServices()
 
@@ -69,6 +74,11 @@ func (suite *E2ETestSuite) SetupSuite() {
 
 	// Wait for services to be ready
 	suite.waitForServices()
+}
+
+func (suite *E2ETestSuite) SetupTest() {
+	// Clean database before each test to ensure isolation
+	suite.cleanDatabase()
 }
 
 func (suite *E2ETestSuite) TearDownSuite() {
@@ -117,7 +127,9 @@ func (suite *E2ETestSuite) startServices() {
 
 	suite.serverProcess = exec.Command(gauthBinary)
 	suite.serverProcess.Env = append(os.Environ(),
+		"GRPC_HOST=0.0.0.0", // Explicitly bind to all interfaces
 		"GRPC_PORT="+suite.config.GAuthPort,
+		"SERVER_HOST=0.0.0.0", // Explicitly bind to all interfaces
 		"SERVER_PORT=8082",
 		"DB_HOST=localhost",
 		"DB_PORT=5432",
@@ -129,18 +141,33 @@ func (suite *E2ETestSuite) startServices() {
 		"REDIS_DATABASE=4",
 		"RENCLAVE_HOST="+suite.config.RenclaveHost,
 		"RENCLAVE_PORT="+suite.config.RenclavePort,
-		"LOG_LEVEL=info",
+		"LOG_LEVEL=debug", // Use debug level for more information
 		"JWT_SECRET=e2e-test-secret-key-32-bytes-long",
 		"ENCRYPTION_KEY=e2e-test-encryption-key-32-bytes",
+		"TELEMETRY_TRACING_ENABLED=false", // Disable telemetry for E2E tests
+		"TELEMETRY_METRICS_ENABLED=false",
 	)
+
+	suite.T().Logf("Starting gauth server with binary: %s", gauthBinary)
+	suite.T().Logf("gRPC port: %s", suite.config.GAuthPort)
+	suite.T().Logf("Server port: 8082")
 
 	err := suite.serverProcess.Start()
 	require.NoError(suite.T(), err, "Failed to start gauth server")
 
-	suite.T().Log("Started gauth server")
+	suite.T().Log("Started gauth server process")
 
-	// Wait for startup
+	// Wait for startup with more detailed logging
+	suite.T().Logf("Waiting %v for server to start up...", suite.config.StartupDelay)
 	time.Sleep(suite.config.StartupDelay)
+	suite.T().Log("Startup delay completed")
+
+	// Check if the server process is still running
+	if suite.serverProcess.ProcessState != nil && suite.serverProcess.ProcessState.Exited() {
+		suite.T().Fatalf("Server process exited unexpectedly with code: %d", suite.serverProcess.ProcessState.ExitCode())
+	}
+
+	suite.T().Log("Server process is still running")
 }
 
 func (suite *E2ETestSuite) stopServices() {
@@ -171,37 +198,109 @@ func (suite *E2ETestSuite) connectToGAuth() {
 	// Always run external service tests by default
 	// The E2E_START_SERVICES flag is now optional and defaults to true
 
-	// Use a context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// Use a context with longer timeout for E2E tests
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
+
+	suite.T().Logf("Attempting to connect to gRPC server at %s", address)
 
 	conn, err := grpc.DialContext(ctx, address, opts...)
 	if err != nil {
-		suite.T().Fatalf("Failed to establish connection to gRPC server: %v", err)
-		return
+		suite.T().Logf("Failed to establish connection to gRPC server: %v", err)
+		suite.T().Logf("This might be because the server is still starting up. Retrying...")
+
+		// Retry with a longer timeout
+		retryCtx, retryCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer retryCancel()
+
+		conn, err = grpc.DialContext(retryCtx, address, opts...)
+		if err != nil {
+			suite.T().Fatalf("Failed to establish connection to gRPC server after retry: %v", err)
+			return
+		}
 	}
 
 	// Test the connection with a quick health check
 	client := pb.NewGAuthServiceClient(conn)
-	healthCtx, healthCancel := context.WithTimeout(context.Background(), 2*time.Second)
+	healthCtx, healthCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer healthCancel()
 
+	suite.T().Logf("Testing health check...")
 	_, err = client.Health(healthCtx, &emptypb.Empty{})
 	if err != nil {
 		conn.Close()
-		suite.T().Fatalf("Service is not responding to health checks: %v", err)
-		return
+		suite.T().Logf("Service is not responding to health checks: %v", err)
+		suite.T().Logf("This might be because the server is still starting up. Retrying health check...")
+
+		// Retry health check with longer timeout
+		retryHealthCtx, retryHealthCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer retryHealthCancel()
+
+		_, err = client.Health(retryHealthCtx, &emptypb.Empty{})
+		if err != nil {
+			conn.Close()
+			suite.T().Fatalf("Service is not responding to health checks after retry: %v", err)
+			return
+		}
 	}
 
 	suite.conn = conn
 	suite.client = client
-	suite.T().Logf("Connected to gauth service at %s", address)
+	suite.T().Logf("Successfully connected to gauth service at %s", address)
 }
 
 func (suite *E2ETestSuite) waitForServices() {
 	// We've already done a health check in connectToGAuth
 	// This is just a placeholder in case we need additional setup
 	suite.T().Log("Services are ready")
+}
+
+func (suite *E2ETestSuite) cleanDatabase() {
+	suite.T().Log("Cleaning database for test isolation...")
+
+	// Connect to the database directly to clean it
+	db, err := sql.Open("postgres", suite.config.DatabaseURL)
+	if err != nil {
+		suite.T().Logf("Warning: Could not connect to database for cleanup: %v", err)
+		return
+	}
+	defer db.Close()
+
+	// Clean all tables in reverse dependency order
+	tables := []string{
+		"private_keys",
+		"wallets",
+		"activities",
+		"users",
+		"organizations",
+	}
+
+	for _, table := range tables {
+		_, err := db.Exec(fmt.Sprintf("DELETE FROM %s", table))
+		if err != nil {
+			suite.T().Logf("Warning: Could not clean table %s: %v", table, err)
+		} else {
+			suite.T().Logf("Cleaned table: %s", table)
+		}
+	}
+
+	// Reset sequences
+	sequences := []string{
+		"organizations_id_seq",
+		"users_id_seq",
+		"activities_id_seq",
+		"wallets_id_seq",
+		"private_keys_id_seq",
+	}
+
+	for _, seq := range sequences {
+		_, err := db.Exec(fmt.Sprintf("ALTER SEQUENCE %s RESTART WITH 1", seq))
+		if err != nil {
+			suite.T().Logf("Warning: Could not reset sequence %s: %v", seq, err)
+		}
+	}
+
+	suite.T().Log("Database cleanup completed")
 }
 
 func (suite *E2ETestSuite) TestCompleteWorkflow() {

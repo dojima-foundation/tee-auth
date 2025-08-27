@@ -1,0 +1,128 @@
+---
+title: 'Create User'
+api: 'POST /public/v1/submit/create_user'
+description: 'Create a new user in an organization'
+version: '0.1.0'
+---
+
+## Create User
+
+This endpoint allows you to create a new user within an organization.
+
+### Request
+
+<ParamField body="type" type="string" required>
+  The activity type, must be `ACTIVITY_TYPE_CREATE_USER`
+</ParamField>
+
+<ParamField body="timestampMs" type="string" required>
+  The timestamp in milliseconds when the request was created
+</ParamField>
+
+<ParamField body="organizationId" type="string" required>
+  Your organization ID
+</ParamField>
+
+<ParamField body="parameters" type="object" required>
+  The parameters object containing user information
+</ParamField>
+
+<ParamField body="parameters.email" type="string" required>
+  The email address of the user
+</ParamField>
+
+<ParamField body="parameters.name" type="string" required>
+  The full name of the user
+</ParamField>
+
+<ParamField body="parameters.role" type="string">
+  The role of the user within the organization
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="userId" type="string">
+  The ID of the created user
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  The email address of the user
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The full name of the user
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_USER",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "email": "john.doe@acme.com",
+    "name": "John Doe",
+    "role": "developer"
+  }
+}
+```
+
+```bash cURL
+curl -X POST "https://api.example.com/public/v1/submit/create_user" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_CREATE_USER",
+    "timestampMs": "1625097600000",
+    "organizationId": "org_12345abcde",
+    "parameters": {
+      "email": "john.doe@acme.com",
+      "name": "John Doe",
+      "role": "developer"
+    }
+  }'
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "userId": "user_67890fghij",
+  "email": "john.doe@acme.com",
+  "name": "John Doe"
+}
+```
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_USER",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "email": "john.doe@acme.com",
+    "name": "John Doe",
+    "role": "developer"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "userId": "user_67890fghij",
+  "email": "john.doe@acme.com",
+  "name": "John Doe"
+}
+```
+</ResponseExample>

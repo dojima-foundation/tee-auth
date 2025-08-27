@@ -1,0 +1,590 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "TEE Auth API",
+        "version": "0.1.0",
+        "description": "REST API for secure authentication and transaction signing using Trusted Execution Environments"
+    },
+    "servers": [
+        {
+            "url": "http://127.0.0.1:8082/",
+            "description": "Local Development Server"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "apiKeyAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "Authorization",
+                "description": "API key for authentication"
+            }
+        },
+        "schemas": {
+            "ApproveActivityRequest": {
+                "type": "object",
+                "required": [
+                    "type",
+                    "timestampMs",
+                    "organizationId",
+                    "parameters"
+                ],
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "ACTIVITY_TYPE_APPROVE_ACTIVITY"
+                        ],
+                        "description": "The activity type"
+                    },
+                    "timestampMs": {
+                        "type": "string",
+                        "description": "The timestamp in milliseconds when the request was created"
+                    },
+                    "organizationId": {
+                        "type": "string",
+                        "description": "Your organization ID"
+                    },
+                    "parameters": {
+                        "type": "object",
+                        "required": [
+                            "activityId"
+                        ],
+                        "properties": {
+                            "activityId": {
+                                "type": "string",
+                                "description": "The ID of the activity to approve"
+                            }
+                        }
+                    }
+                }
+            },
+            "ApproveActivityResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Indicates if the operation was successful"
+                    },
+                    "activityId": {
+                        "type": "string",
+                        "description": "The ID of the approved activity"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "The status of the activity after approval"
+                    }
+                }
+            },
+            "CreateApiKeysRequest": {
+                "type": "object",
+                "required": [
+                    "type",
+                    "timestampMs",
+                    "organizationId",
+                    "parameters"
+                ],
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "ACTIVITY_TYPE_CREATE_API_KEYS_V2"
+                        ],
+                        "description": "The activity type"
+                    },
+                    "timestampMs": {
+                        "type": "string",
+                        "description": "The timestamp in milliseconds when the request was created"
+                    },
+                    "organizationId": {
+                        "type": "string",
+                        "description": "Your organization ID"
+                    },
+                    "parameters": {
+                        "type": "object",
+                        "required": [
+                            "userId"
+                        ],
+                        "properties": {
+                            "userId": {
+                                "type": "string",
+                                "description": "The ID of the user for whom to create API keys"
+                            },
+                            "keyName": {
+                                "type": "string",
+                                "description": "Optional name for the API key"
+                            }
+                        }
+                    }
+                }
+            },
+            "CreateApiKeysResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Indicates if the operation was successful"
+                    },
+                    "apiKeyId": {
+                        "type": "string",
+                        "description": "The ID of the created API key"
+                    },
+                    "publicKey": {
+                        "type": "string",
+                        "description": "The public key part of the API key pair"
+                    },
+                    "privateKey": {
+                        "type": "string",
+                        "description": "The private key part of the API key pair"
+                    }
+                }
+            },
+            "SignTransactionRequest": {
+                "type": "object",
+                "required": [
+                    "type",
+                    "timestampMs",
+                    "organizationId",
+                    "parameters"
+                ],
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "ACTIVITY_TYPE_SIGN_TRANSACTION_V2"
+                        ],
+                        "description": "The activity type"
+                    },
+                    "timestampMs": {
+                        "type": "string",
+                        "description": "The timestamp in milliseconds when the request was created"
+                    },
+                    "organizationId": {
+                        "type": "string",
+                        "description": "Your organization ID"
+                    },
+                    "parameters": {
+                        "type": "object",
+                        "required": [
+                            "walletId",
+                            "transactionData"
+                        ],
+                        "properties": {
+                            "walletId": {
+                                "type": "string",
+                                "description": "The ID of the wallet containing the private key"
+                            },
+                            "transactionData": {
+                                "type": "string",
+                                "description": "The transaction data to sign, encoded as a hexadecimal string"
+                            },
+                            "signatureType": {
+                                "type": "string",
+                                "description": "The type of signature to create (e.g., \"ECDSA\")"
+                            }
+                        }
+                    }
+                }
+            },
+            "SignTransactionResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Indicates if the operation was successful"
+                    },
+                    "signature": {
+                        "type": "string",
+                        "description": "The cryptographic signature as a hexadecimal string"
+                    },
+                    "publicKey": {
+                        "type": "string",
+                        "description": "The public key that can be used to verify the signature"
+                    }
+                }
+            },
+            "CreateAuthenticatorsRequest": {
+                "type": "object",
+                "required": [
+                    "type",
+                    "timestampMs",
+                    "organizationId",
+                    "parameters"
+                ],
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "ACTIVITY_TYPE_CREATE_AUTHENTICATORS"
+                        ],
+                        "description": "The activity type"
+                    },
+                    "timestampMs": {
+                        "type": "string",
+                        "description": "The timestamp in milliseconds when the request was created"
+                    },
+                    "organizationId": {
+                        "type": "string",
+                        "description": "Your organization ID"
+                    },
+                    "parameters": {
+                        "type": "object",
+                        "required": [
+                            "userId",
+                            "authenticatorType"
+                        ],
+                        "properties": {
+                            "userId": {
+                                "type": "string",
+                                "description": "The ID of the user for whom to create authenticators"
+                            },
+                            "authenticatorType": {
+                                "type": "string",
+                                "description": "The type of authenticator to create (e.g., \"TOTP\", \"RECOVERY\")"
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "Optional name for the authenticator"
+                            }
+                        }
+                    }
+                }
+            },
+            "CreateAuthenticatorsResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Indicates if the operation was successful"
+                    },
+                    "authenticatorId": {
+                        "type": "string",
+                        "description": "The ID of the created authenticator"
+                    },
+                    "secret": {
+                        "type": "string",
+                        "description": "The secret for the authenticator"
+                    },
+                    "qrCodeUrl": {
+                        "type": "string",
+                        "description": "For TOTP authenticators, a URL that can be used to generate a QR code for easy setup"
+                    }
+                }
+            }
+        }
+    },
+    "security": [
+        {
+            "apiKeyAuth": []
+        }
+    ],
+    "paths": {
+        "/public/v1/submit/approve_activity": {
+            "post": {
+                "summary": "Approve an activity",
+                "operationId": "approveActivity",
+                "tags": [
+                    "Activities"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApproveActivityRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Activity approved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApproveActivityResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/public/v1/submit/create_api_keys": {
+            "post": {
+                "summary": "Create API keys for a user",
+                "operationId": "createApiKeys",
+                "tags": [
+                    "API Keys"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateApiKeysRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "API keys created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CreateApiKeysResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/public/v1/submit/sign_transaction": {
+            "post": {
+                "summary": "Sign a transaction using a secure enclave",
+                "operationId": "signTransaction",
+                "tags": [
+                    "Transactions"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SignTransactionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Transaction signed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SignTransactionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/public/v1/submit/create_authenticators": {
+            "post": {
+                "summary": "Create authenticators for secure access",
+                "operationId": "createAuthenticators",
+                "tags": [
+                    "Authenticators"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateAuthenticatorsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Authenticators created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CreateAuthenticatorsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/api/v1/health": {
+            "get": {
+                "summary": "Health check",
+                "operationId": "healthCheck",
+                "tags": [
+                    "Health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Health check successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "timestamp": {
+                                                    "type": "string"
+                                                },
+                                                "services": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "status": {
+                                                                "type": "string"
+                                                            },
+                                                            "error": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/api/v1/organizations": {
+            "post": {
+                "summary": "Create a new organization",
+                "operationId": "createOrganization",
+                "tags": [
+                    "Organizations"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name",
+                                    "initial_user_email"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Organization name"
+                                    },
+                                    "initial_user_email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "description": "Email of the initial admin user"
+                                    },
+                                    "initial_user_public_key": {
+                                        "type": "string",
+                                        "description": "Public key of the initial admin user"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Organization created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "organization": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "created_at": {
+                                                            "type": "string"
+                                                        },
+                                                        "updated_at": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "user_id": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        }
+    }
+}

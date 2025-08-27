@@ -1,0 +1,300 @@
+---
+title: 'Renclave Architecture'
+description: 'Detailed architecture of the Renclave TEE service'
+---
+
+# Renclave Architecture
+
+The Renclave service is the core component responsible for secure cryptographic operations within Trusted Execution Environments (TEEs). Built in Rust for performance and security, it provides hardware-backed security guarantees for private key management and transaction signing.
+
+## Renclave Service Architecture
+
+The Renclave service follows a modular architecture designed for security and performance:
+
+```mermaid
+graph TB
+    %% Dark mode styling
+    classDef darkAPI fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkCore fill:#1a202c,stroke:#2d3748,color:#f7fafc
+    classDef darkTEE fill:#805ad5,stroke:#553c9a,color:#f7fafc
+    classDef darkCrypto fill:#e53e3e,stroke:#c53030,color:#f7fafc
+    classDef darkStorage fill:#38a169,stroke:#2f855a,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightAPI fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightCore fill:#ffffff,stroke:#e2e8f0,color:#2d3748
+    classDef lightTEE fill:#805ad5,stroke:#553c9a,color:#ffffff
+    classDef lightCrypto fill:#e53e3e,stroke:#c53030,color:#ffffff
+    classDef lightStorage fill:#38a169,stroke:#2f855a,color:#ffffff
+
+    %% API Layer
+    API[API Handlers<br/>HTTP/JSON Interface]:::darkAPI
+    
+    %% Core Services
+    Auth[Authentication Service<br/>Request Validation]:::darkCore
+    Enclave[Enclave Client<br/>TEE Communication]:::darkCore
+    Network[Network Service<br/>Connectivity Management]:::darkCore
+    
+    %% TEE Components
+    TEE[Trusted Execution Environment<br/>Secure Enclave]:::darkTEE
+    Crypto[Cryptographic Engine<br/>Key Operations]:::darkCrypto
+    Storage[Secure Storage<br/>Private Key Vault]:::darkStorage
+    
+    %% Connections
+    API --> Auth
+    Auth --> Enclave
+    Enclave --> TEE
+    TEE --> Crypto
+    TEE --> Storage
+    
+    %% Apply theme classes
+    class API,Auth,Enclave,Network,TEE,Crypto,Storage darkAPI,darkCore,darkTEE,darkCrypto,darkStorage
+```
+
+## Component Details
+
+### 1. **API Handlers**
+- HTTP/JSON interface for external communication
+- Request validation and sanitization
+- Response formatting and error handling
+- Rate limiting and access control
+
+### 2. **Authentication Service**
+- Validates incoming requests
+- Verifies X-Stamp signatures
+- Manages session tokens
+- Implements access control policies
+
+### 3. **Enclave Client**
+- Manages communication with TEE
+- Handles attestation verification
+- Implements secure channel protocols
+- Provides abstraction layer for TEE operations
+
+### 4. **Network Service**
+- Manages network connectivity
+- Implements retry logic
+- Handles connection pooling
+- Provides monitoring and metrics
+
+## TEE Enclave Architecture
+
+The Trusted Execution Environment provides the secure foundation:
+
+```mermaid
+graph TB
+    %% Dark mode styling
+    classDef darkHost fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkEnclave fill:#805ad5,stroke:#553c9a,color:#f7fafc
+    classDef darkSecure fill:#e53e3e,stroke:#c53030,color:#f7fafc
+    classDef darkCrypto fill:#38a169,stroke:#2f855a,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightHost fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightEnclave fill:#805ad5,stroke:#553c9a,color:#ffffff
+    classDef lightSecure fill:#e53e3e,stroke:#c53030,color:#ffffff
+    classDef lightCrypto fill:#38a169,stroke:#2f855a,color:#ffffff
+
+    %% Host Environment
+    Host[Host Environment<br/>Untrusted]:::darkHost
+    
+    %% Enclave Boundary
+    subgraph Enclave [Trusted Execution Environment]
+        App[Application Logic<br/>Request Processing]:::darkEnclave
+        KeyMgmt[Key Management<br/>Generation & Storage]:::darkSecure
+        CryptoOps[Cryptographic Operations<br/>Signing & Encryption]:::darkCrypto
+        Attestation[Attestation Service<br/>Identity Verification]:::darkSecure
+    end
+    
+    %% Hardware
+    Hardware[Hardware Security Module<br/>CPU Security Features]:::darkSecure
+    
+    %% Connections
+    Host -.->|Secure Channel| App
+    App --> KeyMgmt
+    App --> CryptoOps
+    App --> Attestation
+    KeyMgmt --> Hardware
+    CryptoOps --> Hardware
+    Attestation --> Hardware
+    
+    %% Apply theme classes
+    class Host,App,KeyMgmt,CryptoOps,Attestation,Hardware darkHost,darkEnclave,darkSecure,darkCrypto
+```
+
+## Key Management Architecture
+
+Private keys are managed securely within the TEE:
+
+```mermaid
+graph LR
+    %% Dark mode styling
+    classDef darkInput fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkProcess fill:#1a202c,stroke:#2d3748,color:#f7fafc
+    classDef darkOutput fill:#38a169,stroke:#2f855a,color:#f7fafc
+    classDef darkSecure fill:#805ad5,stroke:#553c9a,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightInput fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightProcess fill:#ffffff,stroke:#e2e8f0,color:#2d3748
+    classDef lightOutput fill:#38a169,stroke:#2f855a,color:#ffffff
+    classDef lightSecure fill:#805ad5,stroke:#553c9a,color:#ffffff
+
+    %% Key Generation Flow
+    Seed[Random Seed<br/>Hardware Entropy]:::darkInput
+    Derivation[Key Derivation<br/>PBKDF2/Argon2]:::darkProcess
+    Generation[Key Generation<br/>ECDSA/RSA]:::darkProcess
+    Storage[Secure Storage<br/>Encrypted at Rest]:::darkOutput
+    Backup[Backup Keys<br/>Shamir's Secret Sharing]:::darkSecure
+    
+    Seed --> Derivation
+    Derivation --> Generation
+    Generation --> Storage
+    Generation --> Backup
+    
+    %% Apply theme classes
+    class Seed,Derivation,Generation,Storage,Backup darkInput,darkProcess,darkOutput,darkSecure
+```
+
+## Transaction Signing Flow
+
+The complete flow for signing a transaction:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as API Handler
+    participant Auth as Auth Service
+    participant Enclave as Enclave Client
+    participant TEE as TEE Enclave
+    participant Crypto as Crypto Engine
+    
+    %% Dark mode styling
+    rect rgb(45, 55, 72)
+        Note over Client,Crypto: Transaction Signing Process
+    end
+    
+    Client->>API: Sign Transaction Request
+    API->>Auth: Validate Request & Signature
+    Auth-->>API: Authentication Result
+    
+    alt Authentication Success
+        API->>Enclave: Forward Signing Request
+        Enclave->>TEE: Retrieve Private Key
+        TEE-->>Enclave: Private Key (Secure)
+        Enclave->>TEE: Sign Transaction Data
+        TEE->>Crypto: Perform Cryptographic Operation
+        Crypto-->>TEE: Signed Transaction
+        TEE-->>Enclave: Signed Transaction
+        Enclave-->>API: Transaction Result
+        API-->>Client: Success Response
+    else Authentication Failed
+        API-->>Client: Error Response
+    end
+```
+
+## Security Features
+
+### 🔐 **Hardware Security**
+- **CPU Security**: Leverages Intel SGX or AMD SEV
+- **Memory Protection**: Encrypted memory regions
+- **Attestation**: Remote attestation for identity verification
+- **Sealing**: Hardware-backed key sealing
+
+### 🛡️ **Cryptographic Security**
+- **Key Generation**: Hardware entropy sources
+- **Key Storage**: Encrypted at rest within TEE
+- **Key Derivation**: PBKDF2/Argon2 for key stretching
+- **Backup**: Shamir's Secret Sharing for key recovery
+
+### 🔒 **Operational Security**
+- **Access Control**: Role-based permissions
+- **Audit Logging**: Comprehensive security logs
+- **Rate Limiting**: Protection against abuse
+- **Monitoring**: Real-time security monitoring
+
+## Performance Optimizations
+
+The Renclave service is optimized for high-performance cryptographic operations:
+
+```mermaid
+graph TB
+    %% Dark mode styling
+    classDef darkOptimization fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkBenefit fill:#38a169,stroke:#2f855a,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightOptimization fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightBenefit fill:#38a169,stroke:#2f855a,color:#ffffff
+
+    %% Performance Optimizations
+    Async[Asynchronous Processing<br/>Non-blocking Operations]:::darkOptimization
+    Caching[Intelligent Caching<br/>Frequently Used Keys]:::darkOptimization
+    Batching[Request Batching<br/>Batch Signing Operations]:::darkOptimization
+    Pooling[Connection Pooling<br/>Optimized Network Usage]:::darkOptimization
+    
+    %% Benefits
+    Latency[Reduced Latency<br/>Sub-100ms Response Times]:::darkBenefit
+    Throughput[High Throughput<br/>1000+ TPS]:::darkBenefit
+    Scalability[Horizontal Scaling<br/>Multiple Instances]:::darkBenefit
+    Reliability[High Availability<br/>99.9% Uptime]:::darkBenefit
+    
+    %% Connections
+    Async --> Latency
+    Caching --> Latency
+    Batching --> Throughput
+    Pooling --> Scalability
+    Async --> Reliability
+    Caching --> Reliability
+    
+    %% Apply theme classes
+    class Async,Caching,Batching,Pooling,Latency,Throughput,Scalability,Reliability darkOptimization,darkBenefit
+```
+
+## Deployment Architecture
+
+The Renclave service can be deployed in various configurations:
+
+```mermaid
+graph TB
+    %% Dark mode styling
+    classDef darkLoadBalancer fill:#3182ce,stroke:#2c5aa0,color:#f7fafc
+    classDef darkService fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkTEE fill:#805ad5,stroke:#553c9a,color:#f7fafc
+    classDef darkMonitoring fill:#e53e3e,stroke:#c53030,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightLoadBalancer fill:#3182ce,stroke:#2c5aa0,color:#ffffff
+    classDef lightService fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightTEE fill:#805ad5,stroke:#553c9a,color:#ffffff
+    classDef lightMonitoring fill:#e53e3e,stroke:#c53030,color:#ffffff
+
+    LB[Load Balancer<br/>Traffic Distribution]:::darkLoadBalancer
+    
+    Instance1[Renclave Instance 1<br/>TEE Enabled]:::darkService
+    Instance2[Renclave Instance 2<br/>TEE Enabled]:::darkService
+    Instance3[Renclave Instance N<br/>TEE Enabled]:::darkService
+    
+    TEE1[TEE Enclave 1<br/>Hardware Security]:::darkTEE
+    TEE2[TEE Enclave 2<br/>Hardware Security]:::darkTEE
+    TEE3[TEE Enclave N<br/>Hardware Security]:::darkTEE
+    
+    Monitor[Monitoring & Alerting<br/>Security Events]:::darkMonitoring
+    
+    LB --> Instance1
+    LB --> Instance2
+    LB --> Instance3
+    
+    Instance1 --> TEE1
+    Instance2 --> TEE2
+    Instance3 --> TEE3
+    
+    Instance1 --> Monitor
+    Instance2 --> Monitor
+    Instance3 --> Monitor
+    
+    %% Apply theme classes
+    class LB,Instance1,Instance2,Instance3,TEE1,TEE2,TEE3,Monitor darkLoadBalancer,darkService,darkTEE,darkMonitoring
+```
+
+This architecture ensures that the Renclave service provides secure, high-performance cryptographic operations while maintaining the highest levels of security through hardware-backed TEE technology.

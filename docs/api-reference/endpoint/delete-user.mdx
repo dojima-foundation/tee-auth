@@ -1,0 +1,148 @@
+---
+title: 'Delete User'
+api: 'DELETE /public/v1/organizations/{organizationId}/users/{userId}'
+description: 'Delete a user from an organization'
+version: '0.1.0'
+---
+
+## Delete User
+
+This endpoint allows you to delete a user from an organization and all their associated data.
+
+### Request
+
+<ParamField path="organizationId" type="string" required>
+  The ID of the organization
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  The ID of the user to delete
+</ParamField>
+
+<ParamField body="type" type="string" required>
+  The activity type, must be `ACTIVITY_TYPE_DELETE_USER`
+</ParamField>
+
+<ParamField body="timestampMs" type="string" required>
+  The timestamp in milliseconds when the request was created
+</ParamField>
+
+<ParamField body="parameters" type="object" required>
+  The parameters object containing deletion information
+</ParamField>
+
+<ParamField body="parameters.confirmDeletion" type="boolean" required>
+  Must be true to confirm the deletion of the user
+</ParamField>
+
+<ParamField body="parameters.deleteAllData" type="boolean">
+  Whether to delete all associated data (wallets, keys, authenticators) (default: false)
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="userId" type="string">
+  The ID of the deleted user
+</ResponseField>
+
+<ResponseField name="deletedAt" type="string">
+  The timestamp when the user was deleted
+</ResponseField>
+
+<ResponseField name="deletedDataCount" type="object">
+  Count of deleted associated data
+</ResponseField>
+
+<ResponseField name="deletedDataCount.wallets" type="number">
+  Number of wallets deleted
+</ResponseField>
+
+<ResponseField name="deletedDataCount.privateKeys" type="number">
+  Number of private keys deleted
+</ResponseField>
+
+<ResponseField name="deletedDataCount.apiKeys" type="number">
+  Number of API keys deleted
+</ResponseField>
+
+<ResponseField name="deletedDataCount.authenticators" type="number">
+  Number of authenticators deleted
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_DELETE_USER",
+  "timestampMs": "1625097600000",
+  "parameters": {
+    "confirmDeletion": true,
+    "deleteAllData": true
+  }
+}
+```
+
+```bash cURL
+curl -X DELETE "https://api.example.com/public/v1/organizations/org_12345abcde/users/user_67890fghij" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_DELETE_USER",
+    "timestampMs": "1625097600000",
+    "parameters": {
+      "confirmDeletion": true,
+      "deleteAllData": true
+    }
+  }'
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "userId": "user_67890fghij",
+  "deletedAt": "2023-03-15T14:30:00Z",
+  "deletedDataCount": {
+    "wallets": 3,
+    "privateKeys": 5,
+    "apiKeys": 2,
+    "authenticators": 1
+  }
+}
+```
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_DELETE_USER",
+  "timestampMs": "1625097600000",
+  "parameters": {
+    "confirmDeletion": true,
+    "deleteAllData": true
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "userId": "user_67890fghij",
+  "deletedAt": "2023-03-15T14:30:00Z",
+  "deletedDataCount": {
+    "wallets": 3,
+    "privateKeys": 5,
+    "apiKeys": 2,
+    "authenticators": 1
+  }
+}
+```
+</ResponseExample>

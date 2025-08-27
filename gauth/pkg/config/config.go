@@ -34,6 +34,9 @@ type Config struct {
 
 	// Security configuration
 	Security SecurityConfig `yaml:"security"`
+
+	// Telemetry configuration
+	Telemetry TelemetryConfig `yaml:"telemetry"`
 }
 
 type ServerConfig struct {
@@ -118,6 +121,15 @@ type SecurityConfig struct {
 	RateLimitRPS     int      `yaml:"rate_limit_rps"`
 	RateLimitBurst   int      `yaml:"rate_limit_burst"`
 	EncryptionKey    string   `yaml:"encryption_key"`
+}
+
+type TelemetryConfig struct {
+	TracingEnabled     bool    `yaml:"tracing_enabled"`
+	MetricsEnabled     bool    `yaml:"metrics_enabled"`
+	OTLPEndpoint       string  `yaml:"otlp_endpoint"`
+	OTLPInsecure       bool    `yaml:"otlp_insecure"`
+	TraceSamplingRatio float64 `yaml:"trace_sampling_ratio"`
+	MetricsPort        int     `yaml:"metrics_port"`
 }
 
 // Load loads configuration from environment variables and .env file
@@ -205,6 +217,14 @@ func Load() (*Config, error) {
 			RateLimitRPS:     getEnvInt("RATE_LIMIT_RPS", 100),
 			RateLimitBurst:   getEnvInt("RATE_LIMIT_BURST", 200),
 			EncryptionKey:    getEnv("ENCRYPTION_KEY", "your-encryption-key-32-bytes-long"),
+		},
+		Telemetry: TelemetryConfig{
+			TracingEnabled:     getEnvBool("TELEMETRY_TRACING_ENABLED", true),
+			MetricsEnabled:     getEnvBool("TELEMETRY_METRICS_ENABLED", true),
+			OTLPEndpoint:       getEnv("TELEMETRY_OTLP_ENDPOINT", "otel-collector:4317"),
+			OTLPInsecure:       getEnvBool("TELEMETRY_OTLP_INSECURE", true),
+			TraceSamplingRatio: getEnvFloat("TELEMETRY_TRACE_SAMPLING_RATIO", 1.0),
+			MetricsPort:        getEnvInt("TELEMETRY_METRICS_PORT", 9464),
 		},
 	}
 
@@ -309,6 +329,15 @@ func getEnvStringSlice(key string, defaultValue []string) []string {
 		// Simple comma-separated parsing
 		// For production, consider using a more robust parser
 		return []string{value}
+	}
+	return defaultValue
+}
+
+func getEnvFloat(key string, defaultValue float64) float64 {
+	if value := os.Getenv(key); value != "" {
+		if floatValue, err := strconv.ParseFloat(value, 64); err == nil {
+			return floatValue
+		}
 	}
 	return defaultValue
 }

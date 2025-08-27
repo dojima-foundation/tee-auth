@@ -1,0 +1,126 @@
+---
+title: 'Delete Wallet'
+api: 'DELETE /public/v1/organizations/{organizationId}/users/{userId}/wallets/{walletId}'
+description: 'Delete a wallet'
+version: '0.1.0'
+---
+
+## Delete Wallet
+
+This endpoint allows you to delete a wallet and all its associated private keys.
+
+### Request
+
+<ParamField path="organizationId" type="string" required>
+  The ID of the organization
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  The ID of the user
+</ParamField>
+
+<ParamField path="walletId" type="string" required>
+  The ID of the wallet to delete
+</ParamField>
+
+<ParamField body="type" type="string" required>
+  The activity type, must be `ACTIVITY_TYPE_DELETE_WALLET`
+</ParamField>
+
+<ParamField body="timestampMs" type="string" required>
+  The timestamp in milliseconds when the request was created
+</ParamField>
+
+<ParamField body="parameters" type="object" required>
+  The parameters object containing deletion information
+</ParamField>
+
+<ParamField body="parameters.confirmDeletion" type="boolean" required>
+  Must be true to confirm the deletion of the wallet
+</ParamField>
+
+<ParamField body="parameters.deletePrivateKeys" type="boolean">
+  Whether to delete all associated private keys (default: true)
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="walletId" type="string">
+  The ID of the deleted wallet
+</ResponseField>
+
+<ResponseField name="deletedAt" type="string">
+  The timestamp when the wallet was deleted
+</ResponseField>
+
+<ResponseField name="deletedPrivateKeyCount" type="number">
+  Number of private keys deleted
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_DELETE_WALLET",
+  "timestampMs": "1625097600000",
+  "parameters": {
+    "confirmDeletion": true,
+    "deletePrivateKeys": true
+  }
+}
+```
+
+```bash cURL
+curl -X DELETE "https://api.example.com/public/v1/organizations/org_12345abcde/users/user_67890fghij/wallets/wallet_12345abcde" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_DELETE_WALLET",
+    "timestampMs": "1625097600000",
+    "parameters": {
+      "confirmDeletion": true,
+      "deletePrivateKeys": true
+    }
+  }'
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "walletId": "wallet_12345abcde",
+  "deletedAt": "2023-03-15T14:30:00Z",
+  "deletedPrivateKeyCount": 2
+}
+```
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_DELETE_WALLET",
+  "timestampMs": "1625097600000",
+  "parameters": {
+    "confirmDeletion": true,
+    "deletePrivateKeys": true
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "walletId": "wallet_12345abcde",
+  "deletedAt": "2023-03-15T14:30:00Z",
+  "deletedPrivateKeyCount": 2
+}
+```
+</ResponseExample>

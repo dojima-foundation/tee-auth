@@ -1,0 +1,122 @@
+---
+title: 'Get User'
+api: 'GET /public/v1/organizations/{organizationId}/users/{userId}'
+description: 'Get a specific user by ID'
+version: '0.1.0'
+---
+
+## Get User
+
+This endpoint allows you to retrieve details of a specific user within an organization.
+
+### Request
+
+<ParamField path="organizationId" type="string" required>
+  The ID of the organization
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  The ID of the user to retrieve
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  The user object
+</ResponseField>
+
+<ResponseField name="user.id" type="string">
+  The ID of the user
+</ResponseField>
+
+<ResponseField name="user.email" type="string">
+  The email address of the user
+</ResponseField>
+
+<ResponseField name="user.name" type="string">
+  The full name of the user
+</ResponseField>
+
+<ResponseField name="user.role" type="string">
+  The role of the user within the organization
+</ResponseField>
+
+<ResponseField name="user.createdAt" type="string">
+  The timestamp when the user was created
+</ResponseField>
+
+<ResponseField name="user.updatedAt" type="string">
+  The timestamp when the user was last updated
+</ResponseField>
+
+<ResponseField name="user.walletCount" type="number">
+  Number of wallets owned by the user
+</ResponseField>
+
+<ResponseField name="user.apiKeyCount" type="number">
+  Number of API keys owned by the user
+</ResponseField>
+
+<ResponseField name="user.authenticatorCount" type="number">
+  Number of authenticators owned by the user
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users/user_67890fghij" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "user": {
+    "id": "user_67890fghij",
+    "email": "john.doe@acme.com",
+    "name": "John Doe",
+    "role": "developer",
+    "createdAt": "2023-01-20T09:15:00Z",
+    "updatedAt": "2023-03-05T14:30:00Z",
+    "walletCount": 3,
+    "apiKeyCount": 2,
+    "authenticatorCount": 1
+  }
+}
+```
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users/user_67890fghij" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "user": {
+    "id": "user_67890fghij",
+    "email": "john.doe@acme.com",
+    "name": "John Doe",
+    "role": "developer",
+    "createdAt": "2023-01-20T09:15:00Z",
+    "updatedAt": "2023-03-05T14:30:00Z",
+    "walletCount": 3,
+    "apiKeyCount": 2,
+    "authenticatorCount": 1
+  }
+}
+```
+</ResponseExample>

@@ -1,0 +1,65 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 1000
+    spike_limit_mib: 200
+  resource:
+    attributes:
+      - key: service.name
+        action: upsert
+        value: "gauth"
+      - key: deployment.environment
+        action: upsert
+        value: "development"
+
+exporters:
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: "gauth"
+    send_timestamps: true
+    metric_expiration: 180m
+    resource_to_telemetry_conversion:
+      enabled: true
+  
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+    format: json
+    
+  otlp:
+    endpoint: "jaeger:4317"
+    tls:
+      insecure: true
+      
+  logging:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch, memory_limiter, resource]
+      exporters: [otlp, logging]
+    
+    metrics:
+      receivers: [otlp]
+      processors: [batch, memory_limiter, resource]
+      exporters: [prometheus, logging]
+    
+    logs:
+      receivers: [otlp]
+      processors: [batch, memory_limiter, resource]
+      exporters: [loki, logging]
+  
+  telemetry:
+    logs:
+      level: info
+

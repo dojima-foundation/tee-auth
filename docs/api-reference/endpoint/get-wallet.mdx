@@ -1,0 +1,126 @@
+---
+title: 'Get Wallet'
+api: 'GET /public/v1/organizations/{organizationId}/users/{userId}/wallets/{walletId}'
+description: 'Get a specific wallet by ID'
+version: '0.1.0'
+---
+
+## Get Wallet
+
+This endpoint allows you to retrieve details of a specific wallet.
+
+### Request
+
+<ParamField path="organizationId" type="string" required>
+  The ID of the organization
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  The ID of the user
+</ParamField>
+
+<ParamField path="walletId" type="string" required>
+  The ID of the wallet to retrieve
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="wallet" type="object">
+  The wallet object
+</ResponseField>
+
+<ResponseField name="wallet.id" type="string">
+  The ID of the wallet
+</ResponseField>
+
+<ResponseField name="wallet.userId" type="string">
+  The ID of the user who owns the wallet
+</ResponseField>
+
+<ResponseField name="wallet.walletType" type="string">
+  The type of the wallet
+</ResponseField>
+
+<ResponseField name="wallet.name" type="string">
+  The name of the wallet
+</ResponseField>
+
+<ResponseField name="wallet.description" type="string">
+  The description of the wallet
+</ResponseField>
+
+<ResponseField name="wallet.publicKey" type="string">
+  The public key of the wallet
+</ResponseField>
+
+<ResponseField name="wallet.createdAt" type="string">
+  The timestamp when the wallet was created
+</ResponseField>
+
+<ResponseField name="wallet.updatedAt" type="string">
+  The timestamp when the wallet was last updated
+</ResponseField>
+
+<ResponseField name="wallet.privateKeyCount" type="number">
+  Number of private keys associated with the wallet
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users/user_67890fghij/wallets/wallet_12345abcde" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "wallet": {
+    "id": "wallet_12345abcde",
+    "userId": "user_67890fghij",
+    "walletType": "ETH",
+    "name": "Main Ethereum Wallet",
+    "description": "Primary wallet for Ethereum transactions",
+    "publicKey": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+    "createdAt": "2023-02-15T10:30:00Z",
+    "updatedAt": "2023-03-10T16:20:00Z",
+    "privateKeyCount": 2
+  }
+}
+```
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users/user_67890fghij/wallets/wallet_12345abcde" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "wallet": {
+    "id": "wallet_12345abcde",
+    "userId": "user_67890fghij",
+    "walletType": "ETH",
+    "name": "Main Ethereum Wallet",
+    "description": "Primary wallet for Ethereum transactions",
+    "publicKey": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+    "createdAt": "2023-02-15T10:30:00Z",
+    "updatedAt": "2023-03-10T16:20:00Z",
+    "privateKeyCount": 2
+  }
+}
+```
+</ResponseExample>
