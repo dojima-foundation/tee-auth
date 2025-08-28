@@ -1,0 +1,128 @@
+{
+    "$schema": "https://mintlify.com/schema.json",
+    "name": "TEE Auth",
+    "logo": {
+        "dark": "/logo/dark.svg",
+        "light": "/logo/light.svg"
+    },
+    "favicon": "/favicon.svg",
+    "colors": {
+        "primary": "#0D9373",
+        "light": "#07C983",
+        "dark": "#0D9373",
+        "anchors": {
+            "from": "#0D9373",
+            "to": "#07C983"
+        }
+    },
+    "topbarLinks": [
+        {
+            "name": "Support",
+            "url": "mailto:support@dojima.com"
+        }
+    ],
+    "topbarCtaButton": {
+        "name": "GitHub",
+        "url": "https://github.com/dojima-foundation/tee-auth"
+    },
+    "versions": [
+        "0.1.0"
+    ],
+    "tabs": [
+        {
+            "name": "API Reference",
+            "url": "api-reference"
+        }
+    ],
+    "anchors": [
+        {
+            "name": "Documentation",
+            "icon": "book-open-cover",
+            "url": "https://dojima.com"
+        },
+        {
+            "name": "Community",
+            "icon": "discord",
+            "url": "https://discord.gg/dojima"
+        },
+        {
+            "name": "Blog",
+            "icon": "newspaper",
+            "url": "https://blog.dojima.com"
+        }
+    ],
+    "navigation": [
+        {
+            "group": "Getting Started",
+            "pages": [
+                "introduction",
+                "quickstart"
+            ]
+        },
+        {
+            "group": "Concepts",
+            "pages": [
+                "concepts/architecture-overview",
+                "concepts/renclave-architecture",
+                "concepts/gauth-architecture"
+            ]
+        },
+        {
+            "group": "API Reference",
+            "pages": [
+                "api-reference/authentication",
+                "api-reference/api-playground",
+                {
+                    "group": "Organizations",
+                    "pages": [
+                        "api-reference/endpoint/create-organization",
+                        "api-reference/endpoint/list-organizations",
+                        "api-reference/endpoint/get-organization",
+                        "api-reference/endpoint/delete-organization"
+                    ]
+                },
+                {
+                    "group": "Users",
+                    "pages": [
+                        "api-reference/endpoint/create-user",
+                        "api-reference/endpoint/list-users",
+                        "api-reference/endpoint/get-user",
+                        "api-reference/endpoint/delete-user"
+                    ]
+                },
+                {
+                    "group": "Wallets",
+                    "pages": [
+                        "api-reference/endpoint/create-wallet",
+                        "api-reference/endpoint/list-wallets",
+                        "api-reference/endpoint/get-wallet",
+                        "api-reference/endpoint/delete-wallet"
+                    ]
+                },
+                {
+                    "group": "Private Keys",
+                    "pages": [
+                        "api-reference/endpoint/create-private-key",
+                        "api-reference/endpoint/list-private-keys",
+                        "api-reference/endpoint/get-private-key",
+                        "api-reference/endpoint/delete-private-key"
+                    ]
+                }
+            ]
+        }
+    ],
+    "footerSocials": {
+        "twitter": "https://twitter.com/dojima",
+        "github": "https://github.com/dojima-foundation",
+        "linkedin": "https://www.linkedin.com/company/dojima"
+    },
+    "api": {
+        "baseUrl": "http://localhost:8082",
+        "playground": {
+            "mode": "show",
+            "proxy": false,
+            "showResponseHeaders": true,
+            "showServerSelector": true
+        }
+    }
+}

@@ -15,6 +15,7 @@ import (
 	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 	"github.com/dojima-foundation/tee-auth/gauth/test/testhelpers"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -69,8 +70,22 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 	// Create service instance
 	suite.service = service.NewGAuthServiceWithEnclave(cfg, testLogger, suite.db.DB, nil, service.NewMockRenclaveClient())
 
+	// Initialize telemetry (disabled for tests)
+	telemetry, err := telemetry.New(context.Background(), telemetry.Config{
+		ServiceName:        "gauth-test",
+		ServiceVersion:     "test",
+		Environment:        "test",
+		TracingEnabled:     false,
+		MetricsEnabled:     false,
+		OTLPEndpoint:       "",
+		OTLPInsecure:       false,
+		TraceSamplingRatio: 0.1,
+		MetricsPort:        0,
+	})
+	require.NoError(suite.T(), err)
+
 	// Create gRPC server (needed for REST server)
-	suite.grpcServer = grpc.NewServer(cfg, testLogger, suite.service)
+	suite.grpcServer = grpc.NewServer(cfg, testLogger, suite.service, telemetry)
 
 	// Start gRPC server in background
 	go func() {
@@ -83,7 +98,7 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 	time.Sleep(100 * time.Millisecond)
 
 	// Create REST server
-	suite.restServer = rest.NewServer(cfg, testLogger)
+	suite.restServer = rest.NewServer(cfg, testLogger, telemetry)
 
 	// Connect REST server to gRPC server
 	err = suite.restServer.ConnectToGRPCForTesting("localhost:9092")

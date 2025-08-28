@@ -1,0 +1,249 @@
+---
+title: 'API Playground'
+description: 'Interactive playground to test TEE Auth APIs'
+---
+
+# API Playground
+
+Welcome to the TEE Auth API Playground! Here you can test all the available API endpoints interactively.
+
+## Available Endpoints
+
+### Activities
+- **Approve Activity** - Approve a pending activity in the system
+
+### Authentication
+- **Create API Keys** - Create API keys for a user
+- **Create Authenticators** - Create authenticators for secure access
+
+### Transactions
+- **Sign Transaction** - Sign a transaction using a secure enclave
+
+### Organizations
+- **Create Organization** - Create a new organization
+
+### Users
+- **Create User** - Create a new user in an organization
+
+### Wallets
+- **Create Wallet** - Create a new wallet for a user
+
+### Private Keys
+- **Create Private Key** - Create a new private key for a wallet
+
+## Authentication
+
+All API requests require authentication using the X-Stamp header. You'll need to provide your API key in the authentication field for each request.
+
+## Interactive Examples
+
+### Approve Activity
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_APPROVE_ACTIVITY",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "activityId": "activity_67890fghij"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "activityId": "activity_67890fghij",
+  "status": "APPROVED"
+}
+```
+</ResponseExample>
+
+### Create API Keys
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_API_KEYS_V2",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "userId": "user_67890fghij",
+    "keyName": "Development Key"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "apiKeyId": "apikey_12345abcde",
+  "publicKey": "PUBLIC_KEY_DATA",
+  "privateKey": "PRIVATE_KEY_DATA"
+}
+```
+</ResponseExample>
+
+### Sign Transaction
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_SIGN_TRANSACTION_V2",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "walletId": "wallet_67890fghij",
+    "transactionData": "0x1234567890abcdef",
+    "signatureType": "ECDSA"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "signature": "0xabcdef1234567890",
+  "publicKey": "0x0987654321fedcba"
+}
+```
+</ResponseExample>
+
+### Create Organization
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_ORGANIZATION",
+  "timestampMs": "1625097600000",
+  "parameters": {
+    "name": "Acme Corporation",
+    "description": "A leading technology company",
+    "email": "admin@acme.com"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "organizationId": "org_12345abcde",
+  "name": "Acme Corporation",
+  "email": "admin@acme.com"
+}
+```
+</ResponseExample>
+
+### Create User
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_USER",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "email": "john.doe@acme.com",
+    "name": "John Doe",
+    "role": "developer"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "userId": "user_67890fghij",
+  "email": "john.doe@acme.com",
+  "name": "John Doe"
+}
+```
+</ResponseExample>
+
+### Create Wallet
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_WALLET",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "userId": "user_67890fghij",
+    "walletType": "ETH",
+    "name": "Main Ethereum Wallet",
+    "description": "Primary wallet for Ethereum transactions"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "walletId": "wallet_12345abcde",
+  "userId": "user_67890fghij",
+  "walletType": "ETH",
+  "publicKey": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+}
+```
+</ResponseExample>
+
+### Create Private Key
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_PRIVATE_KEY",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "walletId": "wallet_67890fghij",
+    "keyType": "ECDSA",
+    "keySize": 256,
+    "name": "Main Signing Key"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "privateKeyId": "key_12345abcde",
+  "walletId": "wallet_67890fghij",
+  "keyType": "ECDSA",
+  "publicKey": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+}
+```
+</ResponseExample>
+
+## Getting Started
+
+1. Navigate to any endpoint page in the API Reference section
+2. Look for the "Try it" button or interactive playground
+3. Enter your X-Stamp authentication key
+4. Fill in the required parameters
+5. Click "Try it" to send the request
+
+## Need Help?
+
+If you encounter any issues with the API playground, please check:
+- Your authentication credentials are correct
+- All required parameters are filled in
+- The API server is accessible at the configured base URL
+
+For more detailed information about each endpoint, visit the individual endpoint pages in the API Reference section.

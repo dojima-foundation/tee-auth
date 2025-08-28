@@ -3,14 +3,24 @@ package service
 import (
 	"context"
 	"fmt"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // MockRenclaveClient is a mock implementation of the enclave client for testing
-type MockRenclaveClient struct{}
+type MockRenclaveClient struct {
+	tracer     trace.Tracer
+	propagator propagation.TextMapPropagator
+}
 
 // NewMockRenclaveClient creates a new mock enclave client
 func NewMockRenclaveClient() *MockRenclaveClient {
-	return &MockRenclaveClient{}
+	return &MockRenclaveClient{
+		tracer:     otel.Tracer("mock-renclave-client"),
+		propagator: otel.GetTextMapPropagator(),
+	}
 }
 
 // GenerateSeed returns a mock seed generation response

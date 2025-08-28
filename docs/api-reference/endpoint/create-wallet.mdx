@@ -1,0 +1,141 @@
+---
+title: 'Create Wallet'
+api: 'POST /public/v1/submit/create_wallet'
+description: 'Create a new wallet for a user'
+version: '0.1.0'
+---
+
+## Create Wallet
+
+This endpoint allows you to create a new wallet for a user within an organization.
+
+### Request
+
+<ParamField body="type" type="string" required>
+  The activity type, must be `ACTIVITY_TYPE_CREATE_WALLET`
+</ParamField>
+
+<ParamField body="timestampMs" type="string" required>
+  The timestamp in milliseconds when the request was created
+</ParamField>
+
+<ParamField body="organizationId" type="string" required>
+  Your organization ID
+</ParamField>
+
+<ParamField body="parameters" type="object" required>
+  The parameters object containing wallet information
+</ParamField>
+
+<ParamField body="parameters.userId" type="string" required>
+  The ID of the user who will own the wallet
+</ParamField>
+
+<ParamField body="parameters.walletType" type="string" required>
+  The type of wallet to create (e.g., "ETH", "BTC", "GENERIC")
+</ParamField>
+
+<ParamField body="parameters.name" type="string">
+  Optional name for the wallet
+</ParamField>
+
+<ParamField body="parameters.description" type="string">
+  Optional description of the wallet
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="walletId" type="string">
+  The ID of the created wallet
+</ResponseField>
+
+<ResponseField name="userId" type="string">
+  The ID of the user who owns the wallet
+</ResponseField>
+
+<ResponseField name="walletType" type="string">
+  The type of the wallet
+</ResponseField>
+
+<ResponseField name="publicKey" type="string">
+  The public key of the wallet
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_WALLET",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "userId": "user_67890fghij",
+    "walletType": "ETH",
+    "name": "Main Ethereum Wallet",
+    "description": "Primary wallet for Ethereum transactions"
+  }
+}
+```
+
+```bash cURL
+curl -X POST "https://api.example.com/public/v1/submit/create_wallet" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_CREATE_WALLET",
+    "timestampMs": "1625097600000",
+    "organizationId": "org_12345abcde",
+    "parameters": {
+      "userId": "user_67890fghij",
+      "walletType": "ETH",
+      "name": "Main Ethereum Wallet",
+      "description": "Primary wallet for Ethereum transactions"
+    }
+  }'
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "walletId": "wallet_12345abcde",
+  "userId": "user_67890fghij",
+  "walletType": "ETH",
+  "publicKey": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+}
+```
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_WALLET",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "userId": "user_67890fghij",
+    "walletType": "ETH",
+    "name": "Main Ethereum Wallet",
+    "description": "Primary wallet for Ethereum transactions"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "walletId": "wallet_12345abcde",
+  "userId": "user_67890fghij",
+  "walletType": "ETH",
+  "publicKey": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+}
+```
+</ResponseExample>

@@ -1,0 +1,37 @@
+---
+title: 'TEE Auth Documentation'
+description: 'Secure authentication and transaction signing using Trusted Execution Environments'
+---
+
+# TEE Auth
+
+TEE Auth is a secure authentication and transaction signing service that leverages Trusted Execution Environments (TEEs) to provide enhanced security for cryptographic operations.
+
+## Features
+
+- **Secure Key Management**: Store and manage cryptographic keys in secure enclaves
+- **Transaction Signing**: Sign transactions securely within TEEs
+- **API Key Management**: Create and manage API keys for authentication
+- **Activity Approval**: Approve activities through secure channels
+- **Authenticator Management**: Create and manage authenticators
+
+## Architecture
+
+TEE Auth consists of two main components:
+
+1. **gauth**: The authentication and API service written in Go
+2. **renclave-v2**: The TEE enclave service written in Rust
+
+Together, these components provide a secure and scalable solution for managing cryptographic operations in a trusted environment.
+
+## Getting Started
+
+To get started with TEE Auth, check out our [Quickstart Guide](/quickstart).
+
+## API Reference
+
+For detailed API documentation, see the [API Reference](/api-reference/authentication) section.
+
+## Version
+
+Current version: **0.1.0**

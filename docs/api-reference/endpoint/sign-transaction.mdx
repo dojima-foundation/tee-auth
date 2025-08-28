@@ -1,0 +1,122 @@
+---
+title: 'Sign Transaction'
+api: 'POST /public/v1/submit/sign_transaction'
+description: 'Sign a transaction using a secure enclave'
+version: '0.1.0'
+---
+
+## Sign Transaction
+
+This endpoint allows you to sign a transaction using a private key stored in a secure enclave.
+
+### Request
+
+<ParamField body="type" type="string" required>
+  The activity type, must be `ACTIVITY_TYPE_SIGN_TRANSACTION_V2`
+</ParamField>
+
+<ParamField body="timestampMs" type="string" required>
+  The timestamp in milliseconds when the request was created
+</ParamField>
+
+<ParamField body="organizationId" type="string" required>
+  Your organization ID
+</ParamField>
+
+<ParamField body="parameters" type="object" required>
+  The parameters object containing transaction and wallet information
+</ParamField>
+
+<ParamField body="parameters.walletId" type="string" required>
+  The ID of the wallet containing the private key
+</ParamField>
+
+<ParamField body="parameters.transactionData" type="string" required>
+  The transaction data to sign, encoded as a hexadecimal string
+</ParamField>
+
+<ParamField body="parameters.signatureType" type="string">
+  The type of signature to create (e.g., "ECDSA")
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="signature" type="string">
+  The cryptographic signature as a hexadecimal string
+</ResponseField>
+
+<ResponseField name="publicKey" type="string">
+  The public key that can be used to verify the signature
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_SIGN_TRANSACTION_V2",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "walletId": "wallet_67890fghij",
+    "transactionData": "0x1234567890abcdef",
+    "signatureType": "ECDSA"
+  }
+}
+```
+
+```bash cURL
+curl -X POST "https://api.example.com/public/v1/submit/sign_transaction" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_SIGN_TRANSACTION_V2",
+    "timestampMs": "1625097600000",
+    "organizationId": "org_12345abcde",
+    "parameters": {
+      "walletId": "wallet_67890fghij",
+      "transactionData": "0x1234567890abcdef",
+      "signatureType": "ECDSA"
+    }
+  }'
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "signature": "0xabcdef1234567890",
+  "publicKey": "0x0987654321fedcba"
+}
+```
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_SIGN_TRANSACTION_V2",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "walletId": "wallet_67890fghij",
+    "transactionData": "0x1234567890abcdef",
+    "signatureType": "ECDSA"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "signature": "0xabcdef1234567890",
+  "publicKey": "0x0987654321fedcba"
+}
+```
+</ResponseExample>

@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 	"github.com/dojima-foundation/tee-auth/gauth/test/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -108,8 +110,22 @@ func (suite *RESTIntegrationTestSuite) SetupSuite() {
 	// Initialize service
 	svc := service.NewGAuthService(suite.config, logger, database, redis)
 
+	// Initialize telemetry (disabled for tests)
+	telemetry, err := telemetry.New(context.Background(), telemetry.Config{
+		ServiceName:        "gauth-test",
+		ServiceVersion:     "test",
+		Environment:        "test",
+		TracingEnabled:     false,
+		MetricsEnabled:     false,
+		OTLPEndpoint:       "",
+		OTLPInsecure:       false,
+		TraceSamplingRatio: 0.1,
+		MetricsPort:        0,
+	})
+	require.NoError(suite.T(), err)
+
 	// Initialize and start gRPC server
-	suite.grpcServer = grpcServer.NewServer(suite.config, logger, svc)
+	suite.grpcServer = grpcServer.NewServer(suite.config, logger, svc, telemetry)
 	go func() {
 		suite.grpcServer.Start()
 	}()
@@ -118,7 +134,7 @@ func (suite *RESTIntegrationTestSuite) SetupSuite() {
 	time.Sleep(2 * time.Second)
 
 	// Initialize and start REST server
-	suite.restServer = restServer.NewServer(suite.config, logger)
+	suite.restServer = restServer.NewServer(suite.config, logger, telemetry)
 	go func() {
 		suite.restServer.Start()
 	}()

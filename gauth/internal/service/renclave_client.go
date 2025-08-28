@@ -7,21 +7,41 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // RenclaveClient handles communication with the renclave-v2 service
 type RenclaveClient struct {
 	baseURL    string
 	httpClient *http.Client
+	tracer     trace.Tracer
+	propagator propagation.TextMapPropagator
 }
 
 // NewRenclaveClient creates a new RenclaveClient instance
 func NewRenclaveClient(baseURL string, timeout time.Duration) *RenclaveClient {
+	// Create HTTP client with OpenTelemetry instrumentation
+	httpClient := &http.Client{
+		Timeout: timeout,
+		Transport: otelhttp.NewTransport(
+			http.DefaultTransport,
+			otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+				return fmt.Sprintf("HTTP %s %s", r.Method, r.URL.Path)
+			}),
+		),
+	}
+
 	return &RenclaveClient{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
+		baseURL:    baseURL,
+		httpClient: httpClient,
+		tracer:     otel.Tracer("renclave-client"),
+		propagator: otel.GetTextMapPropagator(),
 	}
 }
 
@@ -171,42 +191,88 @@ func (c *RenclaveClient) DeriveAddress(ctx context.Context, seedPhrase, path, cu
 
 // Health checks the health of renclave-v2
 func (c *RenclaveClient) Health(ctx context.Context) error {
+	// Start a new span for the health check
+	ctx, span := c.tracer.Start(ctx, "RenclaveClient.Health",
+		trace.WithAttributes(
+			attribute.String("rpc.system", "http"),
+			attribute.String("rpc.service", "renclave"),
+			attribute.String("rpc.method", "GET"),
+			attribute.String("http.url", c.baseURL+"/health"),
+		),
+	)
+	defer span.End()
+
 	// For health check, we only care about the status code, not the response body
 	// The renclave service returns 200 OK without a response body
 	url := c.baseURL + "/health"
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "Failed to create health request")
 		return fmt.Errorf("failed to create health request: %w", err)
 	}
 
 	req.Header.Set("Accept", "application/json")
 
+	// Inject trace context into request headers
+	c.propagator.Inject(ctx, propagation.HeaderCarrier(req.Header))
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "Health check failed")
 		return fmt.Errorf("health check failed: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// Add response details to span
+	span.SetAttributes(
+		attribute.Int("http.status_code", resp.StatusCode),
+	)
+
 	// For health check, any 2xx status code is considered healthy
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("health check failed with status %d", resp.StatusCode)
+		err := fmt.Errorf("health check failed with status %d", resp.StatusCode)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, fmt.Sprintf("HTTP %d", resp.StatusCode))
+		return err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return nil
 }
 
 // makeRequest is a helper method to make HTTP requests to renclave-v2
 func (c *RenclaveClient) makeRequest(ctx context.Context, method, path string, reqBody interface{}, respBody interface{}) error {
+	// Start a new span for the request
+	spanName := fmt.Sprintf("RenclaveClient.%s", path)
+	ctx, span := c.tracer.Start(ctx, spanName,
+		trace.WithAttributes(
+			attribute.String("rpc.system", "http"),
+			attribute.String("rpc.service", "renclave"),
+			attribute.String("rpc.method", method),
+			attribute.String("http.url", c.baseURL+path),
+		),
+	)
+	defer span.End()
+
 	url := c.baseURL + path
 
 	var body *bytes.Buffer
 	if reqBody != nil {
 		jsonData, err := json.Marshal(reqBody)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "Failed to marshal request body")
 			return fmt.Errorf("failed to marshal request body: %w", err)
 		}
 		body = bytes.NewBuffer(jsonData)
+
+		// Add request body details to span
+		span.SetAttributes(
+			attribute.String("http.request.body.size", fmt.Sprintf("%d", len(jsonData))),
+		)
 	}
 
 	var req *http.Request
@@ -217,6 +283,8 @@ func (c *RenclaveClient) makeRequest(ctx context.Context, method, path string, r
 		req, err = http.NewRequestWithContext(ctx, method, url, nil)
 	}
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "Failed to create request")
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -225,21 +293,43 @@ func (c *RenclaveClient) makeRequest(ctx context.Context, method, path string, r
 	}
 	req.Header.Set("Accept", "application/json")
 
+	// Inject trace context into request headers
+	c.propagator.Inject(ctx, propagation.HeaderCarrier(req.Header))
+
+	// Add span attributes for the request
+	span.SetAttributes(
+		attribute.String("http.method", method),
+		attribute.String("http.path", path),
+	)
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "Failed to make request")
 		return fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// Add response details to span
+	span.SetAttributes(
+		attribute.Int("http.status_code", resp.StatusCode),
+	)
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("request failed with status %d", resp.StatusCode)
+		err := fmt.Errorf("request failed with status %d", resp.StatusCode)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, fmt.Sprintf("HTTP %d", resp.StatusCode))
+		return err
 	}
 
 	if respBody != nil {
 		if err := json.NewDecoder(resp.Body).Decode(respBody); err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "Failed to decode response body")
 			return fmt.Errorf("failed to decode response body: %w", err)
 		}
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return nil
 }

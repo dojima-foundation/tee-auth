@@ -1,0 +1,118 @@
+---
+title: 'Get Private Key'
+api: 'GET /public/v1/organizations/{organizationId}/users/{userId}/wallets/{walletId}/private-keys/{privateKeyId}'
+description: 'Get a specific private key by ID'
+version: '0.1.0'
+---
+
+## Get Private Key
+
+This endpoint allows you to retrieve details of a specific private key.
+
+### Request
+
+<ParamField path="organizationId" type="string" required>
+  The ID of the organization
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  The ID of the user
+</ParamField>
+
+<ParamField path="walletId" type="string" required>
+  The ID of the wallet
+</ParamField>
+
+<ParamField path="privateKeyId" type="string" required>
+  The ID of the private key to retrieve
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="privateKey" type="object">
+  The private key object
+</ResponseField>
+
+<ResponseField name="privateKey.id" type="string">
+  The ID of the private key
+</ResponseField>
+
+<ResponseField name="privateKey.walletId" type="string">
+  The ID of the wallet that owns the private key
+</ResponseField>
+
+<ResponseField name="privateKey.keyType" type="string">
+  The type of the private key
+</ResponseField>
+
+<ResponseField name="privateKey.name" type="string">
+  The name of the private key
+</ResponseField>
+
+<ResponseField name="privateKey.publicKey" type="string">
+  The public key corresponding to the private key
+</ResponseField>
+
+<ResponseField name="privateKey.createdAt" type="string">
+  The timestamp when the private key was created
+</ResponseField>
+
+<ResponseField name="privateKey.updatedAt" type="string">
+  The timestamp when the private key was last updated
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users/user_67890fghij/wallets/wallet_12345abcde/private-keys/key_12345abcde" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "privateKey": {
+    "id": "key_12345abcde",
+    "walletId": "wallet_12345abcde",
+    "keyType": "ECDSA",
+    "name": "Main Signing Key",
+    "publicKey": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+    "createdAt": "2023-02-20T11:30:00Z",
+    "updatedAt": "2023-03-10T16:20:00Z"
+  }
+}
+```
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users/user_67890fghij/wallets/wallet_12345abcde/private-keys/key_12345abcde" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "privateKey": {
+    "id": "key_12345abcde",
+    "walletId": "wallet_12345abcde",
+    "keyType": "ECDSA",
+    "name": "Main Signing Key",
+    "publicKey": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+    "createdAt": "2023-02-20T11:30:00Z",
+    "updatedAt": "2023-03-10T16:20:00Z"
+  }
+}
+```
+</ResponseExample>

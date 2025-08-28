@@ -1,0 +1,128 @@
+---
+title: 'Create Authenticators'
+api: 'POST /public/v1/submit/create_authenticators'
+description: 'Create authenticators for secure access'
+version: '0.1.0'
+---
+
+## Create Authenticators
+
+This endpoint allows you to create authenticators for secure access to the system.
+
+### Request
+
+<ParamField body="type" type="string" required>
+  The activity type, must be `ACTIVITY_TYPE_CREATE_AUTHENTICATORS`
+</ParamField>
+
+<ParamField body="timestampMs" type="string" required>
+  The timestamp in milliseconds when the request was created
+</ParamField>
+
+<ParamField body="organizationId" type="string" required>
+  Your organization ID
+</ParamField>
+
+<ParamField body="parameters" type="object" required>
+  The parameters object containing authenticator information
+</ParamField>
+
+<ParamField body="parameters.userId" type="string" required>
+  The ID of the user for whom to create authenticators
+</ParamField>
+
+<ParamField body="parameters.authenticatorType" type="string" required>
+  The type of authenticator to create (e.g., "TOTP", "RECOVERY")
+</ParamField>
+
+<ParamField body="parameters.name" type="string">
+  Optional name for the authenticator
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="authenticatorId" type="string">
+  The ID of the created authenticator
+</ResponseField>
+
+<ResponseField name="secret" type="string">
+  The secret for the authenticator. This is only returned once and should be stored securely.
+</ResponseField>
+
+<ResponseField name="qrCodeUrl" type="string">
+  For TOTP authenticators, a URL that can be used to generate a QR code for easy setup
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_AUTHENTICATORS",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "userId": "user_67890fghij",
+    "authenticatorType": "TOTP",
+    "name": "Mobile Authenticator"
+  }
+}
+```
+
+```bash cURL
+curl -X POST "https://api.example.com/public/v1/submit/create_authenticators" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_CREATE_AUTHENTICATORS",
+    "timestampMs": "1625097600000",
+    "organizationId": "org_12345abcde",
+    "parameters": {
+      "userId": "user_67890fghij",
+      "authenticatorType": "TOTP",
+      "name": "Mobile Authenticator"
+    }
+  }'
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "authenticatorId": "auth_12345abcde",
+  "secret": "JBSWY3DPEHPK3PXP",
+  "qrCodeUrl": "otpauth://totp/Example:user_67890fghij?secret=JBSWY3DPEHPK3PXP&issuer=Example"
+}
+```
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_AUTHENTICATORS",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "userId": "user_67890fghij",
+    "authenticatorType": "TOTP",
+    "name": "Mobile Authenticator"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "authenticatorId": "auth_12345abcde",
+  "secret": "JBSWY3DPEHPK3PXP",
+  "qrCodeUrl": "otpauth://totp/Example:user_67890fghij?secret=JBSWY3DPEHPK3PXP&issuer=Example"
+}
+```
+</ResponseExample>

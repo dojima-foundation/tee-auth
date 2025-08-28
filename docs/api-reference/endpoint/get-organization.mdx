@@ -1,0 +1,112 @@
+---
+title: 'Get Organization'
+api: 'GET /public/v1/organizations/{organizationId}'
+description: 'Get a specific organization by ID'
+version: '0.1.0'
+---
+
+## Get Organization
+
+This endpoint allows you to retrieve details of a specific organization by its ID.
+
+### Request
+
+<ParamField path="organizationId" type="string" required>
+  The ID of the organization to retrieve
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="organization" type="object">
+  The organization object
+</ResponseField>
+
+<ResponseField name="organization.id" type="string">
+  The ID of the organization
+</ResponseField>
+
+<ResponseField name="organization.name" type="string">
+  The name of the organization
+</ResponseField>
+
+<ResponseField name="organization.email" type="string">
+  The primary email address of the organization
+</ResponseField>
+
+<ResponseField name="organization.description" type="string">
+  The description of the organization
+</ResponseField>
+
+<ResponseField name="organization.createdAt" type="string">
+  The timestamp when the organization was created
+</ResponseField>
+
+<ResponseField name="organization.updatedAt" type="string">
+  The timestamp when the organization was last updated
+</ResponseField>
+
+<ResponseField name="organization.userCount" type="number">
+  Number of users in the organization
+</ResponseField>
+
+<ResponseField name="organization.walletCount" type="number">
+  Number of wallets in the organization
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "organization": {
+    "id": "org_12345abcde",
+    "name": "Acme Corporation",
+    "email": "admin@acme.com",
+    "description": "A leading technology company",
+    "createdAt": "2023-01-15T10:30:00Z",
+    "updatedAt": "2023-03-10T16:20:00Z",
+    "userCount": 25,
+    "walletCount": 15
+  }
+}
+```
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "organization": {
+    "id": "org_12345abcde",
+    "name": "Acme Corporation",
+    "email": "admin@acme.com",
+    "description": "A leading technology company",
+    "createdAt": "2023-01-15T10:30:00Z",
+    "updatedAt": "2023-03-10T16:20:00Z",
+    "userCount": 25,
+    "walletCount": 15
+  }
+}
+```
+</ResponseExample>

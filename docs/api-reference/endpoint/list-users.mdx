@@ -1,0 +1,152 @@
+---
+title: 'List Users'
+api: 'GET /public/v1/organizations/{organizationId}/users'
+description: 'List all users in an organization'
+version: '0.1.0'
+---
+
+## List Users
+
+This endpoint allows you to retrieve a list of all users within an organization.
+
+### Request
+
+<ParamField path="organizationId" type="string" required>
+  The ID of the organization
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Maximum number of users to return (default: 50)
+</ParamField>
+
+<ParamField query="offset" type="number">
+  Number of users to skip for pagination (default: 0)
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search term to filter users by name or email
+</ParamField>
+
+<ParamField query="role" type="string">
+  Filter users by role
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="users" type="array">
+  Array of user objects
+</ResponseField>
+
+<ResponseField name="users[].id" type="string">
+  The ID of the user
+</ResponseField>
+
+<ResponseField name="users[].email" type="string">
+  The email address of the user
+</ResponseField>
+
+<ResponseField name="users[].name" type="string">
+  The full name of the user
+</ResponseField>
+
+<ResponseField name="users[].role" type="string">
+  The role of the user within the organization
+</ResponseField>
+
+<ResponseField name="users[].createdAt" type="string">
+  The timestamp when the user was created
+</ResponseField>
+
+<ResponseField name="users[].walletCount" type="number">
+  Number of wallets owned by the user
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total number of users
+</ResponseField>
+
+<ResponseField name="limit" type="number">
+  Number of users returned
+</ResponseField>
+
+<ResponseField name="offset" type="number">
+  Number of users skipped
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users?limit=10&offset=0" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+
+```bash cURL with search
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users?search=john&role=developer" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "users": [
+    {
+      "id": "user_67890fghij",
+      "email": "john.doe@acme.com",
+      "name": "John Doe",
+      "role": "developer",
+      "createdAt": "2023-01-20T09:15:00Z",
+      "walletCount": 3
+    },
+    {
+      "id": "user_11111klmno",
+      "email": "jane.smith@acme.com",
+      "name": "Jane Smith",
+      "role": "admin",
+      "createdAt": "2023-02-10T11:30:00Z",
+      "walletCount": 1
+    }
+  ],
+  "total": 2,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users?limit=10&offset=0" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "users": [
+    {
+      "id": "user_67890fghij",
+      "email": "john.doe@acme.com",
+      "name": "John Doe",
+      "role": "developer",
+      "createdAt": "2023-01-20T09:15:00Z",
+      "walletCount": 3
+    }
+  ],
+  "total": 1,
+  "limit": 10,
+  "offset": 0
+}
+```
+</ResponseExample>

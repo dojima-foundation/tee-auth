@@ -1,0 +1,472 @@
+---
+title: 'GAuth Architecture'
+description: 'Detailed architecture of the GAuth authentication service'
+---
+
+# GAuth Architecture
+
+The GAuth service is the authentication and API management component of the TEE Auth system. Built in Go for performance and reliability, it handles user authentication, API key management, and provides the RESTful API interface for the entire system.
+
+## GAuth Service Architecture
+
+The GAuth service follows a clean, layered architecture designed for scalability and maintainability:
+
+```mermaid
+graph TB
+    %% Dark mode styling
+    classDef darkAPI fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkService fill:#1a202c,stroke:#2d3748,color:#f7fafc
+    classDef darkData fill:#38a169,stroke:#2f855a,color:#f7fafc
+    classDef darkCache fill:#805ad5,stroke:#553c9a,color:#f7fafc
+    classDef darkExternal fill:#e53e3e,stroke:#c53030,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightAPI fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightService fill:#ffffff,stroke:#e2e8f0,color:#2d3748
+    classDef lightData fill:#38a169,stroke:#2f855a,color:#ffffff
+    classDef lightCache fill:#805ad5,stroke:#553c9a,color:#ffffff
+    classDef lightExternal fill:#e53e3e,stroke:#c53030,color:#ffffff
+
+    %% API Layer
+    REST[REST API<br/>HTTP/JSON Endpoints]:::darkAPI
+    GRPC[gRPC API<br/>Internal Communication]:::darkAPI
+    
+    %% Service Layer
+    Auth[Authentication Service<br/>User Auth & Sessions]:::darkService
+    User[User Management<br/>CRUD Operations]:::darkService
+    Org[Organization Service<br/>Org Management]:::darkService
+    Wallet[Wallet Service<br/>Wallet Operations]:::darkService
+    Key[Key Management<br/>API Key Operations]:::darkService
+    Activity[Activity Service<br/>Approval Workflows]:::darkService
+    
+    %% Data Layer
+    DB[(PostgreSQL<br/>Primary Database)]:::darkData
+    Redis[(Redis<br/>Session Cache)]:::darkCache
+    
+    %% External Services
+    Renclave[Renclave Service<br/>TEE Operations]:::darkExternal
+    
+    %% Connections
+    REST --> Auth
+    REST --> User
+    REST --> Org
+    REST --> Wallet
+    REST --> Key
+    REST --> Activity
+    
+    GRPC --> Auth
+    GRPC --> User
+    GRPC --> Org
+    GRPC --> Wallet
+    GRPC --> Key
+    GRPC --> Activity
+    
+    Auth --> DB
+    User --> DB
+    Org --> DB
+    Wallet --> DB
+    Key --> DB
+    Activity --> DB
+    
+    Auth --> Redis
+    User --> Redis
+    Org --> Redis
+    Wallet --> Redis
+    Key --> Redis
+    Activity --> Redis
+    
+    Wallet --> Renclave
+    Key --> Renclave
+    Activity --> Renclave
+    
+    %% Apply theme classes
+    class REST,GRPC,Auth,User,Org,Wallet,Key,Activity,DB,Redis,Renclave darkAPI,darkService,darkData,darkCache,darkExternal
+```
+
+## Service Layer Details
+
+### 1. **Authentication Service**
+- User authentication and session management
+- X-Stamp signature validation
+- JWT token generation and validation
+- Multi-factor authentication support
+- Rate limiting and access control
+
+### 2. **User Management Service**
+- User CRUD operations
+- Role-based access control (RBAC)
+- User profile management
+- Email verification and password reset
+- User activity tracking
+
+### 3. **Organization Service**
+- Organization CRUD operations
+- Organization hierarchy management
+- User-organization relationships
+- Organization settings and policies
+- Billing and subscription management
+
+### 4. **Wallet Service**
+- Wallet CRUD operations
+- Wallet metadata management
+- Integration with Renclave for key operations
+- Wallet usage analytics
+- Backup and recovery coordination
+
+### 5. **Key Management Service**
+- API key generation and management
+- Key rotation and revocation
+- Usage tracking and analytics
+- Security policy enforcement
+- Integration with Renclave for key storage
+
+### 6. **Activity Service**
+- Activity approval workflows
+- Audit logging and compliance
+- Activity status tracking
+- Notification management
+- Integration with external systems
+
+## Data Flow Architecture
+
+The data flow through the GAuth service for different operations:
+
+```mermaid
+graph LR
+    %% Dark mode styling
+    classDef darkClient fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkAPI fill:#1a202c,stroke:#2d3748,color:#f7fafc
+    classDef darkService fill:#38a169,stroke:#2f855a,color:#f7fafc
+    classDef darkData fill:#805ad5,stroke:#553c9a,color:#f7fafc
+    classDef darkExternal fill:#e53e3e,stroke:#c53030,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightClient fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightAPI fill:#ffffff,stroke:#e2e8f0,color:#2d3748
+    classDef lightService fill:#38a169,stroke:#2f855a,color:#ffffff
+    classDef lightData fill:#805ad5,stroke:#553c9a,color:#ffffff
+    classDef lightExternal fill:#e53e3e,stroke:#c53030,color:#ffffff
+
+    %% Flow Components
+    Client[Client Application]:::darkClient
+    Gateway[API Gateway<br/>Load Balancer]:::darkAPI
+    Auth[Authentication<br/>Service]:::darkService
+    Business[Business Logic<br/>Services]:::darkService
+    Cache[Redis Cache<br/>Sessions]:::darkData
+    Database[PostgreSQL<br/>Database]:::darkData
+    TEE[Renclave<br/>TEE Service]:::darkExternal
+    
+    %% Data Flow
+    Client --> Gateway
+    Gateway --> Auth
+    Auth --> Cache
+    Auth --> Business
+    Business --> Database
+    Business --> TEE
+    Business --> Cache
+    
+    %% Apply theme classes
+    class Client,Gateway,Auth,Business,Cache,Database,TEE darkClient,darkAPI,darkService,darkData,darkExternal
+```
+
+## Authentication Flow
+
+The complete authentication and authorization flow:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Gateway as API Gateway
+    participant Auth as Auth Service
+    participant Cache as Redis Cache
+    participant DB as Database
+    participant TEE as Renclave Service
+    
+    %% Dark mode styling
+    rect rgb(45, 55, 72)
+        Note over Client,TEE: Authentication & Authorization Flow
+    end
+    
+    Client->>Gateway: API Request with X-Stamp
+    Gateway->>Auth: Validate X-Stamp Signature
+    Auth->>Cache: Check Session Cache
+    
+    alt Session Found
+        Auth-->>Gateway: Valid Session
+    else Session Not Found
+        Auth->>DB: Verify User & Permissions
+        DB-->>Auth: User Data & Permissions
+        Auth->>Cache: Store Session
+        Auth-->>Gateway: Authentication Result
+    end
+    
+    Gateway->>TEE: Forward Secure Operations
+    TEE-->>Gateway: Operation Result
+    Gateway-->>Client: API Response
+```
+
+## Database Schema Overview
+
+The GAuth service uses a well-designed database schema:
+
+```mermaid
+erDiagram
+    %% Dark mode styling
+    classDef darkEntity fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkRelation fill:#1a202c,stroke:#2d3748,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightEntity fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightRelation fill:#ffffff,stroke:#e2e8f0,color:#2d3748
+
+    ORGANIZATIONS {
+        uuid id PK
+        string name
+        string email
+        text description
+        timestamp created_at
+        timestamp updated_at
+    }:::darkEntity
+    
+    USERS {
+        uuid id PK
+        uuid organization_id FK
+        string email
+        string name
+        string role
+        timestamp created_at
+        timestamp updated_at
+    }:::darkEntity
+    
+    WALLETS {
+        uuid id PK
+        uuid user_id FK
+        string wallet_type
+        string name
+        text description
+        string public_key
+        timestamp created_at
+        timestamp updated_at
+    }:::darkEntity
+    
+    PRIVATE_KEYS {
+        uuid id PK
+        uuid wallet_id FK
+        string key_type
+        string name
+        string public_key
+        timestamp created_at
+        timestamp updated_at
+    }:::darkEntity
+    
+    API_KEYS {
+        uuid id PK
+        uuid user_id FK
+        string name
+        string public_key
+        string private_key_hash
+        timestamp created_at
+        timestamp last_used_at
+    }:::darkEntity
+    
+    ACTIVITIES {
+        uuid id PK
+        uuid user_id FK
+        string activity_type
+        string status
+        json parameters
+        timestamp created_at
+        timestamp updated_at
+    }:::darkEntity
+    
+    %% Relationships
+    ORGANIZATIONS ||--o{ USERS : "has"
+    USERS ||--o{ WALLETS : "owns"
+    USERS ||--o{ API_KEYS : "has"
+    USERS ||--o{ ACTIVITIES : "performs"
+    WALLETS ||--o{ PRIVATE_KEYS : "contains"
+    
+    %% Apply theme classes
+    class ORGANIZATIONS,USERS,WALLETS,PRIVATE_KEYS,API_KEYS,ACTIVITIES darkEntity
+```
+
+## Caching Strategy
+
+GAuth implements a multi-level caching strategy for optimal performance:
+
+```mermaid
+graph TB
+    %% Dark mode styling
+    classDef darkCache fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkData fill:#1a202c,stroke:#2d3748,color:#f7fafc
+    classDef darkBenefit fill:#38a169,stroke:#2f855a,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightCache fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightData fill:#ffffff,stroke:#e2e8f0,color:#2d3748
+    classDef lightBenefit fill:#38a169,stroke:#2f855a,color:#ffffff
+
+    %% Cache Layers
+    L1[L1 Cache<br/>In-Memory<br/>User Sessions]:::darkCache
+    L2[L2 Cache<br/>Redis<br/>Shared Data]:::darkCache
+    L3[L3 Cache<br/>Database<br/>Persistent Storage]:::darkData
+    
+    %% Benefits
+    Speed[Ultra-Fast Access<br/>< 1ms Response]:::darkBenefit
+    Scalability[Horizontal Scaling<br/>Multiple Instances]:::darkBenefit
+    Reliability[Data Persistence<br/>Fault Tolerance]:::darkBenefit
+    
+    %% Cache Flow
+    L1 --> L2
+    L2 --> L3
+    
+    L1 --> Speed
+    L2 --> Scalability
+    L3 --> Reliability
+    
+    %% Apply theme classes
+    class L1,L2,L3,Speed,Scalability,Reliability darkCache,darkData,darkBenefit
+```
+
+## Security Architecture
+
+GAuth implements comprehensive security measures:
+
+```mermaid
+graph TB
+    %% Dark mode styling
+    classDef darkSecurity fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkLayer fill:#1a202c,stroke:#2d3748,color:#f7fafc
+    classDef darkFeature fill:#38a169,stroke:#2f855a,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightSecurity fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightLayer fill:#ffffff,stroke:#e2e8f0,color:#2d3748
+    classDef lightFeature fill:#38a169,stroke:#2f855a,color:#ffffff
+
+    %% Security Layers
+    Network[Network Security<br/>TLS/HTTPS, Rate Limiting]:::darkSecurity
+    Auth[Authentication<br/>X-Stamp, JWT, MFA]:::darkSecurity
+    Authorization[Authorization<br/>RBAC, Permissions]:::darkSecurity
+    Data[Data Security<br/>Encryption, Validation]:::darkSecurity
+    
+    %% Security Features
+    TLS[TLS 1.3<br/>End-to-End Encryption]:::darkFeature
+    RateLimit[Rate Limiting<br/>DDoS Protection]:::darkFeature
+    Validation[Input Validation<br/>SQL Injection Prevention]:::darkFeature
+    Audit[Audit Logging<br/>Compliance Tracking]:::darkFeature
+    
+    %% Layer Flow
+    Network --> Auth
+    Auth --> Authorization
+    Authorization --> Data
+    
+    Network --> TLS
+    Network --> RateLimit
+    Data --> Validation
+    Data --> Audit
+    
+    %% Apply theme classes
+    class Network,Auth,Authorization,Data,TLS,RateLimit,Validation,Audit darkSecurity,darkFeature
+```
+
+## Monitoring and Observability
+
+GAuth provides comprehensive monitoring and observability:
+
+```mermaid
+graph TB
+    %% Dark mode styling
+    classDef darkService fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkMonitoring fill:#1a202c,stroke:#2d3748,color:#f7fafc
+    classDef darkMetrics fill:#38a169,stroke:#2f855a,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightService fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightMonitoring fill:#ffffff,stroke:#e2e8f0,color:#2d3748
+    classDef lightMetrics fill:#38a169,stroke:#2f855a,color:#ffffff
+
+    %% Service Components
+    GAuth[GAuth Service]:::darkService
+    
+    %% Monitoring Stack
+    Prometheus[Prometheus<br/>Metrics Collection]:::darkMonitoring
+    Grafana[Grafana<br/>Dashboards & Alerts]:::darkMonitoring
+    Loki[Loki<br/>Log Aggregation]:::darkMonitoring
+    Jaeger[Jaeger<br/>Distributed Tracing]:::darkMonitoring
+    
+    %% Metrics
+    Performance[Performance Metrics<br/>Response Time, Throughput]:::darkMetrics
+    Security[Security Metrics<br/>Failed Auth, Rate Limits]:::darkMetrics
+    Business[Business Metrics<br/>User Activity, API Usage]:::darkMetrics
+    
+    %% Connections
+    GAuth --> Prometheus
+    GAuth --> Loki
+    GAuth --> Jaeger
+    
+    Prometheus --> Grafana
+    Loki --> Grafana
+    Jaeger --> Grafana
+    
+    Grafana --> Performance
+    Grafana --> Security
+    Grafana --> Business
+    
+    %% Apply theme classes
+    class GAuth,Prometheus,Grafana,Loki,Jaeger,Performance,Security,Business darkService,darkMonitoring,darkMetrics
+```
+
+## Deployment Architecture
+
+GAuth is designed for high availability and scalability:
+
+```mermaid
+graph TB
+    %% Dark mode styling
+    classDef darkLoadBalancer fill:#3182ce,stroke:#2c5aa0,color:#f7fafc
+    classDef darkService fill:#2d3748,stroke:#4a5568,color:#e2e8f0
+    classDef darkData fill:#38a169,stroke:#2f855a,color:#f7fafc
+    classDef darkCache fill:#805ad5,stroke:#553c9a,color:#f7fafc
+    
+    %% Light mode styling
+    classDef lightLoadBalancer fill:#3182ce,stroke:#2c5aa0,color:#ffffff
+    classDef lightService fill:#f7fafc,stroke:#e2e8f0,color:#2d3748
+    classDef lightData fill:#38a169,stroke:#2f855a,color:#ffffff
+    classDef lightCache fill:#805ad5,stroke:#553c9a,color:#ffffff
+
+    %% Load Balancer
+    LB[Load Balancer<br/>Traffic Distribution]:::darkLoadBalancer
+    
+    %% GAuth Instances
+    Instance1[GAuth Instance 1<br/>Go Service]:::darkService
+    Instance2[GAuth Instance 2<br/>Go Service]:::darkService
+    Instance3[GAuth Instance N<br/>Go Service]:::darkService
+    
+    %% Data Layer
+    DB1[(Primary DB<br/>PostgreSQL)]:::darkData
+    DB2[(Replica DB<br/>PostgreSQL)]:::darkData
+    Redis1[(Redis Cluster<br/>Session Cache)]:::darkCache
+    Redis2[(Redis Cluster<br/>Session Cache)]:::darkCache
+    
+    %% Connections
+    LB --> Instance1
+    LB --> Instance2
+    LB --> Instance3
+    
+    Instance1 --> DB1
+    Instance2 --> DB1
+    Instance3 --> DB1
+    
+    Instance1 --> Redis1
+    Instance2 --> Redis2
+    Instance3 --> Redis1
+    
+    DB1 --> DB2
+    
+    %% Apply theme classes
+    class LB,Instance1,Instance2,Instance3,DB1,DB2,Redis1,Redis2 darkLoadBalancer,darkService,darkData,darkCache
+```
+
+This architecture ensures that the GAuth service provides reliable, scalable, and secure authentication and API management capabilities while maintaining high performance and availability.
+

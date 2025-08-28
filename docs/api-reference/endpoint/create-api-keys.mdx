@@ -1,0 +1,121 @@
+---
+title: 'Create API Keys'
+api: 'POST /public/v1/submit/create_api_keys'
+description: 'Create API keys for a user'
+version: '0.1.0'
+---
+
+## Create API Keys
+
+This endpoint allows you to create API keys for a user in your organization.
+
+### Request
+
+<ParamField body="type" type="string" required>
+  The activity type, must be `ACTIVITY_TYPE_CREATE_API_KEYS_V2`
+</ParamField>
+
+<ParamField body="timestampMs" type="string" required>
+  The timestamp in milliseconds when the request was created
+</ParamField>
+
+<ParamField body="organizationId" type="string" required>
+  Your organization ID
+</ParamField>
+
+<ParamField body="parameters" type="object" required>
+  The parameters object containing user and key information
+</ParamField>
+
+<ParamField body="parameters.userId" type="string" required>
+  The ID of the user for whom to create API keys
+</ParamField>
+
+<ParamField body="parameters.keyName" type="string">
+  Optional name for the API key
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="apiKeyId" type="string">
+  The ID of the created API key
+</ResponseField>
+
+<ResponseField name="publicKey" type="string">
+  The public key part of the API key pair
+</ResponseField>
+
+<ResponseField name="privateKey" type="string">
+  The private key part of the API key pair. This is only returned once and should be stored securely.
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_API_KEYS_V2",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "userId": "user_67890fghij",
+    "keyName": "Development Key"
+  }
+}
+```
+
+```bash cURL
+curl -X POST "https://api.example.com/public/v1/submit/create_api_keys" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_CREATE_API_KEYS_V2",
+    "timestampMs": "1625097600000",
+    "organizationId": "org_12345abcde",
+    "parameters": {
+      "userId": "user_67890fghij",
+      "keyName": "Development Key"
+    }
+  }'
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "apiKeyId": "apikey_12345abcde",
+  "publicKey": "PUBLIC_KEY_DATA",
+  "privateKey": "PRIVATE_KEY_DATA"
+}
+```
+
+<RequestExample>
+```json Request
+{
+  "type": "ACTIVITY_TYPE_CREATE_API_KEYS_V2",
+  "timestampMs": "1625097600000",
+  "organizationId": "org_12345abcde",
+  "parameters": {
+    "userId": "user_67890fghij",
+    "keyName": "Development Key"
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "apiKeyId": "apikey_12345abcde",
+  "publicKey": "PUBLIC_KEY_DATA",
+  "privateKey": "PRIVATE_KEY_DATA"
+}
+```
+</ResponseExample>

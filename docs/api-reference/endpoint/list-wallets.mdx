@@ -1,0 +1,170 @@
+---
+title: 'List Wallets'
+api: 'GET /public/v1/organizations/{organizationId}/users/{userId}/wallets'
+description: 'List all wallets for a user'
+version: '0.1.0'
+---
+
+## List Wallets
+
+This endpoint allows you to retrieve a list of all wallets owned by a specific user.
+
+### Request
+
+<ParamField path="organizationId" type="string" required>
+  The ID of the organization
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  The ID of the user
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Maximum number of wallets to return (default: 50)
+</ParamField>
+
+<ParamField query="offset" type="number">
+  Number of wallets to skip for pagination (default: 0)
+</ParamField>
+
+<ParamField query="walletType" type="string">
+  Filter wallets by type (e.g., "ETH", "BTC", "GENERIC")
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search term to filter wallets by name or description
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="wallets" type="array">
+  Array of wallet objects
+</ResponseField>
+
+<ResponseField name="wallets[].id" type="string">
+  The ID of the wallet
+</ResponseField>
+
+<ResponseField name="wallets[].userId" type="string">
+  The ID of the user who owns the wallet
+</ResponseField>
+
+<ResponseField name="wallets[].walletType" type="string">
+  The type of the wallet
+</ResponseField>
+
+<ResponseField name="wallets[].name" type="string">
+  The name of the wallet
+</ResponseField>
+
+<ResponseField name="wallets[].description" type="string">
+  The description of the wallet
+</ResponseField>
+
+<ResponseField name="wallets[].publicKey" type="string">
+  The public key of the wallet
+</ResponseField>
+
+<ResponseField name="wallets[].createdAt" type="string">
+  The timestamp when the wallet was created
+</ResponseField>
+
+<ResponseField name="wallets[].privateKeyCount" type="number">
+  Number of private keys associated with the wallet
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total number of wallets
+</ResponseField>
+
+<ResponseField name="limit" type="number">
+  Number of wallets returned
+</ResponseField>
+
+<ResponseField name="offset" type="number">
+  Number of wallets skipped
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users/user_67890fghij/wallets?limit=10&offset=0" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+
+```bash cURL with filter
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users/user_67890fghij/wallets?walletType=ETH" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "wallets": [
+    {
+      "id": "wallet_12345abcde",
+      "userId": "user_67890fghij",
+      "walletType": "ETH",
+      "name": "Main Ethereum Wallet",
+      "description": "Primary wallet for Ethereum transactions",
+      "publicKey": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+      "createdAt": "2023-02-15T10:30:00Z",
+      "privateKeyCount": 2
+    },
+    {
+      "id": "wallet_67890fghij",
+      "userId": "user_67890fghij",
+      "walletType": "BTC",
+      "name": "Bitcoin Wallet",
+      "description": "Wallet for Bitcoin transactions",
+      "publicKey": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+      "createdAt": "2023-03-01T14:20:00Z",
+      "privateKeyCount": 1
+    }
+  ],
+  "total": 2,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/public/v1/organizations/org_12345abcde/users/user_67890fghij/wallets?limit=10&offset=0" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "wallets": [
+    {
+      "id": "wallet_12345abcde",
+      "userId": "user_67890fghij",
+      "walletType": "ETH",
+      "name": "Main Ethereum Wallet",
+      "description": "Primary wallet for Ethereum transactions",
+      "publicKey": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+      "createdAt": "2023-02-15T10:30:00Z",
+      "privateKeyCount": 2
+    }
+  ],
+  "total": 1,
+  "limit": 10,
+  "offset": 0
+}
+```
+</ResponseExample>

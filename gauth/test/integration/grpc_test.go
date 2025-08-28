@@ -14,6 +14,7 @@ import (
 	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 	"github.com/dojima-foundation/tee-auth/gauth/test/testhelpers"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -90,9 +91,23 @@ func (suite *GRPCIntegrationTestSuite) SetupSuite() {
 	// Initialize service
 	svc := service.NewGAuthService(suite.config, logger, database, redis)
 
+	// Initialize telemetry (disabled for tests)
+	telemetry, err := telemetry.New(context.Background(), telemetry.Config{
+		ServiceName:        "gauth-test",
+		ServiceVersion:     "test",
+		Environment:        "test",
+		TracingEnabled:     false,
+		MetricsEnabled:     false,
+		OTLPEndpoint:       "",
+		OTLPInsecure:       false,
+		TraceSamplingRatio: 0.1,
+		MetricsPort:        0,
+	})
+	require.NoError(suite.T(), err)
+
 	// Setup in-memory gRPC server
 	suite.listener = bufconn.Listen(bufSize)
-	suite.server = grpcServer.NewServer(suite.config, logger, svc)
+	suite.server = grpcServer.NewServer(suite.config, logger, svc, telemetry)
 
 	// Start server in background
 	go func() {
@@ -619,8 +634,24 @@ func BenchmarkGRPCOperations(b *testing.B) {
 	logger := logger.NewDefault()
 	svc := service.NewGAuthService(config, logger, database, redis)
 
+	// Initialize telemetry (disabled for tests)
+	telemetry, err := telemetry.New(context.Background(), telemetry.Config{
+		ServiceName:        "gauth-test",
+		ServiceVersion:     "test",
+		Environment:        "test",
+		TracingEnabled:     false,
+		MetricsEnabled:     false,
+		OTLPEndpoint:       "",
+		OTLPInsecure:       false,
+		TraceSamplingRatio: 0.1,
+		MetricsPort:        0,
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	listener := bufconn.Listen(bufSize)
-	server := grpcServer.NewServer(config, logger, svc)
+	server := grpcServer.NewServer(config, logger, svc, telemetry)
 
 	go func() {
 		grpcSrv := grpc.NewServer()

@@ -1,0 +1,67 @@
+---
+title: 'Authentication'
+description: 'Learn how to authenticate with the TEE Auth API'
+---
+
+# Authentication
+
+All requests to the TEE Auth API require authentication using the X-Stamp header, which contains a cryptographically signed request.
+
+## API Keys
+
+To authenticate with the API, you need an API keypair (public/private) for signing requests.
+
+### Creating API Keys
+
+You can create API keys using the `/public/v1/submit/create_api_keys` endpoint:
+
+```bash
+curl -X POST "https://api.example.com/public/v1/submit/create_api_keys" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_CREATE_API_KEYS_V2",
+    "timestampMs": "1625097600000",
+    "organizationId": "your_organization_id",
+    "parameters": {
+      "userId": "your_user_id"
+    }
+  }'
+```
+
+## Request Signing
+
+Each request must be signed using your private key. The signature is included in the X-Stamp header.
+
+### Signing Process
+
+1. Create a request object with the required fields
+2. Serialize the request to JSON
+3. Sign the serialized request using your private key
+4. Include the signature in the X-Stamp header
+
+## Common Request Structure
+
+All API requests follow this common structure:
+
+```json
+{
+  "type": "ACTIVITY_TYPE_*",
+  "timestampMs": "timestamp_in_milliseconds",
+  "organizationId": "your_organization_id",
+  "parameters": {
+    // endpoint-specific parameters
+  }
+}
+```
+
+## Required Headers
+
+| Header | Description |
+| ------ | ----------- |
+| Content-Type | application/json |
+| X-Stamp | Cryptographically signed request |
+
+## Error Responses
+
+Authentication errors will return a 401 Unauthorized status code with an error message in the response body.

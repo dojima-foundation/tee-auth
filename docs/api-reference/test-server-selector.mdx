@@ -1,0 +1,96 @@
+---
+title: 'Test Server Selector'
+api: 'GET /api/v1/health'
+description: 'Test page to verify server selector functionality'
+version: '0.1.0'
+---
+
+## Test Server Selector
+
+This is a test page to verify that the server selector appears in the API playground.
+
+### Request
+
+This endpoint has no parameters.
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the operation was successful
+</ResponseField>
+
+<ResponseField name="data.status" type="string">
+  The health status of the service
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET "http://localhost:8082/api/v1/health"
+```
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "timestamp": "2025-08-27T14:55:42.656815Z",
+    "services": [
+      {
+        "name": "database",
+        "status": "healthy",
+        "error": null
+      },
+      {
+        "name": "redis",
+        "status": "healthy",
+        "error": null
+      },
+      {
+        "name": "enclave",
+        "status": "healthy",
+        "error": null
+      }
+    ]
+  }
+}
+```
+
+<RequestExample>
+```json Request
+{}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "timestamp": "2025-08-27T14:55:42.656815Z",
+    "services": [
+      {
+        "name": "database",
+        "status": "healthy",
+        "error": null
+      },
+      {
+        "name": "redis",
+        "status": "healthy",
+        "error": null
+      },
+      {
+        "name": "enclave",
+        "status": "healthy",
+        "error": null
+      }
+    ]
+  }
+}
+```
+</ResponseExample>

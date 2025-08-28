@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Logger represents a structured logger
@@ -106,6 +107,23 @@ func (l *Logger) WithError(err error) *Logger {
 	return &Logger{Logger: l.Logger.With("error", err)}
 }
 
+// WithTrace adds OpenTelemetry trace information to the logger
+func (l *Logger) WithTrace(span trace.Span) *Logger {
+	if span == nil {
+		return l
+	}
+
+	spanCtx := span.SpanContext()
+	if !spanCtx.IsValid() {
+		return l
+	}
+
+	return &Logger{Logger: l.Logger.With(
+		"trace_id", spanCtx.TraceID().String(),
+		"span_id", spanCtx.SpanID().String(),
+	)}
+}
+
 // Convenience methods for different log levels with key-value pairs
 
 func (l *Logger) Debug(msg string, keysAndValues ...interface{}) {
@@ -130,8 +148,8 @@ func (l *Logger) LogHTTPRequest(method, path string, statusCode int, duration ti
 	args := []interface{}{
 		"method", method,
 		"path", path,
-		"status_code", statusCode,
-		"duration_ms", duration.Milliseconds(),
+		"status", statusCode,
+		"duration_ns", duration.Nanoseconds(),
 	}
 	args = append(args, keysAndValues...)
 	l.Logger.Info("HTTP request", args...)
@@ -139,8 +157,8 @@ func (l *Logger) LogHTTPRequest(method, path string, statusCode int, duration ti
 
 func (l *Logger) LogGRPCRequest(method string, duration time.Duration, err error, keysAndValues ...interface{}) {
 	args := []interface{}{
-		"grpc_method", method,
-		"duration_ms", duration.Milliseconds(),
+		"method", method,
+		"duration_ns", duration.Nanoseconds(),
 	}
 	if err != nil {
 		args = append(args, "error", err.Error())
@@ -148,7 +166,7 @@ func (l *Logger) LogGRPCRequest(method string, duration time.Duration, err error
 	args = append(args, keysAndValues...)
 
 	if err != nil {
-		l.Logger.Error("gRPC request failed", args...)
+		l.Logger.Error("gRPC request", args...)
 	} else {
 		l.Logger.Info("gRPC request", args...)
 	}
@@ -159,7 +177,7 @@ func (l *Logger) LogGRPCRequest(method string, duration time.Duration, err error
 func (l *Logger) LogDatabaseQuery(query string, duration time.Duration, err error, keysAndValues ...interface{}) {
 	args := []interface{}{
 		"query", query,
-		"duration_ms", duration.Milliseconds(),
+		"duration_ns", duration.Nanoseconds(),
 	}
 	if err != nil {
 		args = append(args, "error", err.Error())
@@ -167,7 +185,7 @@ func (l *Logger) LogDatabaseQuery(query string, duration time.Duration, err erro
 	args = append(args, keysAndValues...)
 
 	if err != nil {
-		l.Logger.Error("Database query failed", args...)
+		l.Logger.Error("Database query", args...)
 	} else {
 		l.Logger.Debug("Database query", args...)
 	}
@@ -177,7 +195,7 @@ func (l *Logger) LogDatabaseQuery(query string, duration time.Duration, err erro
 
 func (l *Logger) LogSecurityEvent(event string, userID, organizationID string, keysAndValues ...interface{}) {
 	args := []interface{}{
-		"security_event", event,
+		"event", event,
 		"user_id", userID,
 		"organization_id", organizationID,
 	}
@@ -187,7 +205,7 @@ func (l *Logger) LogSecurityEvent(event string, userID, organizationID string, k
 
 func (l *Logger) LogAuthenticationAttempt(userID, organizationID string, success bool, keysAndValues ...interface{}) {
 	args := []interface{}{
-		"authentication_attempt", true,
+		"event", "authentication_attempt",
 		"user_id", userID,
 		"organization_id", organizationID,
 		"success", success,
@@ -203,7 +221,7 @@ func (l *Logger) LogAuthenticationAttempt(userID, organizationID string, success
 
 func (l *Logger) LogAuthorizationAttempt(userID, organizationID, activityType string, success bool, keysAndValues ...interface{}) {
 	args := []interface{}{
-		"authorization_attempt", true,
+		"event", "authorization_attempt",
 		"user_id", userID,
 		"organization_id", organizationID,
 		"activity_type", activityType,
@@ -235,8 +253,8 @@ func (l *Logger) LogActivity(activityType, activityID, userID, organizationID st
 
 func (l *Logger) LogServiceHealth(serviceName, status string, keysAndValues ...interface{}) {
 	args := []interface{}{
-		"service_name", serviceName,
-		"health_status", status,
+		"service", serviceName,
+		"status", status,
 	}
 	args = append(args, keysAndValues...)
 

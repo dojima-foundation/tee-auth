@@ -1,0 +1,75 @@
+---
+title: 'Quickstart Guide'
+description: 'Get started with TEE Auth in minutes'
+---
+
+# Quickstart Guide
+
+This guide will help you get started with TEE Auth quickly.
+
+## Prerequisites
+
+- Docker and Docker Compose
+- Go 1.19 or later (for development)
+- Rust 1.68 or later (for development)
+
+## Installation
+
+### Using Docker
+
+The easiest way to get started is using Docker Compose:
+
+```bash
+# Clone the repository
+git clone https://github.com/dojima-foundation/tee-auth.git
+cd tee-auth
+
+# Start the services
+cd gauth
+docker-compose up -d
+```
+
+### Manual Setup
+
+For manual setup, follow these steps:
+
+1. Set up the renclave-v2 service:
+
+```bash
+cd renclave-v2
+make build
+```
+
+2. Set up the gauth service:
+
+```bash
+cd gauth
+cp env.example .env  # Configure your environment variables
+go build ./cmd/server
+./server
+```
+
+## Making Your First API Call
+
+### Authentication
+
+All API calls require authentication using the X-Stamp header:
+
+```bash
+curl -X POST "https://api.example.com/public/v1/submit/approve_activity" \
+  -H "Content-Type: application/json" \
+  -H "X-Stamp: YOUR_STAMP" \
+  -d '{
+    "type": "ACTIVITY_TYPE_APPROVE_ACTIVITY",
+    "timestampMs": "1625097600000",
+    "organizationId": "your_organization_id",
+    "parameters": {
+      "activityId": "your_activity_id"
+    }
+  }'
+```
+
+## Next Steps
+
+- Explore the [API Reference](/api-reference/authentication) for detailed endpoint documentation
+- Check out example implementations in the [GitHub repository](https://github.com/dojima-foundation/tee-auth)

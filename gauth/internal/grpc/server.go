@@ -11,6 +11,7 @@ import (
 	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,18 +25,20 @@ import (
 // Server represents the gRPC server
 type Server struct {
 	pb.UnimplementedGAuthServiceServer
-	config  *config.Config
-	logger  *logger.Logger
-	service *service.GAuthService
-	server  *grpc.Server
+	config    *config.Config
+	logger    *logger.Logger
+	service   *service.GAuthService
+	server    *grpc.Server
+	telemetry *telemetry.Telemetry
 }
 
 // NewServer creates a new gRPC server instance
-func NewServer(cfg *config.Config, logger *logger.Logger, svc *service.GAuthService) *Server {
+func NewServer(cfg *config.Config, logger *logger.Logger, svc *service.GAuthService, tel *telemetry.Telemetry) *Server {
 	return &Server{
-		config:  cfg,
-		logger:  logger,
-		service: svc,
+		config:    cfg,
+		logger:    logger,
+		service:   svc,
+		telemetry: tel,
 	}
 }
 
@@ -60,7 +63,18 @@ func (s *Server) Start() error {
 			MinTime:             s.config.GRPC.KeepAliveTime,
 			PermitWithoutStream: s.config.GRPC.PermitWithoutStream,
 		}),
-		grpc.UnaryInterceptor(s.unaryInterceptor),
+	}
+
+	// Add OpenTelemetry middleware if telemetry is available and tracing is enabled
+	if s.telemetry != nil && s.config.Telemetry.TracingEnabled {
+		// Add OpenTelemetry interceptors
+		opts = append(opts,
+			grpc.UnaryInterceptor(telemetry.GRPCUnaryServerInterceptor(s.telemetry, s.logger)),
+			grpc.StreamInterceptor(telemetry.GRPCStreamServerInterceptor(s.telemetry, s.logger)),
+		)
+	} else {
+		// Fall back to basic logging interceptor
+		opts = append(opts, grpc.UnaryInterceptor(s.unaryInterceptor))
 	}
 
 	// Create gRPC server
