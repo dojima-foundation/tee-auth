@@ -1,16 +1,12 @@
-# Go build artifacts
+# =============================================================================
+# ROOT GITIGNORE - Consolidated for entire project
+# =============================================================================
+
+# =============================================================================
+# GO BUILD ARTIFACTS
+# =============================================================================
 bin/
 coverage/
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
-
-# Go binaries and executables
-server
 *.exe
 *.exe~
 *.dll
@@ -24,8 +20,338 @@ server
 *.coverprofile
 *.cov
 *.covprofile
+go.sum
+vendor/
+go.work
+go.work.sum
+go-build/
+*.o
+*.a
+go-test-cache/
 
-# Go build cache and profiling
+# =============================================================================
+# RUST BUILD ARTIFACTS
+# =============================================================================
+target/
+**/target/
+Cargo.lock
+*.rlib
+*.rmeta
+*.pdb
+*.d
+doc/
+
+# =============================================================================
+# NODE.JS / NEXT.JS BUILD ARTIFACTS
+# =============================================================================
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+jspm_packages/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Production builds
+/build
+/dist
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.npm
+.yarn-integrity
+
+# =============================================================================
+# TESTING ARTIFACTS
+# =============================================================================
+test-results/
+test-output/
+*.test
+*.test.out
+*.test.log
+test.log
+coverage.html
+coverage.xml
+coverage.json
+*.lcov
+.nyc_output/
+junit.xml
+test-report.xml
+playwright-report/
+playwright/.cache
+lighthouse-report.html
+.percy/
+lhci_reports/
+
+# Benchmark files
+*.bench
+*.bench.out
+bench.out
+
+# =============================================================================
+# CACHE AND TEMPORARY FILES
+# =============================================================================
+*.tmp
+*.temp
+*.cache
+.cache/
+tmp/
+temp/
+.parcel-cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.grunt
+.lock-wscript
+
+# =============================================================================
+# IDE AND EDITOR FILES
+# =============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# =============================================================================
+# OPERATING SYSTEM FILES
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# =============================================================================
+# LOG FILES
+# =============================================================================
+*.log
+logs/
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.node_repl_history
+
+# =============================================================================
+# DATABASE FILES
+# =============================================================================
+*.db
+*.sqlite
+*.sqlite3
+
+# =============================================================================
+# ENVIRONMENT FILES
+# =============================================================================
+.env
+.env.local
+.env.*.local
+.env.test
+.env.production
+env
+env.local
+env.*.local
+
+# =============================================================================
+# PROTOBUF GENERATED FILES
+# =============================================================================
+*.pb.go
+*_grpc.pb.go
+
+# =============================================================================
+# BUILD OUTPUTS
+# =============================================================================
+build/Release
+*.tgz
+
+# =============================================================================
+# GENERATED FILES
+# =============================================================================
+# Minified and bundled files
+*.min.js
+*.min.css
+*.bundle.js
+*.chunk.js
+*.chunk.css
+
+# Source maps
+*.map
+
+# Generated documentation
+docs/build/
+docs/_build/
+docs/.doctrees/
+
+# Generated API docs
+api-docs/
+apidoc/
+
+# Generated schemas
+*.schema.json
+*.schema.js
+
+# Generated types
+*.d.ts
+# Keep Next.js environment types
+!next-env.d.ts
+
+# Generated assets
+assets/generated/
+public/generated/
+
+# Generated configs
+*.config.generated.*
+*.config.auto.*
+
+# =============================================================================
+# FRAMEWORK SPECIFIC
+# =============================================================================
+# Nuxt.js
+.nuxt
+
+# Gatsby
+public
+
+# Storybook
+.out
+.storybook-out
+
+# =============================================================================
+# MISCELLANEOUS
+# =============================================================================
+*.pem
+pids
+*.pid
+*.seed
+*.pid.lock
+bower_components/
+
+# =============================================================================
+# DOCKER AND DEPLOYMENT
+# =============================================================================
+# Docker
+.dockerignore
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Ansible
+*.retry
+
+# Deployment
+deploy/
+deployment/
+*.deployment
+
+# =============================================================================
+# MONITORING AND LOGS
+# =============================================================================
+# Log files
+logs/
+*.log
+*.log.*
+
+# Metrics and monitoring
+metrics/
+monitoring/
+*.metrics
+*.prometheus
+
+# Tracing
+traces/
+*.trace
+*.trace.json
+
+# =============================================================================
+# SECURITY AND SECRETS
+# =============================================================================
+# Secrets and keys
+*.key
+*.pem
+*.crt
+*.cert
+*.p12
+*.pfx
+secrets/
+keys/
+*.secret
+*.private
+
+# =============================================================================
+# BACKUP AND ARCHIVE FILES
+# =============================================================================
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+
+# Archive files
+*.tar
+*.tar.gz
+*.tar.bz2
+*.zip
+*.rar
+*.7z
+
+# =============================================================================
+# WEB SPECIFIC (Next.js, React, etc.)
+# =============================================================================
+# Next.js build output
+.next
+out/
+
+# React build output
+build/
+dist/
+
+# Vercel
+.vercel
+
+# ESLint cache
+.eslintcache
+
+# =============================================================================
+# GO SPECIFIC (if any Go files exist)
+# =============================================================================
+# Go binaries and executables
+server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
 *.prof
 *.trace
 *.cover
@@ -47,6 +373,9 @@ go-build/
 # Go test cache
 go-test-cache/
 
+# =============================================================================
+# RUST SPECIFIC (if any Rust files exist)
+# =============================================================================
 # Rust build artifacts
 target/
 **/target/
@@ -66,67 +395,3 @@ Cargo.lock
 
 # Rust documentation
 doc/
-
-# Test files and outputs
-test-results/
-test-output/
-*.test
-*.test.out
-*.test.log
-test.log
-coverage.html
-coverage.xml
-coverage.json
-*.lcov
-.nyc_output/
-junit.xml
-test-report.xml
-
-# Benchmark files
-*.bench
-*.bench.out
-bench.out
-
-# Temporary and cache files
-*.tmp
-*.temp
-*.cache
-.cache/
-tmp/
-temp/
-
-# IDE and editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-
-# Log files
-*.log
-logs/
-*.log.*
-
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-
-# Environment files
-.env
-.env.local
-.env.*.local
-env
-env.local
-env.*.local
-
-# Protobuf generated files
-*.pb.go
-*_grpc.pb.go
-
-# Temporary files
-*.swp
-*~
-.DS_Store
