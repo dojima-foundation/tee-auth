@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const error = searchParams.get('error') || 'An unknown error occurred';
@@ -51,5 +51,21 @@ export default function AuthErrorPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function AuthErrorPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-background flex items-center justify-center p-4">
+                <div className="w-full max-w-md text-center">
+                    <div className="w-16 h-16 bg-muted rounded-full animate-pulse mx-auto mb-6" />
+                    <div className="h-8 bg-muted rounded animate-pulse mb-4" />
+                    <div className="h-4 bg-muted rounded animate-pulse mb-6" />
+                </div>
+            </div>
+        }>
+            <AuthErrorContent />
+        </Suspense>
     );
 }

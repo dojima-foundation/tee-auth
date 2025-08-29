@@ -1,13 +1,17 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { useDispatch } from 'react-redux';
+import { setAuthSession } from '@/store/authSlice';
+import type { AppDispatch } from '@/store';
 
-export default function OAuthCallbackPage() {
+function OAuthCallbackContent() {
     const { handleOAuthCallback, setSession, loading, error } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const dispatch = useDispatch<AppDispatch>();
     const [processing, setProcessing] = useState(false);
     const hasProcessed = useRef(false);
 
@@ -28,6 +32,7 @@ export default function OAuthCallbackPage() {
             const expiresAt = searchParams.get('expires_at');
             const userId = searchParams.get('user_id');
             const email = searchParams.get('email');
+            const organizationId = searchParams.get('organization_id');
 
             // Check for OAuth parameters (if backend redirects with code/state)
             const code = searchParams.get('code') || searchParams.get('authorization_code');
@@ -35,7 +40,7 @@ export default function OAuthCallbackPage() {
             const error = searchParams.get('error') || searchParams.get('oauth_error');
 
             console.log('Parsed parameters:', {
-                sessionToken, expiresAt, userId, email,
+                sessionToken, expiresAt, userId, email, organizationId,
                 code, state, error
             });
 
@@ -46,8 +51,9 @@ export default function OAuthCallbackPage() {
             }
 
             // If we have session data, handle successful login
-            if (sessionToken && userId && email) {
+            if (sessionToken && userId && email && organizationId && organizationId.trim() !== '') {
                 console.log('Processing successful OAuth login');
+                console.log('Organization ID from URL:', organizationId);
                 try {
                     setProcessing(true);
                     hasProcessed.current = true;
@@ -60,7 +66,7 @@ export default function OAuthCallbackPage() {
                             id: userId,
                             email: email,
                             username: email.split('@')[0], // Use email prefix as username
-                            organization_id: '',
+                            organization_id: organizationId,
                             is_active: true,
                             created_at: Date.now().toString(),
                             updated_at: Date.now().toString()
@@ -74,6 +80,9 @@ export default function OAuthCallbackPage() {
 
                     // Update auth context state using setSession
                     setSession(sessionData);
+
+                    // Store in Redux store for global access
+                    dispatch(setAuthSession(sessionData));
 
                     // Redirect to dashboard
                     router.push('/dashboard');
@@ -103,6 +112,35 @@ export default function OAuthCallbackPage() {
                 } finally {
                     setProcessing(false);
                 }
+            }
+
+            // Check if we have session data but missing organization ID
+            if (sessionToken && userId && email && (!organizationId || organizationId.trim() === '')) {
+                console.warn('Session data found but organization ID is missing, proceeding with empty organization ID');
+                // Proceed with empty organization ID
+                const sessionData = {
+                    session_token: sessionToken,
+                    expires_at: parseInt(expiresAt || '0').toString(),
+                    user: {
+                        id: userId,
+                        email: email,
+                        username: email.split('@')[0],
+                        organization_id: '', // Empty organization ID
+                        is_active: true,
+                        created_at: Date.now().toString(),
+                        updated_at: Date.now().toString()
+                    },
+                    auth_method: {
+                        id: 'google-oauth',
+                        type: 'google_oauth',
+                        name: 'Google OAuth'
+                    }
+                };
+
+                setSession(sessionData);
+                dispatch(setAuthSession(sessionData));
+                router.push('/dashboard');
+                return;
             }
 
             // No valid parameters found
@@ -165,5 +203,25 @@ export default function OAuthCallbackPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function OAuthCallbackPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-background flex items-center justify-center p-4">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-foreground mb-2">
+                        Loading...
+                    </h2>
+                    <p className="text-muted-foreground">
+                        Please wait...
+                    </p>
+                </div>
+            </div>
+        }>
+            <OAuthCallbackContent />
+        </Suspense>
     );
 }

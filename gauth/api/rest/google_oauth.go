@@ -82,11 +82,12 @@ func (s *Server) handleGoogleOAuthCallback(c *gin.Context) {
 	}
 
 	// Redirect to frontend callback page with session data
-	redirectURL := fmt.Sprintf("http://localhost:3001/auth/callback?session_token=%s&expires_at=%d&user_id=%s&email=%s",
+	redirectURL := fmt.Sprintf("http://localhost:3001/auth/callback?session_token=%s&expires_at=%d&user_id=%s&email=%s&organization_id=%s",
 		resp.SessionToken,
 		resp.ExpiresAt.AsTime().Unix(),
 		resp.User.Id,
-		resp.User.Email)
+		resp.User.Email,
+		resp.User.OrganizationId)
 
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
