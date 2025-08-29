@@ -13,12 +13,13 @@ import (
 
 // GAuthService provides business logic for the gauth service
 type GAuthService struct {
-	config    *config.Config
-	logger    *logger.Logger
-	db        db.DatabaseInterface
-	redis     db.RedisInterface
-	renclave  EnclaveClientInterface
-	startTime time.Time
+	config             *config.Config
+	logger             *logger.Logger
+	db                 db.DatabaseInterface
+	redis              db.RedisInterface
+	renclave           EnclaveClientInterface
+	startTime          time.Time
+	googleOAuthService *GoogleOAuthService
 }
 
 // NewGAuthService creates a new GAuthService instance
@@ -213,6 +214,32 @@ func (s *GAuthService) Authorize(ctx context.Context, sessionToken, activityType
 	// Delegate to AuthService
 	authService := &AuthService{GAuthService: s}
 	return authService.Authorize(ctx, sessionToken, activityType, parameters)
+}
+
+// Google OAuth methods
+
+func (s *GAuthService) GetGoogleOAuthURL(ctx context.Context, organizationID, state string) (string, error) {
+	// Create Google OAuth service if not exists
+	if s.googleOAuthService == nil {
+		s.googleOAuthService = NewGoogleOAuthService(s, s.config)
+	}
+	return s.googleOAuthService.GetAuthURL(ctx, organizationID, state)
+}
+
+func (s *GAuthService) HandleGoogleOAuthCallback(ctx context.Context, code, state string) (*GoogleOAuthResponse, error) {
+	// Create Google OAuth service if not exists
+	if s.googleOAuthService == nil {
+		s.googleOAuthService = NewGoogleOAuthService(s, s.config)
+	}
+	return s.googleOAuthService.HandleCallback(ctx, code, state)
+}
+
+func (s *GAuthService) RefreshGoogleOAuthToken(ctx context.Context, authMethodID string) error {
+	// Create Google OAuth service if not exists
+	if s.googleOAuthService == nil {
+		s.googleOAuthService = NewGoogleOAuthService(s, s.config)
+	}
+	return s.googleOAuthService.RefreshToken(ctx, authMethodID)
 }
 
 // Health and status methods

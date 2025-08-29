@@ -13,6 +13,7 @@ import (
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
@@ -360,6 +361,53 @@ func (s *Server) Authorize(ctx context.Context, req *pb.AuthorizeRequest) (*pb.A
 		Authorized:        response.Authorized,
 		Reason:            response.Reason,
 		RequiredApprovals: response.RequiredApprovals,
+	}, nil
+}
+
+// Google OAuth methods
+
+func (s *Server) GetGoogleOAuthURL(ctx context.Context, req *pb.GoogleOAuthURLRequest) (*pb.GoogleOAuthURLResponse, error) {
+	// Generate state parameter
+	state := uuid.New().String()
+
+	// Get auth URL from service
+	authURL, err := s.service.GetGoogleOAuthURL(ctx, req.OrganizationId, state)
+	if err != nil {
+		s.logger.Error("Failed to generate Google OAuth URL", "error", err)
+		return nil, status.Errorf(codes.Internal, "failed to generate OAuth URL: %v", err)
+	}
+
+	return &pb.GoogleOAuthURLResponse{
+		Url:   authURL,
+		State: state,
+	}, nil
+}
+
+func (s *Server) HandleGoogleOAuthCallback(ctx context.Context, req *pb.GoogleOAuthCallbackRequest) (*pb.GoogleOAuthCallbackResponse, error) {
+	// Process callback
+	response, err := s.service.HandleGoogleOAuthCallback(ctx, req.Code, req.State)
+	if err != nil {
+		s.logger.Error("Failed to process Google OAuth callback", "error", err)
+		return nil, status.Errorf(codes.Internal, "failed to process OAuth callback: %v", err)
+	}
+
+	return &pb.GoogleOAuthCallbackResponse{
+		SessionToken: response.SessionToken,
+		ExpiresAt:    timestamppb.New(response.ExpiresAt),
+		User:         convertUserToProto(response.User),
+	}, nil
+}
+
+func (s *Server) RefreshGoogleOAuthToken(ctx context.Context, req *pb.RefreshGoogleOAuthTokenRequest) (*pb.RefreshGoogleOAuthTokenResponse, error) {
+	// Refresh token
+	err := s.service.RefreshGoogleOAuthToken(ctx, req.RefreshToken)
+	if err != nil {
+		s.logger.Error("Failed to refresh Google OAuth token", "error", err)
+		return nil, status.Errorf(codes.Internal, "failed to refresh token: %v", err)
+	}
+
+	return &pb.RefreshGoogleOAuthTokenResponse{
+		TokenType: "Bearer",
 	}, nil
 }
 

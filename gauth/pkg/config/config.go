@@ -90,14 +90,23 @@ type RenclaveConfig struct {
 }
 
 type AuthConfig struct {
-	JWTSecret              string        `yaml:"jwt_secret"`
-	JWTExpiration          time.Duration `yaml:"jwt_expiration"`
-	RefreshExpiration      time.Duration `yaml:"refresh_expiration"`
-	SessionTimeout         time.Duration `yaml:"session_timeout"`
-	MaxLoginAttempts       int           `yaml:"max_login_attempts"`
-	LockoutDuration        time.Duration `yaml:"lockout_duration"`
-	RequireQuorum          bool          `yaml:"require_quorum"`
-	DefaultQuorumThreshold int           `yaml:"default_quorum_threshold"`
+	JWTSecret              string            `yaml:"jwt_secret"`
+	JWTExpiration          time.Duration     `yaml:"jwt_expiration"`
+	RefreshExpiration      time.Duration     `yaml:"refresh_expiration"`
+	SessionTimeout         time.Duration     `yaml:"session_timeout"`
+	MaxLoginAttempts       int               `yaml:"max_login_attempts"`
+	LockoutDuration        time.Duration     `yaml:"lockout_duration"`
+	RequireQuorum          bool              `yaml:"require_quorum"`
+	DefaultQuorumThreshold int               `yaml:"default_quorum_threshold"`
+	GoogleOAuth            GoogleOAuthConfig `yaml:"google_oauth"`
+}
+
+// GoogleOAuthConfig contains Google OAuth configuration
+type GoogleOAuthConfig struct {
+	ClientID     string `yaml:"client_id"`
+	ClientSecret string `yaml:"client_secret"`
+	RedirectURL  string `yaml:"redirect_url"`
+	Enabled      bool   `yaml:"enabled"`
 }
 
 type LoggingConfig struct {
@@ -196,6 +205,12 @@ func Load() (*Config, error) {
 			LockoutDuration:        getEnvDuration("LOCKOUT_DURATION", 15*time.Minute),
 			RequireQuorum:          getEnvBool("REQUIRE_QUORUM", false),
 			DefaultQuorumThreshold: getEnvInt("DEFAULT_QUORUM_THRESHOLD", 1),
+			GoogleOAuth: GoogleOAuthConfig{
+				ClientID:     getEnv("GOOGLE_OAUTH_CLIENT_ID", ""),
+				ClientSecret: getEnv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
+				RedirectURL:  getEnv("GOOGLE_OAUTH_REDIRECT_URL", "http://localhost:8080/auth/google/callback"),
+				Enabled:      getEnvBool("GOOGLE_OAUTH_ENABLED", false),
+			},
 		},
 		Logging: LoggingConfig{
 			Level:      getEnv("LOG_LEVEL", "info"),

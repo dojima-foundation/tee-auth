@@ -81,6 +81,50 @@ export interface ListUsersResponse {
     };
 }
 
+// Google OAuth Types
+export interface GoogleOAuthLoginRequest {
+    organization_id: string;
+    state?: string;
+}
+
+export interface GoogleOAuthLoginResponse {
+    success: boolean;
+    data: {
+        auth_url: string;
+        state: string;
+    };
+}
+
+export interface GoogleOAuthCallbackResponse {
+    success: boolean;
+    data: {
+        session_token: string;
+        expires_at: string;
+        user: {
+            id: string;
+            organization_id: string;
+            username: string;
+            email: string;
+            public_key?: string;
+            is_active: boolean;
+            created_at: string;
+            updated_at: string;
+        };
+        auth_method: {
+            id: string;
+            type: string;
+            name: string;
+        };
+    };
+}
+
+export interface GoogleOAuthRefreshResponse {
+    success: boolean;
+    data: {
+        message: string;
+    };
+}
+
 export interface ApiError {
     success: false;
     error: string;
@@ -145,6 +189,25 @@ class GAuthApiService {
     async getUsers(organizationId?: string): Promise<ListUsersResponse> {
         const params = organizationId ? `?organization_id=${organizationId}` : '';
         return this.makeRequest<ListUsersResponse>(`/api/v1/users${params}`);
+    }
+
+    // Google OAuth Methods
+    async initiateGoogleOAuth(data: GoogleOAuthLoginRequest): Promise<GoogleOAuthLoginResponse> {
+        return this.makeRequest<GoogleOAuthLoginResponse>('/api/v1/auth/google/login', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async handleGoogleOAuthCallback(code: string, state: string): Promise<GoogleOAuthCallbackResponse> {
+        const params = new URLSearchParams({ code, state });
+        return this.makeRequest<GoogleOAuthCallbackResponse>(`/api/v1/auth/google/callback?${params}`);
+    }
+
+    async refreshGoogleOAuthToken(authMethodId: string): Promise<GoogleOAuthRefreshResponse> {
+        return this.makeRequest<GoogleOAuthRefreshResponse>(`/api/v1/auth/google/refresh/${authMethodId}`, {
+            method: 'POST',
+        });
     }
 }
 
