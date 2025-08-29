@@ -48,6 +48,11 @@ service GAuthService {
   rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
   rpc Authorize(AuthorizeRequest) returns (AuthorizeResponse);
 
+  // Google OAuth
+  rpc GetGoogleOAuthURL(GoogleOAuthURLRequest) returns (GoogleOAuthURLResponse);
+  rpc HandleGoogleOAuthCallback(GoogleOAuthCallbackRequest) returns (GoogleOAuthCallbackResponse);
+  rpc RefreshGoogleOAuthToken(RefreshGoogleOAuthTokenRequest) returns (RefreshGoogleOAuthTokenResponse);
+
   // Health and status
   rpc Health(google.protobuf.Empty) returns (HealthResponse);
   rpc Status(google.protobuf.Empty) returns (StatusResponse);
@@ -361,6 +366,41 @@ message AuthorizeResponse {
   bool authorized = 1;
   string reason = 2;
   repeated string required_approvals = 3; // User IDs required for quorum
+}
+
+// Google OAuth
+message GoogleOAuthURLRequest {
+  string organization_id = 1;
+  string redirect_uri = 2;
+  repeated string scopes = 3; // e.g., "openid", "profile", "email"
+}
+
+message GoogleOAuthURLResponse {
+  string url = 1;
+  string state = 2;
+}
+
+message GoogleOAuthCallbackRequest {
+  string state = 1;
+  string code = 2;
+  string error = 3;
+}
+
+message GoogleOAuthCallbackResponse {
+  string session_token = 1;
+  google.protobuf.Timestamp expires_at = 2;
+  User user = 3;
+}
+
+message RefreshGoogleOAuthTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshGoogleOAuthTokenResponse {
+  string access_token = 1;
+  int32 expires_in = 2;
+  string refresh_token = 3;
+  string token_type = 4;
 }
 
 // Health and status

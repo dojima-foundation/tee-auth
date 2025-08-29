@@ -1,16 +1,35 @@
 'use client';
 
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { userActions } from '@/store/sagas/userSaga';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { User, Building } from 'lucide-react';
+import { User as UserIcon, Building, Plus, Edit, Trash2 } from 'lucide-react';
 import { gauthApi, CreateOrganizationRequest } from '@/services/gauthApi';
 import CreateUserDialog from './CreateUserDialog';
+import {
+    fetchUsers,
+    createUser,
+    selectUsers,
+    selectUsersLoading,
+    selectUsersError,
+    selectUsersPagination,
+    type User
+} from '@/store/usersSlice';
+import { selectOrganizationId, selectAuthUser } from '@/store/authSlice';
 
 export default function Users() {
     const dispatch = useAppDispatch();
-    const { users, loading, error } = useAppSelector((state) => state.user);
+
+    // Get users data from Redux store
+    const users = useAppSelector(selectUsers);
+    const loading = useAppSelector(selectUsersLoading);
+    const error = useAppSelector(selectUsersError);
+    const pagination = useAppSelector(selectUsersPagination);
+
+    // Get organization ID from auth store
+    const organizationId = useAppSelector(selectOrganizationId);
+    const currentUser = useAppSelector(selectAuthUser);
+
     const [isCreatingOrg, setIsCreatingOrg] = useState(false);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
     const [orgError, setOrgError] = useState<string | null>(null);
@@ -19,8 +38,10 @@ export default function Users() {
     const [userSuccess, setUserSuccess] = useState<string | null>(null);
 
     useEffect(() => {
-        dispatch(userActions.fetchUsers());
-    }, [dispatch]);
+        if (organizationId) {
+            dispatch(fetchUsers({ organizationId }));
+        }
+    }, [dispatch, organizationId]);
 
     const handleCreateOrganization = async () => {
         try {
@@ -41,7 +62,9 @@ export default function Users() {
                 setOrgSuccess(`Organization created successfully! Organization ID: ${response.data.organization.id}, User ID: ${response.data.user_id}`);
 
                 // Refresh users list after creating organization
-                dispatch(userActions.fetchUsers());
+                if (organizationId) {
+                    dispatch(fetchUsers({ organizationId }));
+                }
             } else {
                 setOrgError('Failed to create organization');
             }
@@ -59,17 +82,23 @@ export default function Users() {
             setUserError(null);
             setUserSuccess(null);
 
+            if (!organizationId) {
+                throw new Error('No organization ID available');
+            }
+
             // Call Redux action to create user
-            dispatch(userActions.createUser({
-                name: userData.name,
-                email: userData.email,
-                role: userData.role as 'admin' | 'user'
-            }));
+            await dispatch(createUser({
+                organizationId,
+                userData: {
+                    username: userData.name,
+                    email: userData.email,
+                }
+            })).unwrap();
 
             setUserSuccess(`User "${userData.name}" created successfully!`);
 
             // Refresh users list after creating user
-            dispatch(userActions.fetchUsers());
+            dispatch(fetchUsers({ organizationId }));
         } catch (error) {
             console.error('Error creating user:', error);
             setUserError(error instanceof Error ? error.message : 'Failed to create user');
@@ -78,8 +107,42 @@ export default function Users() {
         }
     };
 
+    const handleEditUser = async (user: User) => {
+        // TODO: Implement edit user functionality when backend API is available
+        console.log('Edit user functionality not yet implemented:', user);
+        setUserError('Edit user functionality not yet implemented');
+    };
+
+    const handleDeleteUser = async (userId: string) => {
+        // TODO: Implement delete user functionality when backend API is available
+        console.log('Delete user functionality not yet implemented:', userId);
+        setUserError('Delete user functionality not yet implemented');
+    };
+
     return (
         <div className="space-y-6">
+            {/* Organization Info */}
+            {organizationId && (
+                <div className="bg-card border border-border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-lg font-semibold text-foreground">Organization</h2>
+                            <p className="text-sm text-muted-foreground">ID: {organizationId}</p>
+                            {currentUser && (
+                                <p className="text-sm text-muted-foreground">
+                                    Current User: {currentUser.email}
+                                </p>
+                            )}
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm text-muted-foreground">
+                                Total Users: {pagination.totalUsers}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header with Title and Create Buttons */}
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold text-foreground">Users</h1>
@@ -150,10 +213,13 @@ export default function Users() {
                                     Email
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Role
+                                    Organization
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Status
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    Created
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Actions
@@ -163,7 +229,7 @@ export default function Users() {
                         <tbody className="divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center">
+                                    <td colSpan={6} className="px-6 py-8 text-center">
                                         <div className="flex items-center justify-center">
                                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                                             <span className="ml-2 text-muted-foreground">Loading users...</span>
@@ -172,9 +238,9 @@ export default function Users() {
                                 </tr>
                             ) : users.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center">
+                                    <td colSpan={6} className="px-6 py-8 text-center">
                                         <div className="flex flex-col items-center">
-                                            <User className="h-12 w-12 text-muted-foreground mb-4" />
+                                            <UserIcon className="h-12 w-12 text-muted-foreground mb-4" />
                                             <p className="text-muted-foreground">No users found</p>
                                             <p className="text-sm text-muted-foreground">Create an organization or add users to get started</p>
                                         </div>
@@ -186,11 +252,11 @@ export default function Users() {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                                                    <User className="h-4 w-4 text-primary" />
+                                                    <UserIcon className="h-4 w-4 text-primary" />
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-medium text-foreground">
-                                                        {user.name}
+                                                        {user.username}
                                                     </div>
                                                     <div className="text-sm text-muted-foreground">
                                                         ID: {user.id}
@@ -202,25 +268,34 @@ export default function Users() {
                                             <div className="text-sm text-foreground">{user.email}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'admin'
-                                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                                : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                            <div className="text-sm text-foreground">{user.organization_id}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.is_active
+                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                                 }`}>
-                                                {user.role}
+                                                {user.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                Active
-                                            </span>
+                                            <div className="text-sm text-foreground">
+                                                {new Date(user.created_at).toLocaleDateString()}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                             <div className="flex space-x-2">
-                                                <button className="text-primary hover:text-primary/80 transition-colors">
-                                                    Edit
+                                                <button
+                                                    className="text-primary hover:text-primary/80 transition-colors"
+                                                    onClick={() => handleEditUser(user)}
+                                                >
+                                                    <Edit className="h-4 w-4" />
                                                 </button>
-                                                <button className="text-destructive hover:text-destructive/80 transition-colors">
-                                                    Delete
+                                                <button
+                                                    className="text-destructive hover:text-destructive/80 transition-colors"
+                                                    onClick={() => handleDeleteUser(user.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	pb "github.com/dojima-foundation/tee-auth/gauth/api/proto"
+	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
@@ -19,13 +20,14 @@ import (
 
 // Server represents the REST API server that communicates with gRPC internally
 type Server struct {
-	config     *config.Config
-	logger     *logger.Logger
-	grpcClient pb.GAuthServiceClient
-	grpcConn   *grpc.ClientConn
-	router     *gin.Engine
-	httpServer *http.Server
-	telemetry  *telemetry.Telemetry
+	config             *config.Config
+	logger             *logger.Logger
+	grpcClient         pb.GAuthServiceClient
+	grpcConn           *grpc.ClientConn
+	router             *gin.Engine
+	httpServer         *http.Server
+	telemetry          *telemetry.Telemetry
+	googleOAuthService *service.GoogleOAuthService
 }
 
 // NewServer creates a new REST API server instance
@@ -240,6 +242,14 @@ func (s *Server) SetupAPIRoutes(router *gin.Engine) {
 		{
 			auth.POST("/authenticate", s.handleAuthenticate)
 			auth.POST("/authorize", s.handleAuthorize)
+		}
+
+		// Google OAuth endpoints
+		googleAuth := v1.Group("/auth/google")
+		{
+			googleAuth.POST("/login", s.handleGoogleOAuthLogin)
+			googleAuth.GET("/callback", s.handleGoogleOAuthCallback)
+			googleAuth.POST("/refresh/:id", s.handleGoogleOAuthRefresh)
 		}
 
 		// Renclave endpoints

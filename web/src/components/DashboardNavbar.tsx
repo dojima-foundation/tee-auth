@@ -1,7 +1,6 @@
 'use client';
 
 import { ThemeToggle } from './ThemeToggle';
-import { useAppSelector } from '@/store/hooks';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,8 +11,9 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Users, Wallet, Key, Settings, Database, Shield } from 'lucide-react';
+import { Users, Wallet, Key, Settings, Database, Shield, LogOut, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 
 // Custom 9-dot icon component
 const NineDotsIcon = ({ className }: { className?: string }) => (
@@ -36,8 +36,7 @@ const NineDotsIcon = ({ className }: { className?: string }) => (
 
 const DashboardNavbar = () => {
     const router = useRouter();
-    const { loading: userLoading } = useAppSelector((state) => state.user);
-    const { loading: walletLoading } = useAppSelector((state) => state.wallet);
+    const { user, logout } = useAuth();
 
     const handleMenuItemClick = (item: string) => {
         switch (item) {
@@ -55,6 +54,11 @@ const DashboardNavbar = () => {
         }
     };
 
+    const handleLogout = () => {
+        logout();
+        router.push('/auth/signin');
+    };
+
     return (
         <nav className="bg-card border-b border-border px-6 py-4">
             <div className="flex items-center justify-between">
@@ -69,10 +73,7 @@ const DashboardNavbar = () => {
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button
-                                className="p-2 hover:bg-accent rounded-lg transition-colors duration-200"
-                                disabled={userLoading || walletLoading}
-                            >
+                            <button className="p-2 hover:bg-accent rounded-lg transition-colors duration-200">
                                 <NineDotsIcon className="h-5 w-5 text-muted-foreground" />
                             </button>
                         </DropdownMenuTrigger>
@@ -83,38 +84,26 @@ const DashboardNavbar = () => {
                             <DropdownMenuGroup>
                                 <DropdownMenuItem
                                     onClick={() => handleMenuItemClick('Users')}
-                                    disabled={userLoading}
                                     className="cursor-pointer"
                                 >
                                     <Users className="mr-2 h-4 w-4" />
                                     <span>Users Management</span>
-                                    {userLoading && (
-                                        <DropdownMenuShortcut>Loading...</DropdownMenuShortcut>
-                                    )}
                                 </DropdownMenuItem>
 
                                 <DropdownMenuItem
                                     onClick={() => handleMenuItemClick('Wallet')}
-                                    disabled={walletLoading}
                                     className="cursor-pointer"
                                 >
                                     <Wallet className="mr-2 h-4 w-4" />
                                     <span>Wallet Management</span>
-                                    {walletLoading && (
-                                        <DropdownMenuShortcut>Loading...</DropdownMenuShortcut>
-                                    )}
                                 </DropdownMenuItem>
 
                                 <DropdownMenuItem
                                     onClick={() => handleMenuItemClick('Private Keys')}
-                                    disabled={walletLoading}
                                     className="cursor-pointer"
                                 >
                                     <Key className="mr-2 h-4 w-4" />
                                     <span>Private Keys</span>
-                                    {walletLoading && (
-                                        <DropdownMenuShortcut>Loading...</DropdownMenuShortcut>
-                                    )}
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
 
@@ -139,19 +128,51 @@ const DashboardNavbar = () => {
                                     <DropdownMenuShortcut>⌘,</DropdownMenuShortcut>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
+                {/* Right side - User menu and theme toggle */}
+                <div className="flex items-center space-x-2">
+                    {/* User menu */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="flex items-center space-x-2 p-2 hover:bg-accent rounded-lg transition-colors duration-200">
+                                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <User className="h-4 w-4 text-primary" />
+                                </div>
+                                <span className="text-sm font-medium text-foreground hidden sm:block">
+                                    {user?.email || 'User'}
+                                </span>
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuLabel>Account</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+
+                            <DropdownMenuItem className="cursor-pointer">
+                                <User className="mr-2 h-4 w-4" />
+                                <span>Profile</span>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem className="cursor-pointer">
+                                <Settings className="mr-2 h-4 w-4" />
+                                <span>Account Settings</span>
+                            </DropdownMenuItem>
 
                             <DropdownMenuSeparator />
 
-                            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                            <DropdownMenuItem
+                                onClick={handleLogout}
+                                className="cursor-pointer text-destructive focus:text-destructive"
+                            >
+                                <LogOut className="mr-2 h-4 w-4" />
                                 <span>Logout</span>
                                 <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                </div>
 
-                {/* Right side - Theme toggle */}
-                <div className="flex items-center space-x-2">
                     <ThemeToggle />
                 </div>
             </div>

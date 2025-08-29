@@ -6,6 +6,8 @@ import { all } from 'redux-saga/effects'
 import userReducer from './slices/userSlice'
 import themeReducer from './slices/themeSlice'
 import walletReducer from './slices/walletSlice'
+import authReducer from './authSlice'
+import usersReducer from './usersSlice'
 
 // Import sagas
 import { userSaga } from './sagas/userSaga'
@@ -34,10 +36,12 @@ function createStore() {
             user: userReducer,
             theme: themeReducer,
             wallet: walletReducer,
+            auth: authReducer,
+            users: usersReducer,
         },
         middleware: (getDefaultMiddleware) =>
             getDefaultMiddleware({
-                thunk: false, // Disable thunk since we're using saga
+                thunk: true, // Enable thunk for Redux Toolkit async thunks
                 serializableCheck: {
                     ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
                 },

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -62,7 +63,14 @@ func (s *AuthService) Authenticate(ctx context.Context, organizationID, userID, 
 		"expires_at":      expiresAt.Unix(),
 	}
 
-	if err := s.redis.Set(ctx, sessionKey, sessionData, 24*time.Hour); err != nil {
+	// Convert session data to JSON for Redis storage
+	sessionDataJSON, err := json.Marshal(sessionData)
+	if err != nil {
+		s.logger.Error("Failed to marshal session data", "error", err)
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	if err := s.redis.Set(ctx, sessionKey, string(sessionDataJSON), 24*time.Hour); err != nil {
 		s.logger.Error("Failed to store session in Redis", "error", err)
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
