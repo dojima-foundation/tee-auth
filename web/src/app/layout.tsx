@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ReduxProvider } from '@/components/ReduxProvider';
 import { AuthProvider } from '@/lib/auth-context';
+import { SnackbarProvider } from '@/components/ui/snackbar';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +34,9 @@ export default function RootLayout({
         <ReduxProvider>
           <ThemeProvider defaultTheme="system" storageKey="ui-theme">
             <AuthProvider>
-              {children}
+              <SnackbarProvider>
+                {children}
+              </SnackbarProvider>
             </AuthProvider>
           </ThemeProvider>
         </ReduxProvider>

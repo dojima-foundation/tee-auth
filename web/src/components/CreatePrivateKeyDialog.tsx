@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -20,154 +20,168 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Plus, Key, Shield } from 'lucide-react';
+import { Key, Plus } from 'lucide-react';
+import { useAppSelector } from '@/store/hooks';
+import { selectWallets } from '@/store/walletsSlice';
 
 interface CreatePrivateKeyDialogProps {
-    onPrivateKeyCreated: (keyData: {
-        name: string;
-        type: string;
-        walletId?: string;
-    }) => void;
-    loading?: boolean;
+    onPrivateKeyCreated: (data: { wallet_id: string; name: string; curve: string; tags?: string[] }) => void;
+    disabled?: boolean;
 }
 
-export default function CreatePrivateKeyDialog({ onPrivateKeyCreated, loading = false }: CreatePrivateKeyDialogProps) {
+export default function CreatePrivateKeyDialog({ onPrivateKeyCreated, disabled = false }: CreatePrivateKeyDialogProps) {
     const [open, setOpen] = useState(false);
-    const [formData, setFormData] = useState({
-        name: '',
-        type: 'secp256k1',
-        walletId: ''
-    });
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [walletId, setWalletId] = useState('');
+    const [name, setName] = useState('');
+    const [curve, setCurve] = useState('');
+    const [tags, setTags] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const wallets = useAppSelector(selectWallets);
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Reset errors
-        setErrors({});
-
-        // Validate form
-        const newErrors: Record<string, string> = {};
-
-        if (!formData.name.trim()) {
-            newErrors.name = 'Private key name is required';
+        if (!walletId.trim()) {
+            setError('Wallet is required');
+            return;
         }
-
-        if (!formData.type) {
-            newErrors.type = 'Key type is required';
+        if (!name.trim()) {
+            setError('Private key name is required');
+            return;
         }
-
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
+        if (!curve.trim()) {
+            setError('Curve is required');
             return;
         }
 
-        // Call the parent handler
-        onPrivateKeyCreated(formData);
 
-        // Reset form and close dialog
-        setFormData({ name: '', type: 'secp256k1', walletId: '' });
-        setOpen(false);
-    };
+        setLoading(true);
+        setError(null);
 
-    const handleInputChange = (field: string, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        // Clear error when user starts typing
-        if (errors[field]) {
-            setErrors(prev => ({ ...prev, [field]: '' }));
+        try {
+            // This will be handled by the parent component
+            onPrivateKeyCreated({
+                wallet_id: walletId,
+                name,
+                curve,
+                tags: parseTags(tags)
+            });
+            setOpen(false);
+            resetForm();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to create private key');
+        } finally {
+            setLoading(false);
         }
     };
 
+    const resetForm = () => {
+        setWalletId('');
+        setName('');
+        setCurve('');
+        setTags('');
+        setError(null);
+    };
+
+    const handleOpenChange = (newOpen: boolean) => {
+        if (!newOpen) {
+            resetForm();
+        }
+        setOpen(newOpen);
+    };
+
+    const parseTags = (tagsString: string): string[] => {
+        return tagsString.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+    };
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button disabled={loading}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Private Key
+                <Button disabled={disabled} className="flex items-center space-x-2">
+                    <Plus className="h-4 w-4" />
+                    <span>Create Private Key</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center">
-                        <Key className="mr-2 h-5 w-5" />
-                        Create New Private Key
+                    <DialogTitle className="flex items-center space-x-2">
+                        <Key className="h-5 w-5" />
+                        <span>Create New Private Key</span>
                     </DialogTitle>
                     <DialogDescription>
-                        Generate a new cryptographic private key. This will be encrypted and stored securely.
+                        Create a new private key for a wallet. Select the wallet and provide the key details.
                     </DialogDescription>
                 </DialogHeader>
-
-                {/* Security Warning */}
-                <div className="flex items-start space-x-3 p-3 bg-orange-50 border border-orange-200 rounded-lg dark:bg-orange-950 dark:border-orange-800">
-                    <Shield className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
-                    <div>
-                        <h4 className="font-semibold text-orange-800 dark:text-orange-200">Security Notice</h4>
-                        <p className="text-sm text-orange-700 dark:text-orange-300">
-                            Private keys are sensitive cryptographic material. They will be encrypted and stored securely.
-                        </p>
-                    </div>
-                </div>
-
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="name">Private Key Name</Label>
-                        <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => handleInputChange('name', e.target.value)}
-                            placeholder="Enter a descriptive name for this key"
-                            className={errors.name ? 'border-red-500' : ''}
-                        />
-                        {errors.name && (
-                            <p className="text-sm text-red-500">{errors.name}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="type">Key Type</Label>
-                        <Select
-                            value={formData.type}
-                            onValueChange={(value) => handleInputChange('type', value)}
-                        >
-                            <SelectTrigger className={errors.type ? 'border-red-500' : ''}>
-                                <SelectValue placeholder="Select a key type" />
+                        <Label htmlFor="wallet-select">Wallet</Label>
+                        <Select value={walletId} onValueChange={setWalletId} disabled={loading}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a wallet" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="secp256k1">Secp256k1 (Bitcoin/Ethereum)</SelectItem>
-                                <SelectItem value="ed25519">Ed25519 (Solana/Polkadot)</SelectItem>
-                                <SelectItem value="rsa2048">RSA 2048</SelectItem>
-                                <SelectItem value="rsa4096">RSA 4096</SelectItem>
-                                <SelectItem value="p256">P-256 (NIST)</SelectItem>
-                                <SelectItem value="p384">P-384 (NIST)</SelectItem>
+                                {wallets.map((wallet) => (
+                                    <SelectItem key={wallet.id} value={wallet.id}>
+                                        {wallet.name}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
-                        {errors.type && (
-                            <p className="text-sm text-red-500">{errors.type}</p>
-                        )}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="private-key-name">Private Key Name</Label>
+                        <Input
+                            id="private-key-name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Enter private key name"
+                            disabled={loading}
+                            required
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="curve-select">Curve</Label>
+                        <Select value={curve} onValueChange={setCurve} disabled={loading}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a curve" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="CURVE_SECP256K1">SECP256K1 (Ethereum)</SelectItem>
+                                <SelectItem value="CURVE_ED25519">ED25519 (Solana)</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="walletId">Associated Wallet (Optional)</Label>
+                        <Label htmlFor="tags">Tags (Optional)</Label>
                         <Input
-                            id="walletId"
-                            value={formData.walletId}
-                            onChange={(e) => handleInputChange('walletId', e.target.value)}
-                            placeholder="Enter wallet ID to associate with this key"
+                            id="tags"
+                            value={tags}
+                            onChange={(e) => setTags(e.target.value)}
+                            placeholder="Enter tags separated by commas"
+                            disabled={loading}
                         />
                         <p className="text-xs text-muted-foreground">
-                            Associate this private key with a specific wallet for better organization
+                            Optional tags to categorize the private key
                         </p>
                     </div>
-
+                    {error && (
+                        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                            <p className="text-sm text-destructive">{error}</p>
+                        </div>
+                    )}
                     <DialogFooter>
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => setOpen(false)}
+                            disabled={loading}
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={loading}>
+                        <Button type="submit" disabled={loading || !walletId || !name || !curve}>
                             {loading ? 'Creating...' : 'Create Private Key'}
                         </Button>
                     </DialogFooter>
@@ -176,3 +190,4 @@ export default function CreatePrivateKeyDialog({ onPrivateKeyCreated, loading = 
         </Dialog>
     );
 }
+

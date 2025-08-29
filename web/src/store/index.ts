@@ -8,6 +8,8 @@ import themeReducer from './slices/themeSlice'
 import walletReducer from './slices/walletSlice'
 import authReducer from './authSlice'
 import usersReducer from './usersSlice'
+import walletsReducer from './walletsSlice'
+import privateKeysReducer from './privateKeysSlice'
 
 // Import sagas
 import { userSaga } from './sagas/userSaga'
@@ -38,6 +40,8 @@ function createStore() {
             wallet: walletReducer,
             auth: authReducer,
             users: usersReducer,
+            wallets: walletsReducer,
+            privateKeys: privateKeysReducer,
         },
         middleware: (getDefaultMiddleware) =>
             getDefaultMiddleware({

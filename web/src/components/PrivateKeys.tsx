@@ -1,45 +1,107 @@
 'use client';
 
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { walletActions } from '@/store/sagas/walletSaga';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Key, Copy, Eye, EyeOff } from 'lucide-react';
 import CreatePrivateKeyDialog from './CreatePrivateKeyDialog';
+import { useSnackbar } from '@/components/ui/snackbar';
+import {
+    fetchPrivateKeys,
+    createPrivateKey,
+    selectPrivateKeys,
+    selectPrivateKeysLoading,
+    selectPrivateKeysError,
+    selectPrivateKeysPagination
+} from '@/store/privateKeysSlice';
+import { selectOrganizationId } from '@/store/authSlice';
 
 export default function PrivateKeys() {
     const dispatch = useAppDispatch();
-    const { privateKeys, loading, error } = useAppSelector((state) => state.wallet);
+
+    // Get private keys data from Redux store
+    const privateKeys = useAppSelector(selectPrivateKeys);
+    const loading = useAppSelector(selectPrivateKeysLoading);
+    const error = useAppSelector(selectPrivateKeysError);
+    const pagination = useAppSelector(selectPrivateKeysPagination);
+
+    // Get organization ID from auth store
+    const organizationId = useAppSelector(selectOrganizationId);
+
     const [showPrivateKeys, setShowPrivateKeys] = useState(false);
     const [isCreatingKey, setIsCreatingKey] = useState(false);
-    const [keyError, setKeyError] = useState<string | null>(null);
-    const [keySuccess, setKeySuccess] = useState<string | null>(null);
+    const { showSnackbar } = useSnackbar();
 
     useEffect(() => {
-        dispatch(walletActions.fetchPrivateKeys());
-    }, [dispatch]);
+        if (organizationId) {
+            dispatch(fetchPrivateKeys({ organizationId }));
+        }
+    }, [dispatch, organizationId]);
 
-    const handleCreatePrivateKey = async (keyData: { name: string; type: string; walletId?: string }) => {
+    const handleCreatePrivateKey = async (privateKeyData: { wallet_id: string; name: string; curve: string; tags?: string[] }) => {
         try {
             setIsCreatingKey(true);
-            setKeyError(null);
-            setKeySuccess(null);
+
+            if (!organizationId) {
+                throw new Error('No organization ID available');
+            }
 
             // Call Redux action to create private key
-            dispatch(walletActions.createPrivateKey({
-                name: keyData.name,
-                publicKey: `0x${Math.random().toString(36).substr(2, 40)}`,
-                encryptedPrivateKey: `encrypted_${Math.random().toString(36).substr(2, 20)}`,
-                walletId: keyData.walletId || 'wallet_1'
-            }));
+            await dispatch(createPrivateKey({
+                organizationId,
+                privateKeyData
+            })).unwrap();
 
-            setKeySuccess(`Private key "${keyData.name}" created successfully!`);
+            showSnackbar({
+                type: 'success',
+                title: 'Private Key Created',
+                message: 'Private key created successfully!'
+            });
 
             // Refresh private keys list after creating key
-            dispatch(walletActions.fetchPrivateKeys());
+            dispatch(fetchPrivateKeys({ organizationId }));
         } catch (error) {
             console.error('Error creating private key:', error);
-            setKeyError(error instanceof Error ? error.message : 'Failed to create private key');
+            const errorMessage = error instanceof Error ? error.message : 'Failed to create private key';
+
+            // Handle specific error cases with better descriptions
+            if (errorMessage.includes('duplicate key value violates unique constraint')) {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Private Key Creation Failed',
+                    message: `A private key named "${privateKeyData.name}" already exists in this wallet. Please choose a different name.`
+                });
+            } else if (errorMessage.includes('invalid curve')) {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Private Key Creation Failed',
+                    message: 'Invalid curve type selected. Please choose a valid curve from the dropdown.'
+                });
+            } else if (errorMessage.includes('invalid organization ID')) {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Private Key Creation Failed',
+                    message: 'Invalid organization ID. Please try logging in again.'
+                });
+            } else if (errorMessage.includes('wallet not found')) {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Private Key Creation Failed',
+                    message: 'Selected wallet not found. Please refresh and try again.'
+                });
+            } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Private Key Creation Failed',
+                    message: 'Network connection error. Please check your internet connection and try again.'
+                });
+            } else {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Private Key Creation Failed',
+                    message: 'An unexpected error occurred while creating the private key. Please try again or contact support.'
+                });
+            }
         } finally {
             setIsCreatingKey(false);
         }
@@ -80,30 +142,12 @@ export default function PrivateKeys() {
                     </Button>
                     <CreatePrivateKeyDialog
                         onPrivateKeyCreated={handleCreatePrivateKey}
-                        loading={isCreatingKey}
+                        disabled={isCreatingKey}
                     />
                 </div>
             </div>
 
-            {/* Success Display */}
-            {keySuccess && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950 dark:border-green-800">
-                    <div className="text-green-800 dark:text-green-200">
-                        <h3 className="font-semibold">Success:</h3>
-                        <p>{keySuccess}</p>
-                    </div>
-                </div>
-            )}
 
-            {/* Error Display */}
-            {(error || keyError) && (
-                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                    <div className="text-destructive">
-                        <h3 className="font-semibold">Error:</h3>
-                        <p>{keyError || error}</p>
-                    </div>
-                </div>
-            )}
 
             {/* Private Keys Table */}
             <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -118,7 +162,10 @@ export default function PrivateKeys() {
                                     Public Key
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Wallet ID
+                                    Curve
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    Path
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Status
@@ -131,7 +178,7 @@ export default function PrivateKeys() {
                         <tbody className="divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center">
+                                    <td colSpan={6} className="px-6 py-8 text-center">
                                         <div className="flex items-center justify-center">
                                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                                             <span className="ml-2 text-muted-foreground">Loading private keys...</span>
@@ -140,7 +187,7 @@ export default function PrivateKeys() {
                                 </tr>
                             ) : privateKeys.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center">
+                                    <td colSpan={6} className="px-6 py-8 text-center">
                                         <div className="flex flex-col items-center">
                                             <Key className="h-12 w-12 text-muted-foreground mb-4" />
                                             <p className="text-muted-foreground">No private keys found</p>
@@ -170,12 +217,12 @@ export default function PrivateKeys() {
                                             <div className="flex items-center space-x-2">
                                                 <div className="text-sm font-mono text-foreground">
                                                     {showPrivateKeys
-                                                        ? key.publicKey
-                                                        : `${key.publicKey.slice(0, 8)}...${key.publicKey.slice(-6)}`
+                                                        ? key.public_key
+                                                        : `${key.public_key.slice(0, 8)}...${key.public_key.slice(-6)}`
                                                     }
                                                 </div>
                                                 <button
-                                                    onClick={() => copyToClipboard(key.publicKey)}
+                                                    onClick={() => copyToClipboard(key.public_key)}
                                                     className="text-muted-foreground hover:text-foreground transition-colors"
                                                 >
                                                     <Copy className="h-4 w-4" />
@@ -183,14 +230,17 @@ export default function PrivateKeys() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-foreground">{key.walletId}</div>
+                                            <div className="text-sm text-foreground">{key.curve}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${key.isActive
+                                            <div className="text-sm font-mono text-muted-foreground">{key.path}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${key.is_active
                                                 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                                 }`}>
-                                                {key.isActive ? 'Active' : 'Inactive'}
+                                                {key.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
