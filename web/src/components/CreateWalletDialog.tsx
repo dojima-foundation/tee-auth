@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -13,150 +13,96 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Plus, Wallet } from 'lucide-react';
+import { Wallet, Plus } from 'lucide-react';
 
 interface CreateWalletDialogProps {
-    onWalletCreated: (walletData: {
-        name: string;
-        currency: string;
-        address?: string;
-    }) => void;
-    loading?: boolean;
+    onWalletCreated: (walletData: { name: string }) => void;
+    disabled?: boolean;
 }
 
-export default function CreateWalletDialog({ onWalletCreated, loading = false }: CreateWalletDialogProps) {
+export default function CreateWalletDialog({ onWalletCreated, disabled = false }: CreateWalletDialogProps) {
     const [open, setOpen] = useState(false);
-    const [formData, setFormData] = useState({
-        name: '',
-        currency: 'ETH',
-        address: ''
-    });
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [name, setName] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Reset errors
-        setErrors({});
-
-        // Validate form
-        const newErrors: Record<string, string> = {};
-
-        if (!formData.name.trim()) {
-            newErrors.name = 'Wallet name is required';
-        }
-
-        if (!formData.currency) {
-            newErrors.currency = 'Currency is required';
-        }
-
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
+        if (!name.trim()) {
+            setError('Wallet name is required');
             return;
         }
 
-        // Call the parent handler
-        onWalletCreated(formData);
+        setLoading(true);
+        setError(null);
 
-        // Reset form and close dialog
-        setFormData({ name: '', currency: 'ETH', address: '' });
-        setOpen(false);
-    };
-
-    const handleInputChange = (field: string, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        // Clear error when user starts typing
-        if (errors[field]) {
-            setErrors(prev => ({ ...prev, [field]: '' }));
+        try {
+            // This will be handled by the parent component
+            onWalletCreated({ name: name.trim() });
+            setOpen(false);
+            setName('');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to create wallet');
+        } finally {
+            setLoading(false);
         }
     };
 
+    const handleOpenChange = (newOpen: boolean) => {
+        if (!newOpen) {
+            setName('');
+            setError(null);
+        }
+        setOpen(newOpen);
+    };
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button disabled={loading}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Wallet
+                <Button disabled={disabled} className="flex items-center space-x-2">
+                    <Plus className="h-4 w-4" />
+                    <span>Create Wallet</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center">
-                        <Wallet className="mr-2 h-5 w-5" />
-                        Create New Wallet
+                    <DialogTitle className="flex items-center space-x-2">
+                        <Wallet className="h-5 w-5" />
+                        <span>Create New Wallet</span>
                     </DialogTitle>
                     <DialogDescription>
-                        Create a new cryptocurrency wallet. Fill in the details below.
+                        Create a new HD wallet for your organization. You can optionally provide a seed phrase.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="name">Wallet Name</Label>
+                        <Label htmlFor="wallet-name">Wallet Name</Label>
                         <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => handleInputChange('name', e.target.value)}
+                            id="wallet-name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
                             placeholder="Enter wallet name"
-                            className={errors.name ? 'border-red-500' : ''}
+                            disabled={loading}
+                            required
                         />
-                        {errors.name && (
-                            <p className="text-sm text-red-500">{errors.name}</p>
-                        )}
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="currency">Currency</Label>
-                        <Select
-                            value={formData.currency}
-                            onValueChange={(value) => handleInputChange('currency', value)}
-                        >
-                            <SelectTrigger className={errors.currency ? 'border-red-500' : ''}>
-                                <SelectValue placeholder="Select a currency" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
-                                <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
-                                <SelectItem value="USDC">USD Coin (USDC)</SelectItem>
-                                <SelectItem value="USDT">Tether (USDT)</SelectItem>
-                                <SelectItem value="DAI">Dai (DAI)</SelectItem>
-                                <SelectItem value="MATIC">Polygon (MATIC)</SelectItem>
-                                <SelectItem value="SOL">Solana (SOL)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {errors.currency && (
-                            <p className="text-sm text-red-500">{errors.currency}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="address">Wallet Address (Optional)</Label>
-                        <Input
-                            id="address"
-                            value={formData.address}
-                            onChange={(e) => handleInputChange('address', e.target.value)}
-                            placeholder="Enter wallet address (optional)"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            Leave empty to generate a new address automatically
-                        </p>
-                    </div>
-
+                    {error && (
+                        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                            <p className="text-sm text-destructive">{error}</p>
+                        </div>
+                    )}
                     <DialogFooter>
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => setOpen(false)}
+                            disabled={loading}
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={loading}>
+                        <Button type="submit" disabled={loading || !name.trim()}>
                             {loading ? 'Creating...' : 'Create Wallet'}
                         </Button>
                     </DialogFooter>

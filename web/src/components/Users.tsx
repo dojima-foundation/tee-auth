@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { User as UserIcon, Building, Plus, Edit, Trash2 } from 'lucide-react';
+import { useSnackbar } from '@/components/ui/snackbar';
 import { gauthApi, CreateOrganizationRequest } from '@/services/gauthApi';
 import CreateUserDialog from './CreateUserDialog';
 import {
@@ -32,10 +33,7 @@ export default function Users() {
 
     const [isCreatingOrg, setIsCreatingOrg] = useState(false);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
-    const [orgError, setOrgError] = useState<string | null>(null);
-    const [orgSuccess, setOrgSuccess] = useState<string | null>(null);
-    const [userError, setUserError] = useState<string | null>(null);
-    const [userSuccess, setUserSuccess] = useState<string | null>(null);
+    const { showSnackbar } = useSnackbar();
 
     useEffect(() => {
         if (organizationId) {
@@ -46,8 +44,6 @@ export default function Users() {
     const handleCreateOrganization = async () => {
         try {
             setIsCreatingOrg(true);
-            setOrgError(null);
-            setOrgSuccess(null);
 
             // Create organization with initial user
             const orgData: CreateOrganizationRequest = {
@@ -59,18 +55,30 @@ export default function Users() {
             const response = await gauthApi.createOrganization(orgData);
 
             if (response.success) {
-                setOrgSuccess(`Organization created successfully! Organization ID: ${response.data.organization.id}, User ID: ${response.data.user_id}`);
+                showSnackbar({
+                    type: 'success',
+                    title: 'Organization Created',
+                    message: `Organization created successfully! Organization ID: ${response.data.organization.id}, User ID: ${response.data.user_id}`
+                });
 
                 // Refresh users list after creating organization
                 if (organizationId) {
                     dispatch(fetchUsers({ organizationId }));
                 }
             } else {
-                setOrgError('Failed to create organization');
+                showSnackbar({
+                    type: 'error',
+                    title: 'Organization Creation Failed',
+                    message: 'Failed to create organization'
+                });
             }
         } catch (error) {
             console.error('Error creating organization:', error);
-            setOrgError(error instanceof Error ? error.message : 'Failed to create organization');
+            showSnackbar({
+                type: 'error',
+                title: 'Organization Creation Failed',
+                message: error instanceof Error ? error.message : 'Failed to create organization'
+            });
         } finally {
             setIsCreatingOrg(false);
         }
@@ -79,8 +87,6 @@ export default function Users() {
     const handleCreateUser = async (userData: { name: string; email: string; role: string }) => {
         try {
             setIsCreatingUser(true);
-            setUserError(null);
-            setUserSuccess(null);
 
             if (!organizationId) {
                 throw new Error('No organization ID available');
@@ -95,13 +101,21 @@ export default function Users() {
                 }
             })).unwrap();
 
-            setUserSuccess(`User "${userData.name}" created successfully!`);
+            showSnackbar({
+                type: 'success',
+                title: 'User Created',
+                message: `User "${userData.name}" created successfully!`
+            });
 
             // Refresh users list after creating user
             dispatch(fetchUsers({ organizationId }));
         } catch (error) {
             console.error('Error creating user:', error);
-            setUserError(error instanceof Error ? error.message : 'Failed to create user');
+            showSnackbar({
+                type: 'error',
+                title: 'User Creation Failed',
+                message: error instanceof Error ? error.message : 'Failed to create user'
+            });
         } finally {
             setIsCreatingUser(false);
         }
@@ -110,13 +124,21 @@ export default function Users() {
     const handleEditUser = async (user: User) => {
         // TODO: Implement edit user functionality when backend API is available
         console.log('Edit user functionality not yet implemented:', user);
-        setUserError('Edit user functionality not yet implemented');
+        showSnackbar({
+            type: 'info',
+            title: 'Feature Not Available',
+            message: 'Edit user functionality is not yet implemented'
+        });
     };
 
     const handleDeleteUser = async (userId: string) => {
         // TODO: Implement delete user functionality when backend API is available
         console.log('Delete user functionality not yet implemented:', userId);
-        setUserError('Delete user functionality not yet implemented');
+        showSnackbar({
+            type: 'info',
+            title: 'Feature Not Available',
+            message: 'Delete user functionality is not yet implemented'
+        });
     };
 
     return (
@@ -171,34 +193,7 @@ export default function Users() {
                 </div>
             </div>
 
-            {/* Success Displays */}
-            {orgSuccess && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950 dark:border-green-800">
-                    <div className="text-green-800 dark:text-green-200">
-                        <h3 className="font-semibold">Success:</h3>
-                        <p>{orgSuccess}</p>
-                    </div>
-                </div>
-            )}
 
-            {userSuccess && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950 dark:border-green-800">
-                    <div className="text-green-800 dark:text-green-200">
-                        <h3 className="font-semibold">Success:</h3>
-                        <p>{userSuccess}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Error Display */}
-            {(error || orgError || userError) && (
-                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                    <div className="text-destructive">
-                        <h3 className="font-semibold">Error:</h3>
-                        <p>{userError || orgError || error}</p>
-                    </div>
-                </div>
-            )}
 
             {/* Users Table */}
             <div className="bg-card border border-border rounded-lg overflow-hidden">

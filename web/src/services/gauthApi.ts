@@ -125,6 +125,87 @@ export interface GoogleOAuthRefreshResponse {
     };
 }
 
+// Wallet Types
+export interface Wallet {
+    id: string;
+    organization_id: string;
+    name: string;
+    public_key: string;
+    seed_phrase?: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreateWalletRequest {
+    organization_id: string;
+    name: string;
+    accounts: CreateWalletAccount[];
+    mnemonic_length?: number;
+    tags?: string[];
+}
+
+export interface CreateWalletAccount {
+    curve: string;
+    path_format: string;
+    path: string;
+    address_format: string;
+}
+
+export interface CreateWalletResponse {
+    success: boolean;
+    data: {
+        wallet: Wallet;
+    };
+}
+
+export interface ListWalletsResponse {
+    success: boolean;
+    data: {
+        wallets: Wallet[];
+        next_page_token?: string;
+    };
+}
+
+// Private Key Types
+export interface PrivateKey {
+    id: string;
+    organization_id: string;
+    wallet_id: string;
+    name: string;
+    public_key: string;
+    curve: string;
+    path: string;
+    tags: string[];
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreatePrivateKeyRequest {
+    organization_id: string;
+    wallet_id: string;
+    name: string;
+    curve: string;
+    private_key_material?: string;
+    tags?: string[];
+}
+
+export interface CreatePrivateKeyResponse {
+    success: boolean;
+    data: {
+        private_key: PrivateKey;
+    };
+}
+
+export interface ListPrivateKeysResponse {
+    success: boolean;
+    data: {
+        private_keys: PrivateKey[];
+        next_page_token?: string;
+    };
+}
+
 export interface ApiError {
     success: false;
     error: string;
@@ -208,6 +289,32 @@ class GAuthApiService {
         return this.makeRequest<GoogleOAuthRefreshResponse>(`/api/v1/auth/google/refresh/${authMethodId}`, {
             method: 'POST',
         });
+    }
+
+    // Wallet Methods
+    async createWallet(data: CreateWalletRequest): Promise<CreateWalletResponse> {
+        return this.makeRequest<CreateWalletResponse>('/api/v1/wallets', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async getWallets(organizationId?: string): Promise<ListWalletsResponse> {
+        const params = organizationId ? `?organization_id=${organizationId}` : '';
+        return this.makeRequest<ListWalletsResponse>(`/api/v1/wallets${params}`);
+    }
+
+    // Private Key Methods
+    async createPrivateKey(data: CreatePrivateKeyRequest): Promise<CreatePrivateKeyResponse> {
+        return this.makeRequest<CreatePrivateKeyResponse>('/api/v1/private-keys', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async getPrivateKeys(organizationId?: string): Promise<ListPrivateKeysResponse> {
+        const params = organizationId ? `?organization_id=${organizationId}` : '';
+        return this.makeRequest<ListPrivateKeysResponse>(`/api/v1/private-keys${params}`);
     }
 }
 

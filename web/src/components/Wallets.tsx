@@ -1,42 +1,108 @@
 'use client';
 
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { walletActions } from '@/store/sagas/walletSaga';
 import { useEffect, useState } from 'react';
 import { Wallet, Copy } from 'lucide-react';
 import CreateWalletDialog from './CreateWalletDialog';
+import { useSnackbar } from '@/components/ui/snackbar';
+import {
+    fetchWallets,
+    createWallet,
+    selectWallets,
+    selectWalletsLoading,
+    selectWalletsError,
+    selectWalletsPagination
+} from '@/store/walletsSlice';
+import { selectOrganizationId } from '@/store/authSlice';
 
 export default function Wallets() {
     const dispatch = useAppDispatch();
-    const { wallets, loading, error } = useAppSelector((state) => state.wallet);
+
+    // Get wallets data from Redux store
+    const wallets = useAppSelector(selectWallets);
+    const loading = useAppSelector(selectWalletsLoading);
+    const error = useAppSelector(selectWalletsError);
+    const pagination = useAppSelector(selectWalletsPagination);
+
+    // Get organization ID from auth store
+    const organizationId = useAppSelector(selectOrganizationId);
+
     const [isCreatingWallet, setIsCreatingWallet] = useState(false);
-    const [walletError, setWalletError] = useState<string | null>(null);
-    const [walletSuccess, setWalletSuccess] = useState<string | null>(null);
+    const { showSnackbar } = useSnackbar();
 
     useEffect(() => {
-        dispatch(walletActions.fetchWallets());
-    }, [dispatch]);
+        if (organizationId) {
+            dispatch(fetchWallets({ organizationId }));
+        }
+    }, [dispatch, organizationId]);
 
-    const handleCreateWallet = async (walletData: { name: string; currency: string; address?: string }) => {
+    const handleCreateWallet = async (walletData: { name: string }) => {
         try {
             setIsCreatingWallet(true);
-            setWalletError(null);
-            setWalletSuccess(null);
+
+            if (!organizationId) {
+                throw new Error('No organization ID available');
+            }
 
             // Call Redux action to create wallet
-            dispatch(walletActions.createWallet({
-                name: walletData.name,
-                currency: walletData.currency,
-                address: walletData.address || `0x${Math.random().toString(36).substr(2, 40)}`
-            }));
+            await dispatch(createWallet({
+                organizationId,
+                walletData: {
+                    name: walletData.name,
+                    seed_phrase: undefined,
+                }
+            })).unwrap();
 
-            setWalletSuccess(`Wallet "${walletData.name}" created successfully!`);
+            showSnackbar({
+                type: 'success',
+                title: 'Wallet Created',
+                message: `Wallet "${walletData.name}" created successfully!`
+            });
 
             // Refresh wallets list after creating wallet
-            dispatch(walletActions.fetchWallets());
+            dispatch(fetchWallets({ organizationId }));
         } catch (error) {
             console.error('Error creating wallet:', error);
-            setWalletError(error instanceof Error ? error.message : 'Failed to create wallet');
+            const errorMessage = error instanceof Error ? error.message : 'Failed to create wallet';
+
+            // Handle specific error cases with better descriptions
+            if (errorMessage.includes('duplicate key value violates unique constraint')) {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Wallet Creation Failed',
+                    message: `A wallet named "${walletData.name}" already exists in your organization. Please choose a different name.`
+                });
+            } else if (errorMessage.includes('invalid organization ID')) {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Wallet Creation Failed',
+                    message: 'Invalid organization ID. Please try logging in again.'
+                });
+            } else if (errorMessage.includes('failed to generate seed')) {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Wallet Creation Failed',
+                    message: 'Failed to generate wallet seed. Please try again or contact support.'
+                });
+            } else if (errorMessage.includes('failed to derive address')) {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Wallet Creation Failed',
+                    message: 'Failed to generate wallet addresses. Please try again.'
+                });
+            } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Wallet Creation Failed',
+                    message: 'Network connection error. Please check your internet connection and try again.'
+                });
+            } else {
+                showSnackbar({
+                    type: 'error',
+                    title: 'Wallet Creation Failed',
+                    message: 'An unexpected error occurred while creating the wallet. Please try again or contact support.'
+                });
+            }
         } finally {
             setIsCreatingWallet(false);
         }
@@ -56,29 +122,11 @@ export default function Wallets() {
                 <h1 className="text-3xl font-bold text-foreground">Wallets</h1>
                 <CreateWalletDialog
                     onWalletCreated={handleCreateWallet}
-                    loading={isCreatingWallet}
+                    disabled={isCreatingWallet}
                 />
             </div>
 
-            {/* Success Display */}
-            {walletSuccess && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950 dark:border-green-800">
-                    <div className="text-green-800 dark:text-green-200">
-                        <h3 className="font-semibold">Success:</h3>
-                        <p>{walletSuccess}</p>
-                    </div>
-                </div>
-            )}
 
-            {/* Error Display */}
-            {(error || walletError) && (
-                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                    <div className="text-destructive">
-                        <h3 className="font-semibold">Error:</h3>
-                        <p>{walletError || error}</p>
-                    </div>
-                </div>
-            )}
 
             {/* Wallets Table */}
             <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -90,13 +138,10 @@ export default function Wallets() {
                                     Wallet
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Address
+                                    Public Key
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Balance
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Currency
+                                    Created
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Status
@@ -147,29 +192,25 @@ export default function Wallets() {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center space-x-2">
                                                 <div className="text-sm font-mono text-foreground">
-                                                    {wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}
+                                                    {wallet.public_key.slice(0, 8)}...{wallet.public_key.slice(-6)}
                                                 </div>
                                                 <button
-                                                    onClick={() => copyToClipboard(wallet.address)}
+                                                    onClick={() => copyToClipboard(wallet.public_key)}
                                                     className="text-muted-foreground hover:text-foreground transition-colors"
                                                 >
                                                     <Copy className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-foreground">
-                                                {wallet.balance} {wallet.currency}
-                                            </div>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                            {new Date(wallet.created_at).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                                {wallet.currency}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                Active
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${wallet.is_active
+                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                }`}>
+                                                {wallet.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
