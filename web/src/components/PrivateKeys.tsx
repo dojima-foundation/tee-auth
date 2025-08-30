@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Key, Copy, Eye, EyeOff } from 'lucide-react';
 import CreatePrivateKeyDialog from './CreatePrivateKeyDialog';
 import { useSnackbar } from '@/components/ui/snackbar';
+import { useAuth } from '@/lib/auth-context';
 import {
     fetchPrivateKeys,
     createPrivateKey,
@@ -18,6 +19,7 @@ import { selectOrganizationId } from '@/store/authSlice';
 
 export default function PrivateKeys() {
     const dispatch = useAppDispatch();
+    const { isAuthenticated } = useAuth();
 
     // Get private keys data from Redux store
     const privateKeys = useAppSelector(selectPrivateKeys);
@@ -33,10 +35,23 @@ export default function PrivateKeys() {
     const { showSnackbar } = useSnackbar();
 
     useEffect(() => {
-        if (organizationId) {
-            dispatch(fetchPrivateKeys({ organizationId }));
+        console.log('🔄 [PrivateKeys] useEffect triggered:', {
+            organizationId,
+            isAuthenticated,
+            hasOrganizationId: !!organizationId,
+            shouldFetch: organizationId && isAuthenticated
+        });
+
+        if (organizationId && isAuthenticated) {
+            console.log('📡 [PrivateKeys] Fetching private keys data...');
+            dispatch(fetchPrivateKeys({}));
+        } else {
+            console.log('⏸️ [PrivateKeys] Not fetching private keys - missing requirements:', {
+                hasOrganizationId: !!organizationId,
+                isAuthenticated
+            });
         }
-    }, [dispatch, organizationId]);
+    }, [dispatch, organizationId, isAuthenticated]);
 
     const handleCreatePrivateKey = async (privateKeyData: { wallet_id: string; name: string; curve: string; tags?: string[] }) => {
         try {
@@ -47,10 +62,7 @@ export default function PrivateKeys() {
             }
 
             // Call Redux action to create private key
-            await dispatch(createPrivateKey({
-                organizationId,
-                privateKeyData
-            })).unwrap();
+            await dispatch(createPrivateKey(privateKeyData)).unwrap();
 
             showSnackbar({
                 type: 'success',
@@ -59,7 +71,7 @@ export default function PrivateKeys() {
             });
 
             // Refresh private keys list after creating key
-            dispatch(fetchPrivateKeys({ organizationId }));
+            dispatch(fetchPrivateKeys({}));
         } catch (error) {
             console.error('Error creating private key:', error);
             const errorMessage = error instanceof Error ? error.message : 'Failed to create private key';

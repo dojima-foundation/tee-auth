@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Wallet, Copy } from 'lucide-react';
 import CreateWalletDialog from './CreateWalletDialog';
 import { useSnackbar } from '@/components/ui/snackbar';
+import { useAuth } from '@/lib/auth-context';
 import {
     fetchWallets,
     createWallet,
@@ -17,6 +18,7 @@ import { selectOrganizationId } from '@/store/authSlice';
 
 export default function Wallets() {
     const dispatch = useAppDispatch();
+    const { isAuthenticated } = useAuth();
 
     // Get wallets data from Redux store
     const wallets = useAppSelector(selectWallets);
@@ -31,10 +33,23 @@ export default function Wallets() {
     const { showSnackbar } = useSnackbar();
 
     useEffect(() => {
-        if (organizationId) {
-            dispatch(fetchWallets({ organizationId }));
+        console.log('🔄 [Wallets] useEffect triggered:', {
+            organizationId,
+            isAuthenticated,
+            hasOrganizationId: !!organizationId,
+            shouldFetch: organizationId && isAuthenticated
+        });
+
+        if (organizationId && isAuthenticated) {
+            console.log('📡 [Wallets] Fetching wallets data...');
+            dispatch(fetchWallets({}));
+        } else {
+            console.log('⏸️ [Wallets] Not fetching wallets - missing requirements:', {
+                hasOrganizationId: !!organizationId,
+                isAuthenticated
+            });
         }
-    }, [dispatch, organizationId]);
+    }, [dispatch, organizationId, isAuthenticated]);
 
     const handleCreateWallet = async (walletData: { name: string }) => {
         try {
@@ -46,11 +61,8 @@ export default function Wallets() {
 
             // Call Redux action to create wallet
             await dispatch(createWallet({
-                organizationId,
-                walletData: {
-                    name: walletData.name,
-                    seed_phrase: undefined,
-                }
+                name: walletData.name,
+                seed_phrase: undefined,
             })).unwrap();
 
             showSnackbar({
@@ -60,7 +72,7 @@ export default function Wallets() {
             });
 
             // Refresh wallets list after creating wallet
-            dispatch(fetchWallets({ organizationId }));
+            dispatch(fetchWallets({}));
         } catch (error) {
             console.error('Error creating wallet:', error);
             const errorMessage = error instanceof Error ? error.message : 'Failed to create wallet';

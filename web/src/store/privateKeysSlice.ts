@@ -22,13 +22,19 @@ const initialState: PrivateKeysState = {
 // Async thunk for fetching private keys
 export const fetchPrivateKeys = createAsyncThunk(
     'privateKeys/fetchPrivateKeys',
-    async ({ organizationId, page = 1, pageSize = 10 }: {
-        organizationId: string;
+    async ({ page = 1, pageSize = 10 }: {
         page?: number;
         pageSize?: number;
     }, { rejectWithValue }) => {
+        console.log('📡 [PrivateKeysSlice] fetchPrivateKeys called with:', { page, pageSize });
         try {
-            const response = await gauthApi.getPrivateKeys(organizationId);
+            console.log('🌐 [PrivateKeysSlice] Making API call to getPrivateKeys...');
+            const response = await gauthApi.getPrivateKeys();
+            console.log('📡 [PrivateKeysSlice] getPrivateKeys response:', {
+                success: response.success,
+                hasData: !!response.data,
+                privateKeysCount: response.data?.private_keys?.length || 0
+            });
 
             if (response.success) {
                 return {
@@ -49,13 +55,9 @@ export const fetchPrivateKeys = createAsyncThunk(
 // Async thunk for creating a private key
 export const createPrivateKey = createAsyncThunk(
     'privateKeys/createPrivateKey',
-    async ({ organizationId, privateKeyData }: {
-        organizationId: string;
-        privateKeyData: { wallet_id: string; name: string; curve: string; tags?: string[] };
-    }, { rejectWithValue }) => {
+    async (privateKeyData: { wallet_id: string; name: string; curve: string; tags?: string[] }, { rejectWithValue }) => {
         try {
             const response = await gauthApi.createPrivateKey({
-                organization_id: organizationId,
                 wallet_id: privateKeyData.wallet_id,
                 name: privateKeyData.name,
                 curve: privateKeyData.curve,

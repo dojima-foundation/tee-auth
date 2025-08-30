@@ -10,7 +10,6 @@ import (
 
 // CreatePrivateKeyRequest represents the request payload for creating a private key
 type CreatePrivateKeyRequest struct {
-	OrganizationID     string   `json:"organization_id" binding:"required"`
 	WalletID           string   `json:"wallet_id" binding:"required"` // Link to wallet
 	Name               string   `json:"name" binding:"required"`
 	Curve              string   `json:"curve" binding:"required"`       // CURVE_SECP256K1, CURVE_ED25519
@@ -32,9 +31,16 @@ func (s *Server) handleCreatePrivateKey(c *gin.Context) {
 		return
 	}
 
+	// Get organization ID from session context (set by session middleware)
+	organizationID, exists := GetOrganizationIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, errorResponse(nil, "Organization ID not found in session"))
+		return
+	}
+
 	// Call gRPC service
 	grpcReq := &pb.CreatePrivateKeyRequest{
-		OrganizationId: req.OrganizationID,
+		OrganizationId: organizationID,
 		WalletId:       req.WalletID,
 		Name:           req.Name,
 		Curve:          req.Curve,
@@ -84,10 +90,10 @@ func (s *Server) handleGetPrivateKey(c *gin.Context) {
 
 // handleListPrivateKeys lists private keys with pagination and filtering
 func (s *Server) handleListPrivateKeys(c *gin.Context) {
-	// Parse query parameters
-	organizationID := c.Query("organization_id")
-	if organizationID == "" {
-		c.JSON(http.StatusBadRequest, errorResponse(nil, "organization_id query parameter is required"))
+	// Get organization ID from session context (set by session middleware)
+	organizationID, exists := GetOrganizationIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, errorResponse(nil, "Organization ID not found in session"))
 		return
 	}
 

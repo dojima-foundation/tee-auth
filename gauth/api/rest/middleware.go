@@ -32,29 +32,39 @@ func (s *Server) recoveryMiddleware() gin.HandlerFunc {
 	})
 }
 
-// corsMiddleware handles CORS headers
+// corsMiddleware handles CORS headers for cross-domain sessions
 func (s *Server) corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 
 		// Check if origin is allowed
 		allowed := false
-		for _, allowedOrigin := range s.config.Security.CORSOrigins {
-			if allowedOrigin == "*" || allowedOrigin == origin {
+		var allowedOrigin string
+
+		for _, allowedOrig := range s.config.Security.CORSOrigins {
+			if allowedOrig == "*" {
 				allowed = true
+				allowedOrigin = origin
+				break
+			} else if allowedOrig == origin {
+				allowed = true
+				allowedOrigin = origin
 				break
 			}
 		}
 
+		// Set CORS headers
 		if allowed {
-			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Origin", allowedOrigin)
 		}
 
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Session-Token")
 		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Expose-Headers", "Set-Cookie, X-Session-Token")
 		c.Header("Access-Control-Max-Age", "86400")
 
+		// Handle preflight requests
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
 			return
@@ -85,11 +95,11 @@ func errorResponse(err error, message string) gin.H {
 	response := gin.H{
 		"error": message,
 	}
-	
+
 	if err != nil {
 		response["details"] = err.Error()
 	}
-	
+
 	return response
 }
 

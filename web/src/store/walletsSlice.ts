@@ -22,13 +22,19 @@ const initialState: WalletsState = {
 // Async thunk for fetching wallets
 export const fetchWallets = createAsyncThunk(
     'wallets/fetchWallets',
-    async ({ organizationId, page = 1, pageSize = 10 }: {
-        organizationId: string;
+    async ({ page = 1, pageSize = 10 }: {
         page?: number;
         pageSize?: number;
     }, { rejectWithValue }) => {
+        console.log('📡 [WalletsSlice] fetchWallets called with:', { page, pageSize });
         try {
-            const response = await gauthApi.getWallets(organizationId);
+            console.log('🌐 [WalletsSlice] Making API call to getWallets...');
+            const response = await gauthApi.getWallets();
+            console.log('📡 [WalletsSlice] getWallets response:', {
+                success: response.success,
+                hasData: !!response.data,
+                walletsCount: response.data?.wallets?.length || 0
+            });
 
             if (response.success) {
                 return {
@@ -49,13 +55,9 @@ export const fetchWallets = createAsyncThunk(
 // Async thunk for creating a wallet
 export const createWallet = createAsyncThunk(
     'wallets/createWallet',
-    async ({ organizationId, walletData }: {
-        organizationId: string;
-        walletData: { name: string; seed_phrase?: string };
-    }, { rejectWithValue }) => {
+    async (walletData: { name: string; seed_phrase?: string }, { rejectWithValue }) => {
         try {
             const response = await gauthApi.createWallet({
-                organization_id: organizationId,
                 name: walletData.name,
                 accounts: [{
                     curve: 'CURVE_SECP256K1',

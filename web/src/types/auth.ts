@@ -22,6 +22,18 @@ export interface AuthSession {
     auth_method: AuthMethod;
 }
 
+export interface SessionInfo {
+    session_id: string;
+    user_id: string;
+    organization_id: string;
+    email: string;
+    role: string;
+    oauth_provider?: string;
+    created_at: string;
+    last_activity: string;
+    expires_at: string;
+}
+
 export interface AuthState {
     isAuthenticated: boolean;
     user: AuthUser | null;

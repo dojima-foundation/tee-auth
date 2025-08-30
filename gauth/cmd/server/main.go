@@ -111,6 +111,9 @@ func main() {
 	grpcSrv := grpcServer.NewServer(cfg, lgr, svc, tel)
 	restSrv := restServer.NewServer(cfg, lgr, tel)
 
+	// Set Redis interface for session management
+	restSrv.SetRedis(redis)
+
 	// Create context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
