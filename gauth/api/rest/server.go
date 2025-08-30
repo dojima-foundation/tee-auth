@@ -7,6 +7,7 @@ import (
 	"time"
 
 	pb "github.com/dojima-foundation/tee-auth/gauth/api/proto"
+	"github.com/dojima-foundation/tee-auth/gauth/internal/db"
 	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
@@ -28,6 +29,8 @@ type Server struct {
 	httpServer         *http.Server
 	telemetry          *telemetry.Telemetry
 	googleOAuthService *service.GoogleOAuthService
+	sessionManager     *SessionManager
+	redis              db.RedisInterface
 }
 
 // NewServer creates a new REST API server instance
@@ -37,6 +40,17 @@ func NewServer(cfg *config.Config, logger *logger.Logger, tel *telemetry.Telemet
 		logger:    logger,
 		telemetry: tel,
 	}
+}
+
+// SetRedis sets the Redis interface for the server
+func (s *Server) SetRedis(redis db.RedisInterface) {
+	s.redis = redis
+	s.sessionManager = NewSessionManager(s)
+}
+
+// GetSessionManager returns the session manager instance
+func (s *Server) GetSessionManager() *SessionManager {
+	return s.sessionManager
 }
 
 // Start starts the REST API server
@@ -205,28 +219,28 @@ func (s *Server) SetupAPIRoutes(router *gin.Engine) {
 		// User endpoints
 		users := v1.Group("/users")
 		{
-			users.POST("", s.handleCreateUser)
-			users.GET("/:id", s.handleGetUser)
-			users.PUT("/:id", s.handleUpdateUser)
-			users.GET("", s.handleListUsers)
+			users.POST("", s.sessionManager.SessionMiddleware(), s.handleCreateUser)
+			users.GET("/:id", s.sessionManager.SessionMiddleware(), s.handleGetUser)
+			users.PUT("/:id", s.sessionManager.SessionMiddleware(), s.handleUpdateUser)
+			users.GET("", s.sessionManager.SessionMiddleware(), s.handleListUsers)
 		}
 
 		// Wallet endpoints
 		wallets := v1.Group("/wallets")
 		{
-			wallets.POST("", s.handleCreateWallet)
-			wallets.GET("/:id", s.handleGetWallet)
-			wallets.GET("", s.handleListWallets)
-			wallets.DELETE("/:id", s.handleDeleteWallet)
+			wallets.POST("", s.sessionManager.SessionMiddleware(), s.handleCreateWallet)
+			wallets.GET("/:id", s.sessionManager.SessionMiddleware(), s.handleGetWallet)
+			wallets.GET("", s.sessionManager.SessionMiddleware(), s.handleListWallets)
+			wallets.DELETE("/:id", s.sessionManager.SessionMiddleware(), s.handleDeleteWallet)
 		}
 
 		// Private key endpoints
 		privateKeys := v1.Group("/private-keys")
 		{
-			privateKeys.POST("", s.handleCreatePrivateKey)
-			privateKeys.GET("", s.handleListPrivateKeys)
-			privateKeys.GET("/:id", s.handleGetPrivateKey)
-			privateKeys.DELETE("/:id", s.handleDeletePrivateKey)
+			privateKeys.POST("", s.sessionManager.SessionMiddleware(), s.handleCreatePrivateKey)
+			privateKeys.GET("", s.sessionManager.SessionMiddleware(), s.handleListPrivateKeys)
+			privateKeys.GET("/:id", s.sessionManager.SessionMiddleware(), s.handleGetPrivateKey)
+			privateKeys.DELETE("/:id", s.sessionManager.SessionMiddleware(), s.handleDeletePrivateKey)
 		}
 
 		// Activity endpoints
@@ -242,6 +256,17 @@ func (s *Server) SetupAPIRoutes(router *gin.Engine) {
 		{
 			auth.POST("/authenticate", s.handleAuthenticate)
 			auth.POST("/authorize", s.handleAuthorize)
+		}
+
+		// Session endpoints
+		sessions := v1.Group("/sessions")
+		{
+			sessions.GET("/info", s.sessionManager.SessionMiddleware(), s.handleSessionInfo)
+			sessions.POST("/refresh", s.handleSessionRefresh)
+			sessions.POST("/logout", s.handleSessionLogout)
+			sessions.GET("/validate", s.handleSessionValidate)
+			sessions.GET("/list", s.sessionManager.SessionMiddleware(), s.handleSessionList)
+			sessions.DELETE("/:id", s.sessionManager.SessionMiddleware(), s.handleSessionDestroy)
 		}
 
 		// Google OAuth endpoints

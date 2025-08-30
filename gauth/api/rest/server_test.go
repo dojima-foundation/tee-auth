@@ -40,7 +40,7 @@ func TestNewServer(t *testing.T) {
 	}
 
 	lgr := logger.NewDefault()
-	server := NewServer(cfg, lgr)
+	server := NewServer(cfg, lgr, nil)
 
 	assert.NotNil(t, server)
 	assert.Equal(t, cfg, server.config)
@@ -60,7 +60,7 @@ func TestMiddleware(t *testing.T) {
 	}
 
 	lgr := logger.NewDefault()
-	server := NewServer(cfg, lgr)
+	server := NewServer(cfg, lgr, nil)
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()

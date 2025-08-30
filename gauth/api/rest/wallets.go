@@ -10,7 +10,6 @@ import (
 
 // CreateWalletRequest represents the request payload for creating a wallet
 type CreateWalletRequest struct {
-	OrganizationID string                   `json:"organization_id" binding:"required"`
 	Name           string                   `json:"name" binding:"required"`
 	Accounts       []CreateWalletAccountReq `json:"accounts" binding:"required,min=1"`
 	MnemonicLength *int32                   `json:"mnemonic_length,omitempty"` // 12, 15, 18, 21, 24
@@ -39,6 +38,13 @@ func (s *Server) handleCreateWallet(c *gin.Context) {
 		return
 	}
 
+	// Get organization ID from session context (set by session middleware)
+	organizationID, exists := GetOrganizationIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, errorResponse(nil, "Organization ID not found in session"))
+		return
+	}
+
 	// Convert accounts
 	accounts := make([]*pb.CreateWalletAccount, len(req.Accounts))
 	for i, acc := range req.Accounts {
@@ -52,7 +58,7 @@ func (s *Server) handleCreateWallet(c *gin.Context) {
 
 	// Call gRPC service
 	grpcReq := &pb.CreateWalletRequest{
-		OrganizationId: req.OrganizationID,
+		OrganizationId: organizationID,
 		Name:           req.Name,
 		Accounts:       accounts,
 		Tags:           req.Tags,
@@ -102,12 +108,10 @@ func (s *Server) handleGetWallet(c *gin.Context) {
 
 // handleListWallets lists wallets with pagination and filtering
 func (s *Server) handleListWallets(c *gin.Context) {
-	// Parse query parameters
-	organizationID := c.Query("organization_id")
-	if organizationID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "organization_id query parameter is required",
-		})
+	// Get organization ID from session context (set by session middleware)
+	organizationID, exists := GetOrganizationIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, errorResponse(nil, "Organization ID not found in session"))
 		return
 	}
 

@@ -33,13 +33,19 @@ const initialState: UsersState = {
 // Async thunk for fetching users
 export const fetchUsers = createAsyncThunk(
     'users/fetchUsers',
-    async ({ organizationId, page = 1, pageSize = 10 }: {
-        organizationId: string;
+    async ({ page = 1, pageSize = 10 }: {
         page?: number;
         pageSize?: number;
     }, { rejectWithValue }) => {
+        console.log('📡 [UsersSlice] fetchUsers called with:', { page, pageSize });
         try {
-            const response = await gauthApi.getUsers(organizationId);
+            console.log('🌐 [UsersSlice] Making API call to getUsers...');
+            const response = await gauthApi.getUsers();
+            console.log('📡 [UsersSlice] getUsers response:', {
+                success: response.success,
+                hasData: !!response.data,
+                usersCount: response.data?.users?.length || 0
+            });
 
             if (response.success) {
                 return {
@@ -60,13 +66,9 @@ export const fetchUsers = createAsyncThunk(
 // Async thunk for creating a user
 export const createUser = createAsyncThunk(
     'users/createUser',
-    async ({ organizationId, userData }: {
-        organizationId: string;
-        userData: Partial<User>;
-    }, { rejectWithValue }) => {
+    async (userData: Partial<User>, { rejectWithValue }) => {
         try {
             const response = await gauthApi.createUser({
-                organization_id: organizationId,
                 username: userData.username || '',
                 email: userData.email || '',
                 public_key: userData.public_key,

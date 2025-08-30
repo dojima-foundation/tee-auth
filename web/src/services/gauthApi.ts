@@ -59,7 +59,6 @@ export interface GetOrganizationResponse {
 }
 
 export interface CreateUserRequest {
-    organization_id: string;
     username: string;
     email: string;
     public_key?: string;
@@ -138,7 +137,6 @@ export interface Wallet {
 }
 
 export interface CreateWalletRequest {
-    organization_id: string;
     name: string;
     accounts: CreateWalletAccount[];
     mnemonic_length?: number;
@@ -183,7 +181,6 @@ export interface PrivateKey {
 }
 
 export interface CreatePrivateKeyRequest {
-    organization_id: string;
     wallet_id: string;
     name: string;
     curve: string;
@@ -206,6 +203,52 @@ export interface ListPrivateKeysResponse {
     };
 }
 
+// Session Management Types
+export interface SessionInfo {
+    session_id: string;
+    user_id: string;
+    organization_id: string;
+    email: string;
+    role: string;
+    oauth_provider?: string;
+    created_at: string;
+    last_activity: string;
+    expires_at: string;
+}
+
+export interface SessionInfoResponse {
+    success: boolean;
+    data: SessionInfo;
+}
+
+export interface SessionRefreshResponse {
+    success: boolean;
+    data: {
+        message: string;
+        expires_at: string;
+    };
+}
+
+export interface SessionLogoutResponse {
+    success: boolean;
+    data: {
+        message: string;
+    };
+}
+
+export interface SessionListResponse {
+    success: boolean;
+    data: {
+        sessions: SessionInfo[];
+        count: number;
+    };
+}
+
+export interface SessionValidateResponse {
+    success: boolean;
+    data: SessionInfo;
+}
+
 export interface ApiError {
     success: false;
     error: string;
@@ -225,11 +268,16 @@ class GAuthApiService {
     ): Promise<T> {
         const url = `${this.baseUrl}${endpoint}`;
 
+        // Get session token from localStorage for authenticated requests
+        const sessionToken = localStorage.getItem('gauth_session_token');
+
         const defaultOptions: RequestInit = {
             headers: {
                 'Content-Type': 'application/json',
+                ...(sessionToken && { 'Authorization': `Bearer ${sessionToken}` }),
                 ...options.headers,
             },
+            credentials: 'include', // Include cookies for session management
         };
 
         const response = await fetch(url, {
@@ -267,9 +315,8 @@ class GAuthApiService {
         });
     }
 
-    async getUsers(organizationId?: string): Promise<ListUsersResponse> {
-        const params = organizationId ? `?organization_id=${organizationId}` : '';
-        return this.makeRequest<ListUsersResponse>(`/api/v1/users${params}`);
+    async getUsers(): Promise<ListUsersResponse> {
+        return this.makeRequest<ListUsersResponse>('/api/v1/users');
     }
 
     // Google OAuth Methods
@@ -299,9 +346,8 @@ class GAuthApiService {
         });
     }
 
-    async getWallets(organizationId?: string): Promise<ListWalletsResponse> {
-        const params = organizationId ? `?organization_id=${organizationId}` : '';
-        return this.makeRequest<ListWalletsResponse>(`/api/v1/wallets${params}`);
+    async getWallets(): Promise<ListWalletsResponse> {
+        return this.makeRequest<ListWalletsResponse>('/api/v1/wallets');
     }
 
     // Private Key Methods
@@ -312,9 +358,39 @@ class GAuthApiService {
         });
     }
 
-    async getPrivateKeys(organizationId?: string): Promise<ListPrivateKeysResponse> {
-        const params = organizationId ? `?organization_id=${organizationId}` : '';
-        return this.makeRequest<ListPrivateKeysResponse>(`/api/v1/private-keys${params}`);
+    async getPrivateKeys(): Promise<ListPrivateKeysResponse> {
+        return this.makeRequest<ListPrivateKeysResponse>('/api/v1/private-keys');
+    }
+
+    // Session Management Methods
+    async getSessionInfo(): Promise<SessionInfoResponse> {
+        return this.makeRequest<SessionInfoResponse>('/api/v1/sessions/info');
+    }
+
+    async refreshSession(): Promise<SessionRefreshResponse> {
+        return this.makeRequest<SessionRefreshResponse>('/api/v1/sessions/refresh', {
+            method: 'POST',
+        });
+    }
+
+    async logoutSession(): Promise<SessionLogoutResponse> {
+        return this.makeRequest<SessionLogoutResponse>('/api/v1/sessions/logout', {
+            method: 'POST',
+        });
+    }
+
+    async validateSession(): Promise<SessionValidateResponse> {
+        return this.makeRequest<SessionValidateResponse>('/api/v1/sessions/validate');
+    }
+
+    async listSessions(): Promise<SessionListResponse> {
+        return this.makeRequest<SessionListResponse>('/api/v1/sessions/list');
+    }
+
+    async destroySession(sessionId: string): Promise<SessionLogoutResponse> {
+        return this.makeRequest<SessionLogoutResponse>(`/api/v1/sessions/${sessionId}`, {
+            method: 'DELETE',
+        });
     }
 }
 

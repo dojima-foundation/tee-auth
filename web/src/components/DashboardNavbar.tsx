@@ -11,9 +11,10 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Users, Wallet, Key, Settings, Database, Shield, LogOut, User } from 'lucide-react';
+import { Users, Wallet, Key, Settings, Database, Shield, LogOut, User, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { SessionStatus } from '@/components/SessionStatus';
 
 // Custom 9-dot icon component
 const NineDotsIcon = ({ className }: { className?: string }) => (
@@ -48,6 +49,9 @@ const DashboardNavbar = () => {
                 break;
             case 'Private Keys':
                 router.push('/dashboard/pkeys');
+                break;
+            case 'Sessions':
+                router.push('/dashboard/sessions');
                 break;
             default:
                 console.log(`Clicked on ${item}`);
@@ -105,6 +109,14 @@ const DashboardNavbar = () => {
                                     <Key className="mr-2 h-4 w-4" />
                                     <span>Private Keys</span>
                                 </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                    onClick={() => handleMenuItemClick('Sessions')}
+                                    className="cursor-pointer"
+                                >
+                                    <ShieldCheck className="mr-2 h-4 w-4" />
+                                    <span>Session Management</span>
+                                </DropdownMenuItem>
                             </DropdownMenuGroup>
 
                             <DropdownMenuSeparator />
@@ -132,8 +144,11 @@ const DashboardNavbar = () => {
                     </DropdownMenu>
                 </div>
 
-                {/* Right side - User menu and theme toggle */}
+                {/* Right side - Session status, User menu and theme toggle */}
                 <div className="flex items-center space-x-2">
+                    {/* Session Status */}
+                    <SessionStatus />
+
                     {/* User menu */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	pb "github.com/dojima-foundation/tee-auth/gauth/api/proto"
+	"github.com/dojima-foundation/tee-auth/gauth/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -81,10 +82,33 @@ func (s *Server) handleGoogleOAuthCallback(c *gin.Context) {
 		return
 	}
 
+	// Create traditional server-side session
+	sessionID, err := s.sessionManager.CreateSession(
+		c.Request.Context(),
+		&models.User{
+			ID:             uuid.MustParse(resp.User.Id),
+			OrganizationID: uuid.MustParse(resp.User.OrganizationId),
+			Email:          resp.User.Email,
+			Username:       resp.User.Username,
+		},
+		&models.AuthMethod{
+			ID:   uuid.New(), // Generate new UUID for auth method
+			Type: "OAUTH",
+		},
+		"google",
+	)
+	if err != nil {
+		s.logger.Error("Failed to create session", "error", err)
+		c.Redirect(http.StatusTemporaryRedirect, "http://localhost:3001/auth/error?error=session_creation_failed")
+		return
+	}
+
+	// Set session cookie
+	s.sessionManager.SetSessionCookie(c, sessionID)
+
 	// Redirect to frontend callback page with session data
-	redirectURL := fmt.Sprintf("http://localhost:3001/auth/callback?session_token=%s&expires_at=%d&user_id=%s&email=%s&organization_id=%s",
-		resp.SessionToken,
-		resp.ExpiresAt.AsTime().Unix(),
+	redirectURL := fmt.Sprintf("http://localhost:3001/auth/callback?session_id=%s&user_id=%s&email=%s&organization_id=%s",
+		sessionID,
 		resp.User.Id,
 		resp.User.Email,
 		resp.User.OrganizationId)

@@ -10,11 +10,10 @@ import (
 
 // CreateUserRequest represents the request payload for creating a user
 type CreateUserRequest struct {
-	OrganizationID string   `json:"organization_id" binding:"required"`
-	Username       string   `json:"username" binding:"required"`
-	Email          string   `json:"email" binding:"required,email"`
-	PublicKey      *string  `json:"public_key,omitempty"`
-	Tags           []string `json:"tags,omitempty"`
+	Username  string   `json:"username" binding:"required"`
+	Email     string   `json:"email" binding:"required,email"`
+	PublicKey *string  `json:"public_key,omitempty"`
+	Tags      []string `json:"tags,omitempty"`
 }
 
 // UpdateUserRequest represents the request payload for updating a user
@@ -34,9 +33,16 @@ func (s *Server) handleCreateUser(c *gin.Context) {
 		return
 	}
 
+	// Get organization ID from session context (set by session middleware)
+	organizationID, exists := GetOrganizationIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, errorResponse(nil, "Organization ID not found in session"))
+		return
+	}
+
 	// Call gRPC service
 	grpcReq := &pb.CreateUserRequest{
-		OrganizationId: req.OrganizationID,
+		OrganizationId: organizationID,
 		Username:       req.Username,
 		Email:          req.Email,
 		Tags:           req.Tags,
@@ -121,10 +127,10 @@ func (s *Server) handleUpdateUser(c *gin.Context) {
 
 // handleListUsers lists users with pagination and filtering
 func (s *Server) handleListUsers(c *gin.Context) {
-	// Parse query parameters
-	organizationID := c.Query("organization_id")
-	if organizationID == "" {
-		c.JSON(http.StatusBadRequest, errorResponse(nil, "organization_id query parameter is required"))
+	// Get organization ID from session context (set by session middleware)
+	organizationID, exists := GetOrganizationIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, errorResponse(nil, "Organization ID not found in session"))
 		return
 	}
 

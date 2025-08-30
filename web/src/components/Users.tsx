@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { User as UserIcon, Building, Plus, Edit, Trash2 } from 'lucide-react';
 import { useSnackbar } from '@/components/ui/snackbar';
 import { gauthApi, CreateOrganizationRequest } from '@/services/gauthApi';
+import { useAuth } from '@/lib/auth-context';
 import CreateUserDialog from './CreateUserDialog';
 import {
     fetchUsers,
@@ -16,10 +17,11 @@ import {
     selectUsersPagination,
     type User
 } from '@/store/usersSlice';
-import { selectOrganizationId, selectAuthUser } from '@/store/authSlice';
+import { selectOrganizationId, selectAuthUser, selectAuthSession } from '@/store/authSlice';
 
 export default function Users() {
     const dispatch = useAppDispatch();
+    const { isAuthenticated } = useAuth();
 
     // Get users data from Redux store
     const users = useAppSelector(selectUsers);
@@ -30,16 +32,38 @@ export default function Users() {
     // Get organization ID from auth store
     const organizationId = useAppSelector(selectOrganizationId);
     const currentUser = useAppSelector(selectAuthUser);
+    const authSession = useAppSelector(selectAuthSession);
+
+    console.log('🔍 [Users] Redux selectors:', {
+        organizationId,
+        currentUser,
+        authSession,
+        userOrganizationId: currentUser?.organization_id,
+        sessionOrganizationId: (authSession as any)?.organization_id
+    });
 
     const [isCreatingOrg, setIsCreatingOrg] = useState(false);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
     const { showSnackbar } = useSnackbar();
 
     useEffect(() => {
-        if (organizationId) {
-            dispatch(fetchUsers({ organizationId }));
+        console.log('🔄 [Users] useEffect triggered:', {
+            organizationId,
+            isAuthenticated,
+            hasOrganizationId: !!organizationId,
+            shouldFetch: organizationId && isAuthenticated
+        });
+
+        if (organizationId && isAuthenticated) {
+            console.log('📡 [Users] Fetching users data...');
+            dispatch(fetchUsers({}));
+        } else {
+            console.log('⏸️ [Users] Not fetching users - missing requirements:', {
+                hasOrganizationId: !!organizationId,
+                isAuthenticated
+            });
         }
-    }, [dispatch, organizationId]);
+    }, [dispatch, organizationId, isAuthenticated]);
 
     const handleCreateOrganization = async () => {
         try {
@@ -63,7 +87,7 @@ export default function Users() {
 
                 // Refresh users list after creating organization
                 if (organizationId) {
-                    dispatch(fetchUsers({ organizationId }));
+                    dispatch(fetchUsers({}));
                 }
             } else {
                 showSnackbar({
@@ -94,11 +118,8 @@ export default function Users() {
 
             // Call Redux action to create user
             await dispatch(createUser({
-                organizationId,
-                userData: {
-                    username: userData.name,
-                    email: userData.email,
-                }
+                username: userData.name,
+                email: userData.email,
             })).unwrap();
 
             showSnackbar({
@@ -108,7 +129,7 @@ export default function Users() {
             });
 
             // Refresh users list after creating user
-            dispatch(fetchUsers({ organizationId }));
+            dispatch(fetchUsers({}));
         } catch (error) {
             console.error('Error creating user:', error);
             showSnackbar({
