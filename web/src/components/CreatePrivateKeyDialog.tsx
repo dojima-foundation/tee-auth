@@ -118,7 +118,7 @@ export default function CreatePrivateKeyDialog({ onPrivateKeyCreated, disabled =
                     <div className="space-y-2">
                         <Label htmlFor="wallet-select">Wallet</Label>
                         <Select value={walletId} onValueChange={setWalletId} disabled={loading}>
-                            <SelectTrigger>
+                            <SelectTrigger id="wallet-select" aria-label="Wallet">
                                 <SelectValue placeholder="Select a wallet" />
                             </SelectTrigger>
                             <SelectContent>
@@ -144,7 +144,7 @@ export default function CreatePrivateKeyDialog({ onPrivateKeyCreated, disabled =
                     <div className="space-y-2">
                         <Label htmlFor="curve-select">Curve</Label>
                         <Select value={curve} onValueChange={setCurve} disabled={loading}>
-                            <SelectTrigger>
+                            <SelectTrigger id="curve-select" aria-label="Curve">
                                 <SelectValue placeholder="Select a curve" />
                             </SelectTrigger>
                             <SelectContent>
