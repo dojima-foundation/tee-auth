@@ -252,7 +252,7 @@ export default function Users() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : users.length === 0 ? (
+                            ) : !users || users.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-8 text-center">
                                         <div className="flex flex-col items-center">
