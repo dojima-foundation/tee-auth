@@ -92,7 +92,21 @@ playwright-report/
 playwright/.cache
 lighthouse-report.html
 .percy/
+
+# Renclave-specific testing outputs
+performance-results/
+coverage/
+*.profraw
+*.profdata
+llvm-cov-target/
+cargo-llvm-cov-target/
+grcov-report/
 lhci_reports/
+
+# Docker testing artifacts
+docker-test-results/
+docker-coverage/
+docker-performance-results/
 
 # Benchmark files
 *.bench
@@ -260,8 +274,16 @@ kubeconfig
 # Terraform
 *.tfstate
 *.tfstate.*
+*.tfvars
+!*.tfvars.example
 .terraform/
 .terraform.lock.hcl
+terraform.tfstate.backup
+
+# SSH keys (commonly used with Terraform)
+*.pem
+*.key
+*.pub
 
 # Ansible
 *.retry

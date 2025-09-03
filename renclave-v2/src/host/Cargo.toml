@@ -3,6 +3,10 @@ name = "renclave-host"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "renclave_host"
+path = "src/lib.rs"
+
 [[bin]]
 name = "host"
 path = "src/main.rs"
@@ -15,8 +19,13 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
 log = { workspace = true }
-env_logger = { workspace = true }
+env_logger = "0.11"
 uuid = { workspace = true }
 axum = { workspace = true }
 hyper = { workspace = true }
 tower = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+tokio-test = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }

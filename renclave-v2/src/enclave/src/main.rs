@@ -60,54 +60,107 @@ impl NitroEnclave {
         // Setup Unix socket for communication with host
         let socket_path = "/tmp/enclave.sock";
 
-        // Remove existing socket if it exists
-        if fs::metadata(socket_path).await.is_ok() {
-            fs::remove_file(socket_path).await?;
-            debug!("🗑️  Removed existing socket file");
+        // Robust socket cleanup - remove anything at the socket path
+        if let Ok(metadata) = fs::metadata(socket_path).await {
+            if metadata.is_dir() {
+                // If it's a directory, remove it recursively
+                fs::remove_dir_all(socket_path).await?;
+                debug!("🗑️  Removed existing directory at socket path");
+            } else {
+                // If it's a file (including socket), remove it
+                fs::remove_file(socket_path).await?;
+                debug!("🗑️  Removed existing file at socket path");
+            }
+
+            // Small delay to ensure cleanup is complete
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
         }
 
-        info!("🔗 Creating Unix socket listener at: {}", socket_path);
-        let listener = UnixListener::bind(socket_path)?;
+        // Additional safety check - try to remove socket if it still exists
+        let mut attempts = 0;
+        const MAX_ATTEMPTS: u32 = 5;
 
-        // Set socket permissions
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut perms = tokio::fs::metadata(socket_path).await?.permissions();
-            perms.set_mode(0o666);
-            tokio::fs::set_permissions(socket_path, perms).await?;
-            debug!("🔐 Set socket permissions to 666");
-        }
+        while attempts < MAX_ATTEMPTS {
+            match UnixListener::bind(socket_path) {
+                Ok(listener) => {
+                    info!("🔗 Creating Unix socket listener at: {}", socket_path);
 
-        info!("✅ Unix socket listener created successfully");
-        info!("🔒 Enclave ready to handle secure seed generation requests");
-
-        // Accept connections from host
-        loop {
-            match listener.accept().await {
-                Ok((stream, addr)) => {
-                    info!("📞 Host connected to enclave: {:?}", addr);
-
-                    // Clone references for this connection
-                    let seed_generator = Arc::clone(&self.seed_generator);
-                    let network_manager = Arc::clone(&self.network_manager);
-                    let enclave_id = self.enclave_id.clone();
-
-                    // Handle client in a separate task
-                    tokio::spawn(async move {
-                        if let Err(e) =
-                            Self::handle_client(stream, seed_generator, network_manager, enclave_id)
-                                .await
-                        {
-                            error!("❌ Error handling client: {}", e);
+                    // Set socket permissions
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        if let Ok(metadata) = tokio::fs::metadata(socket_path).await {
+                            let mut perms = metadata.permissions();
+                            perms.set_mode(0o666);
+                            if let Err(e) = tokio::fs::set_permissions(socket_path, perms).await {
+                                warn!("⚠️  Failed to set socket permissions: {}", e);
+                            } else {
+                                debug!("🔐 Set socket permissions to 666");
+                            }
                         }
-                    });
+                    }
+
+                    info!("✅ Unix socket listener created successfully");
+                    info!("🔒 Enclave ready to handle secure seed generation requests");
+
+                    // Accept connections from host
+                    loop {
+                        match listener.accept().await {
+                            Ok((stream, addr)) => {
+                                info!("📞 Host connected to enclave: {:?}", addr);
+
+                                // Clone references for this connection
+                                let seed_generator = Arc::clone(&self.seed_generator);
+                                let network_manager = Arc::clone(&self.network_manager);
+                                let enclave_id = self.enclave_id.clone();
+
+                                // Handle client in a separate task
+                                tokio::spawn(async move {
+                                    if let Err(e) = Self::handle_client(
+                                        stream,
+                                        seed_generator,
+                                        network_manager,
+                                        enclave_id,
+                                    )
+                                    .await
+                                    {
+                                        error!("❌ Error handling client: {}", e);
+                                    }
+                                });
+                            }
+                            Err(e) => {
+                                error!("❌ Failed to accept connection: {}", e);
+                            }
+                        }
+                    }
                 }
                 Err(e) => {
-                    error!("❌ Failed to accept connection: {}", e);
+                    attempts += 1;
+                    if attempts >= MAX_ATTEMPTS {
+                        return Err(anyhow::anyhow!(
+                            "Failed to bind socket after {} attempts: {}",
+                            MAX_ATTEMPTS,
+                            e
+                        ));
+                    }
+
+                    warn!("⚠️  Socket bind attempt {} failed: {}", attempts, e);
+
+                    // Try to clean up again and wait
+                    if let Ok(metadata) = fs::metadata(socket_path).await {
+                        if metadata.is_dir() {
+                            let _ = fs::remove_dir_all(socket_path).await;
+                        } else {
+                            let _ = fs::remove_file(socket_path).await;
+                        }
+                    }
+
+                    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
                 }
             }
         }
+
+        unreachable!("Should have either succeeded or returned an error by now");
     }
 
     /// Handle client connection

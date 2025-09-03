@@ -1,141 +1,213 @@
-# Makefile for renclave-v2
+# Renclave-v2 Makefile
+# Build and test automation for QEMU Nitro Enclave
 
-.PHONY: help build test clean docker-build docker-test docker-clean run-host run-enclave
+# Variables
+CARGO = cargo
+DOCKER = docker
+DOCKER_COMPOSE = docker compose
+PROJECT_NAME = renclave-v2
+RUST_VERSION = 1.82
+
+# Directories
+SRC_DIR = src
+TEST_DIR = tests
+DOCKER_DIR = docker
+SCRIPTS_DIR = scripts
 
 # Default target
-help:
-	@echo "renclave-v2 - QEMU Nitro Enclave Seed Generation"
+.DEFAULT_GOAL := help
+
+# Help target
+help: ## Show this help message
+	@echo "🚀 Renclave-v2 Build and Test Commands"
+	@echo "======================================"
 	@echo ""
-	@echo "Available targets:"
-	@echo "  build         - Build all Rust binaries"
-	@echo "  test          - Run Rust tests"
-	@echo "  clean         - Clean build artifacts"
-	@echo "  docker-build  - Build Docker image"
-	@echo "  docker-test   - Run tests in Docker"
-	@echo "  docker-clean  - Clean Docker images and containers"
-	@echo "  run-host      - Run host binary"
-	@echo "  run-enclave   - Run enclave binary"
-	@echo "  run-both      - Run both host and enclave"
+	@echo "📦 Build Commands:"
+	@echo "  build          - Build all crates in release mode"
+	@echo "  build-debug    - Build all crates in debug mode"
+	@echo "  clean          - Clean build artifacts"
+	@echo ""
+	@echo "🧪 Testing Commands:"
+	@echo "  test           - Run all tests (unit locally, integration/e2e in Docker)"
+	@echo "  test-unit      - Run unit tests locally only"
+	@echo "  test-integration - Run integration tests in Docker (skip unit tests)"
+	@echo "  test-e2e       - Run E2E tests in Docker (skip unit tests)"
+	@echo "  test-integration-only - Run ONLY integration tests (skip unit and E2E)"
+	@echo "  test-e2e-only  - Run ONLY E2E tests (skip unit and integration)"
+	@echo "  test-docker    - Run only Docker-based tests (integration + E2E)"
+	@echo "  test-force     - Force run tests even if previous ones failed"
+	@echo ""
+	@echo "🐳 Docker Commands:"
+	@echo "  docker-build   - Build Docker images for testing"
+	@echo "  docker-up      - Start Docker services (enclave, host, test-runner)"
+	@echo "  docker-down    - Stop and remove Docker services"
+	@echo "  docker-logs    - View logs for Docker services"
+	@echo "  docker-clean   - Clean Docker images and volumes"
+	@echo ""
 
-# Rust build targets
-build:
-	@echo "🔨 Building renclave-v2..."
-	cargo build --release --workspace
+# Build targets
+build: ## Build all crates in release mode
+	@echo "🔨 Building all crates in release mode..."
+	$(CARGO) build --release --workspace
+	@echo "✅ Build completed!"
 
-test:
-	@echo "🧪 Running Rust tests..."
-	cargo test --workspace
+build-debug: ## Build all crates in debug mode
+	@echo "🔨 Building all crates in debug mode..."
+	$(CARGO) build --workspace
+	@echo "✅ Build completed!"
 
-clean:
+clean: ## Clean build artifacts
 	@echo "🧹 Cleaning build artifacts..."
-	cargo clean
+	$(CARGO) clean
+	@echo "✅ Clean completed!"
+
+# Testing targets
+test: ## Run all tests (hybrid: unit local + integration/E2E Docker)
+	@echo "🧪 Running all tests with hybrid strategy..."
+	@echo "📋 Strategy: Unit tests (local) + Integration/E2E tests (Docker)"
+	$(shell pwd)/scripts/run-tests.sh
+
+test-unit: ## Run unit tests locally only
+	@echo "🧪 Running unit tests locally..."
+	$(shell pwd)/scripts/run-tests.sh --skip-docker
+
+test-integration: ## Run integration tests in Docker (skip unit tests)
+	@echo "🔗 Running integration tests in Docker (skipping unit tests)..."
+	$(shell pwd)/scripts/run-tests.sh --skip-unit
+
+test-e2e: ## Run E2E tests in Docker (skip unit tests)
+	@echo "🚀 Running E2E tests in Docker (skipping unit tests)..."
+	$(shell pwd)/scripts/run-tests.sh --skip-unit --skip-integration
+
+test-integration-only: ## Run ONLY integration tests (skip unit and E2E)
+	@echo "🔗 Running ONLY integration tests..."
+	$(shell pwd)/scripts/run-tests.sh --integration-only
+
+test-e2e-only: ## Run ONLY E2E tests (skip unit and integration)
+	@echo "🚀 Running ONLY E2E tests..."
+	$(shell pwd)/scripts/run-tests.sh --e2e-only
+
+test-docker: ## Run only Docker-based tests (integration + E2E)
+	@echo "🐳 Running Docker-based tests only..."
+	$(shell pwd)/scripts/run-tests.sh --docker-only
+
+test-force: ## Force run tests even if previous ones failed
+	@echo "⚡ Force running tests..."
+	$(shell pwd)/scripts/run-tests.sh --force
 
 # Docker targets
-docker-build:
-	@echo "🐳 Building Docker image..."
-	docker-compose -f docker/docker-compose.yml build
+docker-build: ## Build Docker images
+	@echo "🐳 Building Docker images..."
+	$(DOCKER_COMPOSE) -f $(DOCKER_DIR)/docker-compose.test.yml build
+	@echo "✅ Docker build completed!"
 
-docker-test:
-	@echo "🐳 Running tests in Docker..."
-	docker-compose -f docker/docker-compose.yml up --abort-on-container-exit
+docker-up: ## Start Docker services
+	@echo "🚀 Starting Docker services..."
+	$(DOCKER_COMPOSE) -f $(DOCKER_DIR)/docker-compose.test.yml up -d
+	@echo "✅ Docker services started!"
 
-docker-test-host-only:
-	@echo "🐳 Running host-only tests in Docker..."
-	docker-compose -f docker/docker-compose.yml --profile host-only up --abort-on-container-exit
+docker-down: ## Stop Docker services
+	@echo "🛑 Stopping Docker services..."
+	$(DOCKER_COMPOSE) -f $(DOCKER_DIR)/docker-compose.test.yml down
+	@echo "✅ Docker services stopped!"
 
-docker-test-network:
-	@echo "🐳 Running network tests in Docker..."
-	docker-compose -f docker/docker-compose.yml --profile network-test up --abort-on-container-exit
+docker-logs: ## Show Docker service logs
+	@echo "📋 Showing Docker service logs..."
+	$(DOCKER_COMPOSE) -f $(DOCKER_DIR)/docker-compose.test.yml logs -f
 
-docker-clean:
-	@echo "🐳 Cleaning Docker resources..."
-	docker-compose -f docker/docker-compose.yml down --volumes --remove-orphans
-	docker system prune -f
-
-# Local execution targets
-run-enclave: build
-	@echo "🔒 Starting enclave..."
-	./target/release/enclave
-
-run-host: build
-	@echo "🏠 Starting host..."
-	./target/release/host
-
-run-both: build
-	@echo "🚀 Starting both enclave and host..."
-	@echo "Starting enclave in background..."
-	./target/release/enclave &
-	@sleep 3
-	@echo "Starting host..."
-	./target/release/host
+docker-clean: ## Clean up Docker environment
+	@echo "🧹 Cleaning up Docker environment..."
+	$(DOCKER_COMPOSE) -f $(DOCKER_DIR)/docker-compose.test.yml down --volumes --remove-orphans
+	@echo "✅ Docker cleanup completed!"
 
 # Development targets
-dev-build:
-	@echo "🔨 Building in development mode..."
-	cargo build --workspace
+check: ## Check code without building
+	@echo "🔍 Checking code..."
+	$(CARGO) check --workspace
+	@echo "✅ Code check completed!"
 
-dev-test:
-	@echo "🧪 Running tests in development mode..."
-	cargo test --workspace -- --nocapture
+fmt: ## Format code with rustfmt
+	@echo "✨ Formatting code..."
+	$(CARGO) fmt --all
+	@echo "✅ Code formatting completed!"
 
-dev-watch:
-	@echo "👀 Watching for changes..."
-	cargo watch -x "build --workspace"
+clippy: ## Run clippy linter
+	@echo "🔍 Running clippy linter..."
+	$(CARGO) clippy --workspace -- -D warnings
+	@echo "✅ Clippy check completed!"
 
-# Linting and formatting
-fmt:
-	@echo "🎨 Formatting code..."
-	cargo fmt --all
+# Performance and Benchmark targets
+bench: ## Run all benchmarks
+	@echo "🚀 Running all benchmarks..."
+	$(CARGO) bench --workspace
+	@echo "✅ All benchmarks completed!"
 
-clippy:
-	@echo "📎 Running clippy..."
-	cargo clippy --workspace --all-targets --all-features
+bench-seed: ## Run seed generation/validation benchmarks
+	@echo "🌱 Running seed generation and validation benchmarks..."
+	$(CARGO) bench --bench seed_generation --bench seed_validation
+	@echo "✅ Seed benchmarks completed!"
 
-# Documentation
-docs:
-	@echo "📚 Building documentation..."
-	cargo doc --workspace --no-deps
+bench-concurrent: ## Run concurrent operations benchmarks
+	@echo "⚡ Running concurrent operations benchmarks..."
+	$(CARGO) bench --bench concurrent_operations
+	@echo "✅ Concurrent operations benchmarks completed!"
 
-docs-open:
-	@echo "📚 Opening documentation..."
-	cargo doc --workspace --no-deps --open
+bench-stress: ## Run stress test benchmarks
+	@echo "💪 Running stress test benchmarks..."
+	$(CARGO) bench --bench stress_tests
+	@echo "✅ Stress test benchmarks completed!"
 
-# Benchmarks (if any)
-bench:
-	@echo "⚡ Running benchmarks..."
-	cargo bench --workspace
+performance: ## Run comprehensive performance tests with reports
+	@echo "🚀 Running comprehensive performance tests..."
+	$(shell pwd)/scripts/run-performance-docker.sh performance
+	@echo "✅ Performance tests completed!"
 
-# Security audit
-audit:
-	@echo "🔒 Running security audit..."
-	cargo audit
+# Coverage targets
+coverage: ## Generate comprehensive test coverage reports
+	@echo "📊 Generating comprehensive test coverage reports..."
+	$(shell pwd)/scripts/run-performance-docker.sh coverage
+	@echo "✅ Coverage reports generated!"
 
-# Check all
-check-all: fmt clippy test audit
-	@echo "✅ All checks completed"
+coverage-html: ## Generate HTML coverage reports
+	@echo "📊 Generating HTML coverage reports..."
+	cargo llvm-cov --workspace --html --output-dir coverage/html
+	@echo "✅ HTML coverage reports generated!"
 
-# Install dependencies
-install-deps:
-	@echo "📦 Installing dependencies..."
-	cargo install cargo-watch cargo-audit
+coverage-json: ## Generate JSON coverage data
+	@echo "📊 Generating JSON coverage data..."
+	cargo llvm-cov --workspace --json --output-dir coverage/json
+	@echo "✅ JSON coverage data generated!"
 
-# Quick start
-quick-start: docker-build docker-test
-	@echo "🎉 Quick start completed!"
+coverage-lcov: ## Generate LCOV coverage data
+	@echo "📊 Generating LCOV coverage data..."
+	cargo llvm-cov --workspace --lcov --output-dir coverage/lcov
+	@echo "✅ LCOV coverage data generated!"
 
-# Production build
-prod-build:
-	@echo "🏭 Building for production..."
-	cargo build --release --workspace
-	strip target/release/enclave target/release/host
 
-# Create release
-release: clean prod-build test
-	@echo "📦 Creating release..."
-	mkdir -p release
-	cp target/release/enclave release/
-	cp target/release/host release/
-	cp -r docker release/
-	cp README.md release/ 2>/dev/null || true
-	tar -czf renclave-v2-release.tar.gz release/
-	@echo "✅ Release created: renclave-v2-release.tar.gz"
+
+# Utility targets
+status: ## Show project status
+	@echo "📋 Project Status"
+	@echo "================="
+	@echo "Project: $(PROJECT_NAME)"
+	@echo "Rust Version: $(RUST_VERSION)"
+	@echo "Source Directory: $(SRC_DIR)"
+	@echo "Test Directory: $(TEST_DIR)"
+	@echo "Docker Directory: $(DOCKER_DIR)"
+	@echo "Scripts Directory: $(SCRIPTS_DIR)"
+	@echo ""
+	@echo "🔍 Checking Rust version..."
+	@rustc --version || echo "❌ Rust not found"
+	@echo ""
+	@echo "🐳 Checking Docker..."
+	@$(DOCKER) --version || echo "❌ Docker not found"
+	@echo ""
+	@echo "📦 Checking Cargo..."
+	@$(CARGO) --version || echo "❌ Cargo not found"
+
+# Phony targets
+.PHONY: help build build-debug clean test test-unit test-integration test-e2e \
+        test-integration-only test-e2e-only test-docker test-force \
+        docker-build docker-up docker-down docker-logs docker-clean \
+        check fmt clippy bench bench-seed bench-concurrent bench-stress performance \
+        coverage coverage-html coverage-json coverage-lcov status

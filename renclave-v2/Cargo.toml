@@ -3,13 +3,14 @@ members = [
     "src/enclave",
     "src/host",
     "src/shared",
-    "src/network"
+    "src/network",
+    "benchmarks"
 ]
 resolver = "2"
 
 [workspace.dependencies]
 # Async runtime
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.0", features = ["full", "test-util"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -40,5 +41,16 @@ nix = "0.27"
 # Utilities
 hex = "0.4"
 uuid = { version = "1.0", features = ["v4"] }
+
+# Testing dependencies
+reqwest = { version = "0.11", features = ["json"] }
+tokio-test = "0.4"
+
+# Benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Coverage tools
+grcov = "0.9"
+llvm-tools-preview = "0.12"
 
 # Note: AWS Nitro libraries removed for QEMU compatibility

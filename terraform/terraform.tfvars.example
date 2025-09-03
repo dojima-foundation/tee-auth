@@ -1,0 +1,39 @@
+# OVH Cloud API Credentials (Singapore Region)
+# Get these from: https://ca.ovh.com/auth/api/createToken
+ovh_endpoint = "ovh-ca"  # ovh-ca (Singapore), ovh-eu (Europe), ovh-us (US), kimsufi-eu, kimsufi-ca, soyoustart-eu, soyoustart-ca
+ovh_application_key = "your_application_key_here"
+ovh_application_secret = "your_application_secret_here"
+ovh_consumer_key = "your_consumer_key_here"
+
+# GitHub Configuration
+# Create a Personal Access Token at: https://github.com/settings/tokens
+# Required permissions: repo, admin:org (for org runners) or repo (for repo runners)
+github_token = "ghp_your_github_token_here"
+
+# Choose one: Organization-level runners OR Repository-level runners
+# For organization-level runners (recommended):
+github_org = "your-organization-name"
+# github_repo = ""  # Leave empty for org runners
+
+# For repository-level runners:
+# github_org = ""  # Leave empty for repo runners
+# github_repo = "owner/repository-name"
+
+# Runner Configuration
+runner_labels = ["ovh", "self-hosted", "ubuntu-22.04"]
+runner_count = 2
+
+# OVH Cloud Configuration (Singapore Region)
+region = "SG-SIN-1"  # SG-SIN-1 (Singapore), AP-SYD-1 (Sydney), AP-SIN-1 (Singapore alt)
+runner_image_id = "Ubuntu 22.04"
+runner_flavor_id = "b2-7"  # 2 vCPUs, 7GB RAM
+
+# Network Configuration (optional - leave defaults unless you need custom networking)
+vlan_id = null
+subnet_network = "10.0.0.0/24"
+subnet_start = "10.0.0.10"
+subnet_end = "10.0.0.100"
+
+# Optional Configuration
+create_load_balancer = false
+docker_registry_mirror = ""  # Optional: URL for Docker registry mirror

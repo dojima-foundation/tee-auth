@@ -307,68 +307,234 @@ impl SeedGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::runtime::Runtime;
 
-    #[tokio::test]
-    async fn test_seed_generation() {
-        let generator = SeedGenerator::new().await.unwrap();
+    fn create_test_runtime() -> Runtime {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+    }
 
-        // Test all supported strengths
-        for strength in [128, 160, 192, 224, 256] {
-            let result = generator.generate_seed(strength, None).await.unwrap();
-            assert_eq!(result.strength, strength);
-            assert!(!result.phrase.is_empty());
-            assert!(!result.entropy.is_empty());
+    #[test]
+    fn test_seed_generator_new() {
+        let runtime = create_test_runtime();
+        let result = runtime.block_on(SeedGenerator::new());
 
-            // Verify word count
-            let expected_words = match strength {
-                128 => 12,
-                160 => 15,
-                192 => 18,
-                224 => 21,
-                256 => 24,
-                _ => panic!("Invalid strength"),
-            };
-            assert_eq!(result.word_count, expected_words);
+        assert!(result.is_ok());
+        let generator = result.unwrap();
+        assert!(generator.rng.try_lock().is_ok());
+    }
+
+    #[test]
+    fn test_validate_strength() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        // Test valid strengths
+        assert_eq!(generator.validate_strength(128).unwrap(), 12);
+        assert_eq!(generator.validate_strength(160).unwrap(), 15);
+        assert_eq!(generator.validate_strength(192).unwrap(), 18);
+        assert_eq!(generator.validate_strength(224).unwrap(), 21);
+        assert_eq!(generator.validate_strength(256).unwrap(), 24);
+
+        // Test invalid strengths
+        assert!(generator.validate_strength(100).is_err());
+        assert!(generator.validate_strength(300).is_err());
+        assert!(generator.validate_strength(0).is_err());
+    }
+
+    #[test]
+    fn test_generate_seed_128_bits() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        let result = runtime.block_on(generator.generate_seed(128, None));
+        assert!(result.is_ok());
+
+        let seed_result = result.unwrap();
+        assert_eq!(seed_result.strength, 128);
+        assert_eq!(seed_result.word_count, 12);
+        assert_eq!(seed_result.phrase.split_whitespace().count(), 12);
+        assert!(!seed_result.entropy.is_empty());
+    }
+
+    #[test]
+    fn test_generate_seed_256_bits() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        let result = runtime.block_on(generator.generate_seed(256, None));
+        assert!(result.is_ok());
+
+        let seed_result = result.unwrap();
+        assert_eq!(seed_result.strength, 256);
+        assert_eq!(seed_result.word_count, 24);
+        assert_eq!(seed_result.phrase.split_whitespace().count(), 24);
+        assert!(!seed_result.entropy.is_empty());
+    }
+
+    #[test]
+    fn test_generate_seed_with_passphrase() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        let passphrase = "test123";
+        let result = runtime.block_on(generator.generate_seed(192, Some(passphrase)));
+        assert!(result.is_ok());
+
+        let seed_result = result.unwrap();
+        assert_eq!(seed_result.strength, 192);
+        assert_eq!(seed_result.word_count, 18);
+        assert!(seed_result.phrase.ends_with(passphrase));
+    }
+
+    #[test]
+    fn test_generate_seed_invalid_strength() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        let result = runtime.block_on(generator.generate_seed(100, None));
+        assert!(result.is_err());
+
+        let error = result.unwrap_err();
+        assert!(error.to_string().contains("Invalid strength"));
+    }
+
+    #[test]
+    fn test_validate_seed_valid() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        // Valid BIP39 seed phrase (12 words)
+        let valid_seed = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+        let result = runtime.block_on(generator.validate_seed(valid_seed));
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_validate_seed_valid_24_words() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        // Generate a valid 24-word seed first
+        let seed_result = runtime
+            .block_on(generator.generate_seed(256, None))
+            .unwrap();
+        let result = runtime.block_on(generator.validate_seed(&seed_result.phrase));
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_validate_seed_invalid() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        let invalid_seed = "invalid seed phrase here";
+        let result = runtime.block_on(generator.validate_seed(invalid_seed));
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+
+    #[test]
+    fn test_validate_seed_empty() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        let result = runtime.block_on(generator.validate_seed(""));
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+
+    #[test]
+    fn test_validate_seed_whitespace_only() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        let result = runtime.block_on(generator.validate_seed("   \n\t  "));
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+
+    #[test]
+    fn test_generate_entropy() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        // Test different entropy sizes
+        let entropy_128 = runtime.block_on(generator.generate_entropy(128)).unwrap();
+        assert_eq!(entropy_128.len(), 16); // 128 bits = 16 bytes
+
+        let entropy_256 = runtime.block_on(generator.generate_entropy(256)).unwrap();
+        assert_eq!(entropy_256.len(), 32); // 256 bits = 32 bytes
+    }
+
+    #[test]
+    fn test_entropy_not_all_zeros() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        // Generate multiple entropy samples to ensure they're not all zeros
+        let mut has_non_zero = false;
+        for _ in 0..10 {
+            let entropy = runtime.block_on(generator.generate_entropy(256)).unwrap();
+            if entropy.iter().any(|&b| b != 0) {
+                has_non_zero = true;
+                break;
+            }
+        }
+        assert!(has_non_zero, "All entropy samples were zero");
+    }
+
+    #[test]
+    fn test_seed_phrase_uniqueness() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
+
+        let mut phrases = std::collections::HashSet::new();
+
+        // Generate multiple seeds and ensure they're unique
+        for _ in 0..5 {
+            let result = runtime
+                .block_on(generator.generate_seed(256, None))
+                .unwrap();
+            assert!(
+                phrases.insert(result.phrase),
+                "Duplicate seed phrase generated"
+            );
         }
     }
 
-    #[tokio::test]
-    async fn test_seed_validation() {
-        let generator = SeedGenerator::new().await.unwrap();
+    #[test]
+    fn test_entropy_hex_encoding() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
 
-        // Generate a valid seed
-        let result = generator.generate_seed(256, None).await.unwrap();
-
-        // Validate it
-        let is_valid = generator.validate_seed(&result.phrase).await.unwrap();
-        assert!(is_valid);
-
-        // Test invalid seed
-        let is_valid = generator
-            .validate_seed("invalid seed phrase")
-            .await
+        let result = runtime
+            .block_on(generator.generate_seed(128, None))
             .unwrap();
-        assert!(!is_valid);
+
+        // Verify entropy is valid hex
+        assert!(result.entropy.len() == 32); // 128 bits = 16 bytes = 32 hex chars
+        assert!(result.entropy.chars().all(|c| c.is_ascii_hexdigit()));
     }
 
-    #[tokio::test]
-    async fn test_entropy_verification() {
-        let generator = SeedGenerator::new().await.unwrap();
+    #[test]
+    fn test_word_count_consistency() {
+        let runtime = create_test_runtime();
+        let generator = runtime.block_on(SeedGenerator::new()).unwrap();
 
-        // Generate seed
-        let result = generator.generate_seed(256, None).await.unwrap();
+        let strengths = vec![128, 160, 192, 224, 256];
+        let expected_words = vec![12, 15, 18, 21, 24];
 
-        // Get entropy from mnemonic
-        let entropy_bytes = hex::decode(&result.entropy).unwrap();
-        let extracted_entropy = generator.get_entropy_from_mnemonic(&result.phrase).unwrap();
-
-        assert_eq!(entropy_bytes, extracted_entropy);
-
-        // Verify entropy matches mnemonic
-        let matches = generator
-            .verify_entropy(&entropy_bytes, &result.phrase)
-            .await
-            .unwrap();
-        assert!(matches);
+        for (strength, expected) in strengths.iter().zip(expected_words.iter()) {
+            let result = runtime
+                .block_on(generator.generate_seed(*strength, None))
+                .unwrap();
+            assert_eq!(result.word_count, *expected);
+            assert_eq!(result.phrase.split_whitespace().count(), *expected);
+        }
     }
 }

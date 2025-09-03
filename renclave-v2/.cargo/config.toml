@@ -1,0 +1,10 @@
+[build]
+rustflags = ["-C", "instrument-coverage"]
+
+[profile.test]
+opt-level = 0
+debug = true
+
+[profile.bench]
+opt-level = 3
+debug = false
