@@ -1,0 +1,37 @@
+[package]
+name = "renclave-benchmarks"
+version = "0.1.0"
+edition = "2021"
+
+[[bench]]
+name = "seed_generation"
+harness = false
+
+[[bench]]
+name = "seed_validation"
+harness = false
+
+[[bench]]
+name = "concurrent_operations"
+harness = false
+
+[[bench]]
+name = "stress_tests"
+harness = false
+
+[dependencies]
+renclave-shared = { path = "../src/shared" }
+renclave-enclave = { path = "../src/enclave" }
+renclave-network = { path = "../src/network" }
+renclave-host = { path = "../src/host" }
+
+# Benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Async runtime
+tokio = { version = "1.0", features = ["full", "test-util", "rt-multi-thread"] }
+
+# Utilities
+rand = "0.8"
+serde_json = "1.0"
+futures = "0.3"

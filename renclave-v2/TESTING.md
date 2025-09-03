@@ -1,201 +1,368 @@
-# 🧪 renclave-v2 Testing Instructions
+# 🧪 Renclave Testing Guide
 
-## Quick Start Tests
+This document provides comprehensive information about testing the renclave project, including unit tests, integration tests, and end-to-end tests.
 
-### 1. Automated Docker Tests
+## 📋 Test Overview
+
+The renclave project includes three types of tests:
+
+1. **Unit Tests** - Test individual components in isolation
+2. **Integration Tests** - Test component interactions
+3. **End-to-End Tests** - Test the complete system
+
+## 🚀 Quick Start
+
+### Run All Tests
 ```bash
-# Build and run all tests automatically
-docker build -f docker/Dockerfile -t renclave-v2:latest .
-docker run --rm --name renclave-test renclave-v2:latest
+# From project root
+./scripts/run-tests.sh
+
+# Or with coverage
+./scripts/run-tests.sh --coverage
 ```
 
-### 2. Interactive Docker Testing
+### Run Specific Test Types
 ```bash
-# Run container with shell access
-docker run -it --rm --name renclave-interactive -p 3001:3000 renclave-v2:latest /bin/bash
+# Unit tests only
+./scripts/run-tests.sh --unit-only
 
-# Inside container, run individual tests:
-# Start enclave in background
-/app/bin/enclave &
+# Integration tests only
+./scripts/run-tests.sh --integration-only
 
-# Start host in background  
-/app/bin/host &
-
-# Wait a moment for services to start
-sleep 3
-
-# Test endpoints manually
-curl http://localhost:3000/health
-curl http://localhost:3000/info | jq
-curl http://localhost:3000/network/status | jq
-curl -X POST http://localhost:3000/generate-seed \
-  -H "Content-Type: application/json" \
-  -d '{"strength": 256}' | jq
+# E2E tests only
+./scripts/run-tests.sh --e2e-only
 ```
 
-## Manual API Testing
-
-### Health Endpoints
+### CI/CD Testing
 ```bash
-# Basic health check
-curl -s http://localhost:3001/health
-
-# Service information
-curl -s http://localhost:3001/info | jq
+# Run CI test suite
+./scripts/ci-test.sh
 ```
 
-### Seed Generation Tests
+## 🧩 Unit Tests
+
+Unit tests are embedded within each crate and test individual functions and components.
+
+### Shared Library Tests
 ```bash
-# Generate 128-bit seed (12 words)
-curl -X POST http://localhost:3001/generate-seed \
-  -H "Content-Type: application/json" \
-  -d '{"strength": 128}' | jq
-
-# Generate 256-bit seed (24 words)  
-curl -X POST http://localhost:3001/generate-seed \
-  -H "Content-Type: application/json" \
-  -d '{"strength": 256}' | jq
-
-# Generate with passphrase
-curl -X POST http://localhost:3001/generate-seed \
-  -H "Content-Type: application/json" \
-  -d '{"strength": 192, "passphrase": "test123"}' | jq
+cargo test -p renclave-shared --lib
 ```
 
-### Seed Validation Tests
+**Test Coverage:**
+- EnclaveRequest/EnclaveResponse creation and serialization
+- EnclaveOperation enum variants
+- EnclaveResult enum variants
+- HTTP request/response structures
+- Error handling and conversion
+- Serialization round-trips
+
+### Enclave Tests
 ```bash
-# Validate a good seed
-curl -X POST http://localhost:3001/validate-seed \
-  -H "Content-Type: application/json" \
-  -d '{"seed_phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"}' | jq
-
-# Validate an invalid seed
-curl -X POST http://localhost:3001/validate-seed \
-  -H "Content-Type: application/json" \
-  -d '{"seed_phrase": "invalid seed phrase here"}' | jq
+cargo test -p renclave-enclave --lib
 ```
 
-### Network Status
+**Test Coverage:**
+- SeedGenerator initialization
+- Seed generation with different strengths (128, 160, 192, 224, 256 bits)
+- Seed validation (valid and invalid seeds)
+- Passphrase handling
+- Entropy generation and verification
+- Strength validation
+- Concurrent operations
+- Error handling
+
+### Host API Tests
 ```bash
-# Check network connectivity
-curl -s http://localhost:3001/network/status | jq
+cargo test -p renclave-host --lib
 ```
 
-### Enclave Information
+**Test Coverage:**
+- Health check endpoint
+- Service information endpoint
+- Seed generation endpoint
+- Seed validation endpoint
+- Network status endpoint
+- Error handling
+- Request validation
+- Response structures
+
+## 🔗 Integration Tests
+
+Integration tests verify that different components work together correctly.
+
+### Running Integration Tests
 ```bash
-# Get enclave details
-curl -s http://localhost:3001/enclave/info | jq
+cargo test --test integration_tests
 ```
 
-## Expected Test Results
+**Test Coverage:**
+- Complete seed generation flow
+- Seed validation with generated seeds
+- Entropy consistency across multiple generations
+- Passphrase integration
+- Error handling scenarios
+- Concurrent seed generation
+- Strength consistency validation
+- Serialization round-trips
 
-### ✅ Successful Responses
+## 🌐 End-to-End Tests
 
-**Health Check:**
-```json
-{"status": "healthy", "timestamp": "2025-08-20T09:31:15Z"}
+E2E tests verify the complete system from HTTP API to enclave and back.
+
+### Prerequisites
+- Enclave service running (creates `/tmp/enclave.sock`)
+- Host service running (listens on port 3000)
+
+### Running E2E Tests
+```bash
+cargo test --test e2e_tests
 ```
 
-**Info Response:**
-```json
-{
-  "version": "0.1.0",
-  "service": "QEMU Host API Gateway", 
-  "enclave_id": "699aaf02-f09f-4828-b5d7-e11c84ea8652",
-  "capabilities": ["seed_generation", "seed_validation", "network_connectivity"],
-  "network_status": "connected"
-}
+**Test Coverage:**
+- System startup and service readiness
+- Health endpoint functionality
+- Service information endpoint
+- Network status endpoint
+- Seed generation endpoint (all strengths)
+- Seed generation with passphrases
+- Seed validation endpoint
+- Error handling
+- Concurrent requests
+- Performance testing
+- System stability
+- Service cleanup
+
+## 📊 Test Configuration
+
+### Test Dependencies
+The following dependencies are added to each crate for testing:
+
+```toml
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+tokio-test = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
 ```
 
-**Seed Generation (256-bit):**
-```json
-{
-  "seed_phrase": "dragon isolate abstract force pigeon cart bus act acoustic ahead sentence baby sick volume ahead city supply cup number kitchen proud exhibit wasp air",
-  "entropy": "420ed003ad8a4a4607b8130200a70f888c7deb81494bd9c6b65dbd8acc9f3de0",
-  "strength": 256,
-  "word_count": 24
-}
+### Test Timeouts
+- **Unit Tests**: No timeout (fast execution)
+- **Integration Tests**: No timeout (fast execution)
+- **E2E Tests**: 30 seconds per test
+- **CI Tests**: 10 minutes total
+
+## 🛠️ Test Utilities
+
+### TestUtils Class (E2E Tests)
+The E2E tests include a `TestUtils` class that provides:
+
+- Service readiness checking
+- HTTP request/response handling
+- Enclave socket verification
+- Configurable timeouts and retries
+
+### Mock Structures (Unit Tests)
+Unit tests use mock implementations for:
+
+- `MockEnclaveClient` - Simulates enclave responses
+- `MockNetworkManager` - Simulates network status
+
+## 📈 Coverage and Benchmarks
+
+### Generate Coverage Report
+```bash
+./scripts/run-tests.sh --coverage
 ```
 
-**Seed Validation (Valid):**
-```json
-{
-  "valid": true,
-  "word_count": 12
-}
+Coverage reports are generated using `grcov` and saved to `coverage/` directory.
+
+### Run Benchmarks
+```bash
+./scripts/run-tests.sh --benchmark
 ```
 
-### ❌ Error Responses
+Benchmark results are saved to `test-results/benchmarks.log`.
 
-**Invalid Strength:**
-```json
-{
-  "error": "Invalid strength: 100. Must be 128, 160, 192, 224, or 256",
-  "code": 400,
-  "request_id": "uuid-here"
-}
+## 🔧 Test Scripts
+
+### Main Test Runner (`run-tests.sh`)
+Comprehensive test runner with options for:
+- Selective test execution
+- Coverage generation
+- Benchmark execution
+- Detailed logging
+- Service management
+
+**Options:**
+- `--unit-only` - Run only unit tests
+- `--integration-only` - Run only integration tests
+- `--e2e-only` - Run only E2E tests
+- `--coverage` - Generate coverage report
+- `--benchmark` - Run benchmarks
+- `--help` - Show help
+
+### CI Test Runner (`ci-test.sh`)
+Simplified runner for continuous integration:
+- Code formatting checks
+- Clippy linting
+- Unit and integration tests
+- Build verification
+
+## 📁 Test Structure
+
+```
+renclave-v2/
+├── src/
+│   ├── shared/src/lib.rs          # Unit tests embedded
+│   ├── enclave/src/seed_generator.rs  # Unit tests embedded
+│   └── host/src/api_handlers.rs   # Unit tests embedded
+├── tests/
+│   ├── integration_tests.rs        # Integration tests
+│   └── e2e_tests.rs               # End-to-end tests
+├── scripts/
+│   ├── run-tests.sh               # Main test runner
+│   └── ci-test.sh                 # CI test runner
+├── test-results/                  # Test output and logs
+└── coverage/                      # Coverage reports
 ```
 
-**Enclave Unavailable:**
-```json
-{
-  "error": "Enclave communication failed: Failed to connect to enclave socket",
-  "code": 503,
-  "request_id": "uuid-here"
-}
-```
-
-## Architecture Validation
-
-The tests validate:
-- ✅ Host-Enclave communication via Unix sockets
-- ✅ HTTP API gateway functionality  
-- ✅ BIP39 seed generation with multiple strengths
-- ✅ Secure entropy generation
-- ✅ JSON request/response serialization
-- ✅ Error handling and validation
-- ✅ Network status reporting
-- ✅ QEMU environment detection
-- ⚠️ TAP interface setup (requires privileged mode)
-
-## Troubleshooting
+## 🚨 Troubleshooting
 
 ### Common Issues
 
-1. **Health check fails**: Normal in host-only mode (enclave not running)
-2. **Network setup warnings**: Expected in Docker (no /dev/net/tun)
-3. **Permission errors**: Run with `--privileged` for network setup
-4. **Port conflicts**: Change port mapping `-p 3002:3000`
+1. **Enclave Socket Not Found**
+   ```bash
+   # Check if enclave service is running
+   ls -la /tmp/enclave.sock
+   
+   # Start enclave service
+   cargo run -p renclave-enclave
+   ```
+
+2. **Port Already in Use**
+   ```bash
+   # Check what's using port 3000
+   lsof -i :3000
+   
+   # Kill process or change port
+   ```
+
+3. **Permission Denied**
+   ```bash
+   # Make scripts executable
+   chmod +x scripts/*.sh
+   ```
+
+4. **Test Timeouts**
+   - Increase timeout in test configuration
+   - Check system resources
+   - Verify service responsiveness
 
 ### Debug Commands
 ```bash
-# Check running processes
-ps aux | grep -E "(enclave|host)"
+# View detailed test output
+cargo test -- --nocapture
 
-# Check socket status  
-ls -la /tmp/enclave.sock
+# Run specific test
+cargo test test_name
 
-# View detailed logs
-docker logs renclave-test
+# Run tests with logging
+RUST_LOG=debug cargo test
 
-# Run with privileged mode
-docker run --privileged --rm renclave-v2:latest
+# Check test compilation
+cargo test --no-run
 ```
 
-## Test Scenarios Covered
+## 📊 Test Results
 
-1. **Basic Functionality**: Health, info, status endpoints
-2. **Seed Generation**: All supported bit strengths (128, 160, 192, 224, 256)  
-3. **Seed Validation**: Valid and invalid seed phrases
-4. **Error Handling**: Invalid requests, missing enclave
-5. **Host-Enclave Communication**: Socket-based IPC
-6. **Network Detection**: QEMU environment indicators
-7. **End-to-End Flow**: Complete request-response cycle
+### Test Summary
+After running tests, a summary is generated in `test-results/test-summary.txt`:
 
-## Performance Expectations
+```
+🧪 Renclave Test Summary
+=========================
 
-- Seed generation: < 100ms
-- API response time: < 50ms  
-- Enclave startup: < 5 seconds
-- Host startup: < 3 seconds
+Test Run: 2025-01-20 10:30:00
+Project: renclave-v2
+
+Test Results:
+-------------
+✅ Unit Tests: 45 passed, 0 failed
+✅ Integration Tests: 12 passed, 0 failed
+✅ E2E Tests: 8 passed, 0 failed
+
+Coverage:
+---------
+📊 Coverage report generated in: coverage/
+
+Test Artifacts:
+---------------
+📁 Test results: test-results
+📁 Coverage: coverage
+```
+
+### Log Files
+- `test-results/unit-*.log` - Individual crate unit test results
+- `test-results/integration-tests.log` - Integration test results
+- `test-results/e2e-tests.log` - E2E test results
+- `test-results/enclave.log` - Enclave service logs
+- `test-results/host.log` - Host service logs
+
+## 🔄 Continuous Integration
+
+### GitHub Actions Example
+```yaml
+name: Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Run tests
+        run: ./scripts/ci-test.sh
+```
+
+### GitLab CI Example
+```yaml
+test:
+  stage: test
+  image: rust:latest
+  script:
+    - ./scripts/ci-test.sh
+  artifacts:
+    paths:
+      - test-results/
+      - coverage/
+```
+
+## 📚 Additional Resources
+
+- [Rust Testing Book](https://doc.rust-lang.org/book/ch11-00-testing.html)
+- [Tokio Testing Guide](https://tokio.rs/tokio/tutorial/testing)
+- [Axum Testing](https://docs.rs/axum/latest/axum/testing/index.html)
+- [Cargo Test Documentation](https://doc.rust-lang.org/cargo/commands/cargo-test.html)
+
+## 🤝 Contributing
+
+When adding new tests:
+
+1. **Unit Tests**: Add to the appropriate `#[cfg(test)]` module
+2. **Integration Tests**: Add to `tests/integration_tests.rs`
+3. **E2E Tests**: Add to `tests/e2e_tests.rs`
+4. **Update Documentation**: Modify this file as needed
+
+### Test Naming Convention
+- Unit tests: `test_function_name_scenario`
+- Integration tests: `test_component_interaction_scenario`
+- E2E tests: `test_system_feature_scenario`
+
+### Test Organization
+- Group related tests in modules
+- Use descriptive test names
+- Include setup and teardown logic
+- Handle errors gracefully
+- Clean up resources after tests
 

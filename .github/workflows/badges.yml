@@ -1,0 +1,41 @@
+name: Generate Status Badges
+
+on:
+  workflow_run:
+    workflows: ["Renclave-v2 CI/CD", "Gauth CI/CD", "Web CI/CD", "Full Project CI/CD"]
+    types:
+      - completed
+
+jobs:
+  update-badges:
+    name: Update Status Badges
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'skipped'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Generate Badge URLs
+      run: |
+        echo "## CI/CD Status Badges" > badges.md
+        echo "" >> badges.md
+        echo "### Component Workflows" >> badges.md
+        echo "" >> badges.md
+        echo "- **Renclave-v2**: ![Renclave-v2 CI/CD](https://github.com/${{ github.repository }}/workflows/Renclave-v2%20CI%20CD/badge.svg)" >> badges.md
+        echo "- **Gauth**: ![Gauth CI/CD](https://github.com/${{ github.repository }}/workflows/Gauth%20CI%20CD/badge.svg)" >> badges.md
+        echo "- **Web**: ![Web CI/CD](https://github.com/${{ github.repository }}/workflows/Web%20CI%20CD/badge.svg)" >> badges.md
+        echo "" >> badges.md
+        echo "### Integration Workflow" >> badges.md
+        echo "" >> badges.md
+        echo "- **Full Project**: ![Full Project CI/CD](https://github.com/${{ github.repository }}/workflows/Full%20Project%20CI%20CD/badge.svg)" >> badges.md
+        echo "" >> badges.md
+        echo "*Last updated: ${{ github.event.workflow_run.updated_at }}*" >> badges.md
+        
+    - name: Commit Badge Updates
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add badges.md
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update CI/CD status badges"
+        git push

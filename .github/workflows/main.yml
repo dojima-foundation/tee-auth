@@ -1,0 +1,254 @@
+name: Full Project CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths-ignore:
+      - 'docs/**'
+      - 'terraform/**'
+      - '.github/workflows/renclave-v2.yml'
+      - '.github/workflows/gauth.yml'
+      - '.github/workflows/web.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths-ignore:
+      - 'docs/**'
+      - 'terraform/**'
+      - '.github/workflows/renclave-v2.yml'
+      - '.github/workflows/gauth.yml'
+      - '.github/workflows/web.yml'
+  workflow_dispatch:
+    inputs:
+      run_all:
+        description: 'Run all component tests'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  GO_VERSION: "1.23"
+  RUST_VERSION: "1.82"
+  NODE_VERSION: "20"
+  POSTGRES_VERSION: "15"
+  REDIS_VERSION: "7-alpine"
+
+jobs:
+  renclave-v2:
+    name: Renclave-v2
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ env.RUST_VERSION }}
+        
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          renclave-v2/target
+          ~/.cargo/bin
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
+        key: renclave-v2-${{ hashFiles('renclave-v2/Cargo.lock') }}
+        restore-keys: |
+          renclave-v2-
+        
+    - name: Run Rust tests
+      run: |
+        cd renclave-v2
+        cargo test --workspace --verbose
+        
+    - name: Build Rust release
+      run: |
+        cd renclave-v2
+        cargo build --release --workspace
+
+  gauth:
+    name: Gauth
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_USER: gauth
+          POSTGRES_DB: gauth_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+        
+    - name: Install protoc
+      uses: arduino/setup-protoc@v1
+      
+    - name: Install protoc plugins
+      run: |
+        cd gauth
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+        
+    - name: Generate protobuf code
+      run: |
+        cd gauth
+        make proto
+        
+    - name: Run Go tests
+      run: |
+        cd gauth
+        make test-unit
+        
+    - name: Build Go binary
+      run: |
+        cd gauth
+        make build
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: web/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd web
+        npm ci
+        
+    - name: Run tests
+      run: |
+        cd web
+        npm run test:coverage
+        
+    - name: Build application
+      run: |
+        cd web
+        npm run build
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [renclave-v2, gauth, web]
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_USER: gauth
+          POSTGRES_DB: gauth_integration
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: web/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd gauth
+        go mod download
+        cd ../web
+        npm ci
+        
+    - name: Run integration tests
+      run: |
+        cd gauth
+        make test-integration
+        
+    - name: Run E2E tests
+      run: |
+        cd web
+        npx playwright install --with-deps
+        npm run test:e2e
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [renclave-v2, gauth, web, integration]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Generate test summary
+      run: |
+        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Component Status:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Renclave-v2**: ${{ needs.renclave-v2.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Gauth**: ${{ needs.gauth.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Web**: ${{ needs.web.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Integration**: ${{ needs.integration.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [[ "${{ needs.renclave-v2.result }}" == "success" && "${{ needs.gauth.result }}" == "success" && "${{ needs.web.result }}" == "success" && "${{ needs.integration.result }}" == "success" ]]; then
+          echo "✅ All components passed!" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Some components failed. Check individual job logs for details." >> $GITHUB_STEP_SUMMARY
+        fi
