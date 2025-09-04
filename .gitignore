@@ -91,6 +91,7 @@ test-report.xml
 playwright-report/
 playwright/.cache
 lighthouse-report.html
+.lighthouseci/
 .percy/
 
 # Renclave-specific testing outputs
