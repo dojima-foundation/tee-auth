@@ -362,6 +362,8 @@ jobs:
       run: |
         cd gauth
         make test-integration
+      env:
+        TEST_DB_NAME: gauth_integration
         
     - name: Run E2E tests
       run: |
