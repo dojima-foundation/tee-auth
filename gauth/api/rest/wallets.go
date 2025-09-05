@@ -108,12 +108,27 @@ func (s *Server) handleGetWallet(c *gin.Context) {
 
 // handleListWallets lists wallets with pagination and filtering
 func (s *Server) handleListWallets(c *gin.Context) {
+	// Validate that organization_id query parameter is provided
+	queryOrgID := c.Query("organization_id")
+	if queryOrgID == "" {
+		c.JSON(http.StatusBadRequest, errorResponse(nil, "organization_id parameter is required"))
+		return
+	}
+
 	// Get organization ID from session context (set by session middleware)
-	organizationID, exists := GetOrganizationIDFromContext(c)
+	sessionOrgID, exists := GetOrganizationIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, errorResponse(nil, "Organization ID not found in session"))
 		return
 	}
+
+	// Validate that query parameter matches session context
+	if queryOrgID != sessionOrgID {
+		c.JSON(http.StatusForbidden, errorResponse(nil, "Organization ID mismatch"))
+		return
+	}
+
+	organizationID := sessionOrgID
 
 	pageSize := int32(10) // default
 	if ps := c.Query("page_size"); ps != "" {
