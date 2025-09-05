@@ -43,8 +43,11 @@ deps: ## Install dependencies
 proto: ## Generate protobuf code
 	@echo "Generating protobuf code..."
 	protoc --go_out=. --go-grpc_out=. --proto_path=. api/proto/gauth.proto
-	@echo "Cleaning up nested directory structure..."
-	rm -rf github.com
+	@echo "Moving generated files to correct location..."
+	@if [ -d "github.com/dojima-foundation/tee-auth/gauth/api/proto" ]; then \
+		mv github.com/dojima-foundation/tee-auth/gauth/api/proto/*.pb.go api/proto/; \
+		rm -rf github.com; \
+	fi
 	@echo "Protobuf code generated successfully"
 
 build: proto ## Build the service
