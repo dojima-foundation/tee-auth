@@ -80,7 +80,7 @@ export default defineConfig({
         timeout: 120 * 1000,
         env: {
             NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
-            NEXT_PUBLIC_GRPC_URL: process.env.NEXT_PUBLIC_GRPC_URL || 'localhost:9092',
+            NEXT_PUBLIC_GRPC_URL: process.env.NEXT_PUBLIC_GRPC_URL || 'localhost:9090',
         },
     },
 })
