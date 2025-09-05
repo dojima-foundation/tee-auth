@@ -72,6 +72,7 @@ test: ## Run all tests with coverage
 
 test-unit: ## Run unit tests only
 	@echo "Running unit tests..."
+	@mkdir -p coverage
 	go test -v -race -coverprofile=coverage/unit.out ./internal/... ./pkg/...
 	go tool cover -html=coverage/unit.out -o coverage/unit.html
 	@echo "Unit tests completed. Coverage: coverage/unit.html"
