@@ -42,7 +42,7 @@ deps: ## Install dependencies
 
 proto: ## Generate protobuf code
 	@echo "Generating protobuf code..."
-	protoc --go_out=api/proto --go-grpc_out=api/proto --proto_path=. api/proto/gauth.proto
+	protoc --go_out=. --go-grpc_out=. --proto_path=. api/proto/gauth.proto
 	@echo "Protobuf code generated successfully"
 
 build: proto ## Build the service
