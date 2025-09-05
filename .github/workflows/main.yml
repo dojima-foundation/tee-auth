@@ -31,11 +31,15 @@ env:
   NODE_VERSION: "20"
   POSTGRES_VERSION: "15"
   REDIS_VERSION: "7-alpine"
+  # Environment-specific variables
+  ENVIRONMENT: "dev"
+  DOCKER_REGISTRY: "dojima0foundation"
 
 jobs:
   renclave-v2:
     name: Renclave-v2
     runs-on: ubuntu-latest
+    environment: dev
 
     steps:
     - name: Checkout code
@@ -84,7 +88,7 @@ jobs:
         context: ./renclave-v2
         file: ./renclave-v2/docker/Dockerfile
         push: true
-        tags: dojima0foundation/renclave-v2:latest,dojima0foundation/renclave-v2:${{ github.sha }}
+        tags: ${{ env.DOCKER_REGISTRY }}/renclave-v2:${{ env.ENVIRONMENT }},${{ env.DOCKER_REGISTRY }}/renclave-v2:${{ github.sha }}
         cache-from: type:gha
         cache-to: type:gha,mode=max
         labels: |
@@ -96,6 +100,7 @@ jobs:
   gauth:
     name: Gauth
     runs-on: ubuntu-latest
+    environment: dev
     
     services:
       postgres:
@@ -171,7 +176,7 @@ jobs:
         context: ./gauth
         file: ./gauth/docker/Dockerfile
         push: true
-        tags: dojima0foundation/gauth:latest,dojima0foundation/gauth:${{ github.sha }}
+        tags: ${{ env.DOCKER_REGISTRY }}/gauth:${{ env.ENVIRONMENT }},${{ env.DOCKER_REGISTRY }}/gauth:${{ github.sha }}
         cache-from: type:gha
         cache-to: type:gha,mode=max
         labels: |
@@ -183,6 +188,7 @@ jobs:
   web:
     name: Web
     runs-on: ubuntu-latest
+    environment: dev
 
     steps:
     - name: Checkout code
@@ -257,11 +263,12 @@ jobs:
     #     echo "Listing current directory:"
     #     ls -la
     #     echo "Running Docker build..."
-    #     docker buildx build --cache-from type:gha --cache-to type:gha,mode=max --file Dockerfile --label "org.opencontainers.image.title=web" --label "org.opencontainers.image.description=Next.js web application" --label "org.opencontainers.image.source=https://github.com/dojima/tee-auth" --label "org.opencontainers.image.version=${{ github.sha }}" --tag dojima0foundation/web:latest --tag dojima0foundation/web:${{ github.sha }} --push .
+    #     docker buildx build --cache-from type:gha --cache-to type:gha,mode=max --file Dockerfile --label "org.opencontainers.image.title=web" --label "org.opencontainers.image.description=Next.js web application" --label "org.opencontainers.image.source=https://github.com/dojima/tee-auth" --label "org.opencontainers.image.version=${{ github.sha }}" --tag ${{ env.DOCKER_REGISTRY }}/web:${{ env.ENVIRONMENT }} --tag ${{ env.DOCKER_REGISTRY }}/web:${{ github.sha }} --push .
 
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
+    environment: dev
     needs: [renclave-v2, gauth, web]
     
     services:
@@ -324,6 +331,7 @@ jobs:
   summary:
     name: Test Summary
     runs-on: ubuntu-latest
+    environment: dev
     needs: [renclave-v2, gauth, web, integration]
     if: always()
     
