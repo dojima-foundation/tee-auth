@@ -233,4 +233,5 @@ jobs:
     - name: Run migrations down
       run: |
         cd gauth
-        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" down
+        # Go down one migration step to test rollback functionality
+        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" down 1
