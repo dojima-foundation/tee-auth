@@ -31,7 +31,11 @@ type SessionData struct {
 
 // SessionManager handles session operations
 type SessionManager struct {
-	server *Server
+	server         *Server
+	testMode       bool
+	testOrgID      string
+	testUserID     string
+	testAuthMethodID string
 }
 
 // NewSessionManager creates a new session manager
@@ -39,6 +43,18 @@ func NewSessionManager(server *Server) *SessionManager {
 	return &SessionManager{
 		server: server,
 	}
+}
+
+// SetTestMode enables test mode which bypasses session validation
+func (sm *SessionManager) SetTestMode(testMode bool) {
+	sm.testMode = testMode
+}
+
+// SetTestData sets test data for session validation bypass
+func (sm *SessionManager) SetTestData(orgID, userID, authMethodID string) {
+	sm.testOrgID = orgID
+	sm.testUserID = userID
+	sm.testAuthMethodID = authMethodID
 }
 
 // CreateSession creates a new session and stores it in Redis
@@ -210,6 +226,26 @@ func (sm *SessionManager) ClearSessionCookie(c *gin.Context) {
 // SessionMiddleware validates sessions for protected routes
 func (sm *SessionManager) SessionMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// In test mode, bypass session validation
+		if sm.testMode {
+			// Set mock session data for testing
+			c.Set("session", &SessionData{
+				UserID:         sm.testUserID,
+				OrganizationID: sm.testOrgID,
+				AuthMethodID:   sm.testAuthMethodID,
+				OAuthProvider:  "google",
+				Role:           "root_user",
+				CreatedAt:      time.Now(),
+				LastActivity:   time.Now(),
+				ExpiresAt:      time.Now().Add(24 * time.Hour),
+			})
+			c.Set("user_id", sm.testUserID)
+			c.Set("organization_id", sm.testOrgID)
+			c.Set("auth_method_id", sm.testAuthMethodID)
+			c.Next()
+			return
+		}
+
 		sessionID := sm.GetSessionFromRequest(c)
 		if sessionID == "" {
 			c.JSON(http.StatusUnauthorized, errorResponse(nil, "Session required"))

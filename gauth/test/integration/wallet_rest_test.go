@@ -114,6 +114,9 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 
 	// Set Redis client for session management
 	suite.restServer.SetRedis(suite.redis.Client)
+	
+	// Enable test mode to bypass session validation
+	suite.restServer.GetSessionManager().SetTestMode(true)
 
 	// Connect REST server to gRPC server
 	err = suite.restServer.ConnectToGRPCForTesting("localhost:9092")
@@ -125,9 +128,7 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 	// Setup router for testing
 	suite.router = gin.New()
 	
-	// Add test middleware that bypasses authentication
-	suite.router.Use(suite.testAuthMiddleware())
-	
+	// Setup API routes normally - we'll override session validation
 	suite.restServer.SetupAPIRoutes(suite.router)
 
 	// Create test organization and user
@@ -143,6 +144,13 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 		Type:   "OAUTH",
 		Name:   "Google OAuth",
 	}
+
+	// Set test data for session manager
+	suite.restServer.GetSessionManager().SetTestData(
+		suite.organizationID,
+		suite.testUser.ID.String(),
+		suite.testAuthMethod.ID.String(),
+	)
 
 	// Create test session
 	suite.testSessionID, err = suite.createTestSession()
@@ -172,27 +180,7 @@ func (suite *WalletRESTTestSuite) createTestSession() (string, error) {
 	return sessionManager.CreateSession(suite.ctx, suite.testUser, suite.testAuthMethod, "google")
 }
 
-// testAuthMiddleware creates a middleware that bypasses authentication for tests
-func (suite *WalletRESTTestSuite) testAuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Set test session data in context to bypass authentication
-		c.Set("session", &rest.SessionData{
-			UserID:         suite.testUser.ID.String(),
-			OrganizationID: suite.testUser.OrganizationID.String(),
-			Email:          suite.testUser.Email,
-			AuthMethodID:   suite.testAuthMethod.ID.String(),
-			OAuthProvider:  "google",
-			Role:           "root_user",
-			CreatedAt:      time.Now(),
-			LastActivity:   time.Now(),
-			ExpiresAt:      time.Now().Add(24 * time.Hour),
-		})
-		c.Set("user_id", suite.testUser.ID.String())
-		c.Set("organization_id", suite.testUser.OrganizationID.String())
-		c.Set("auth_method_id", suite.testAuthMethod.ID.String())
-		c.Next()
-	}
-}
+
 
 func (suite *WalletRESTTestSuite) TearDownTest() {
 	// Clean up wallets created during tests

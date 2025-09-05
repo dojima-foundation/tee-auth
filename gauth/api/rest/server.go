@@ -53,6 +53,11 @@ func (s *Server) GetSessionManager() *SessionManager {
 	return s.sessionManager
 }
 
+// SetSessionManager sets a custom session manager (for testing)
+func (s *Server) SetSessionManager(sessionManager *SessionManager) {
+	s.sessionManager = sessionManager
+}
+
 // Start starts the REST API server
 func (s *Server) Start() error {
 	// Connect to gRPC server
