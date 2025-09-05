@@ -12,6 +12,7 @@ import (
 
 	"github.com/dojima-foundation/tee-auth/gauth/api/rest"
 	"github.com/dojima-foundation/tee-auth/gauth/internal/grpc"
+	"github.com/dojima-foundation/tee-auth/gauth/internal/models"
 	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
@@ -31,7 +32,11 @@ type WalletRESTTestSuite struct {
 	restServer     *rest.Server
 	service        *service.GAuthService
 	db             *testhelpers.TestDatabase
+	redis          *testhelpers.TestRedis
 	organizationID string
+	testUser       *models.User
+	testAuthMethod *models.AuthMethod
+	testSessionID  string
 	ctx            context.Context
 }
 
@@ -46,6 +51,9 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 	// Run migrations
 	err := suite.db.RunMigrations(suite.ctx)
 	require.NoError(suite.T(), err)
+
+	// Setup test Redis
+	suite.redis = testhelpers.NewTestRedis(suite.T())
 
 	// Setup test logger
 	testLogger := logger.NewDefault()
@@ -65,10 +73,14 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 		Auth: config.AuthConfig{
 			DefaultQuorumThreshold: 1,
 		},
+		Security: config.SecurityConfig{
+			TLSEnabled: false,
+			CORSOrigins: []string{"*"},
+		},
 	}
 
 	// Create service instance
-	suite.service = service.NewGAuthServiceWithEnclave(cfg, testLogger, suite.db.DB, nil, service.NewMockRenclaveClient())
+	suite.service = service.NewGAuthServiceWithEnclave(cfg, testLogger, suite.db.DB, suite.redis.Client, service.NewMockRenclaveClient())
 
 	// Initialize telemetry (disabled for tests)
 	telemetry, err := telemetry.New(context.Background(), telemetry.Config{
@@ -100,6 +112,9 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 	// Create REST server
 	suite.restServer = rest.NewServer(cfg, testLogger, telemetry)
 
+	// Set Redis client for session management
+	suite.restServer.SetRedis(suite.redis.Client)
+
 	// Connect REST server to gRPC server
 	err = suite.restServer.ConnectToGRPCForTesting("localhost:9092")
 	require.NoError(suite.T(), err)
@@ -111,10 +126,23 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 	suite.router = gin.New()
 	suite.restServer.SetupAPIRoutes(suite.router)
 
-	// Create test organization
-	org, _, err := suite.db.CreateTestOrganization(suite.ctx, "Test Organization", 1)
+	// Create test organization and user
+	org, users, err := suite.db.CreateTestOrganization(suite.ctx, "Test Organization", 1)
 	require.NoError(suite.T(), err)
 	suite.organizationID = org.ID.String()
+	suite.testUser = &users[0]
+
+	// Create test auth method
+	suite.testAuthMethod = &models.AuthMethod{
+		ID:     uuid.New(),
+		UserID: suite.testUser.ID,
+		Type:   "OAUTH",
+		Name:   "Google OAuth",
+	}
+
+	// Create test session
+	suite.testSessionID, err = suite.createTestSession()
+	require.NoError(suite.T(), err)
 }
 
 func (suite *WalletRESTTestSuite) TearDownSuite() {
@@ -124,10 +152,20 @@ func (suite *WalletRESTTestSuite) TearDownSuite() {
 	if suite.restServer != nil {
 		suite.restServer.Stop()
 	}
+	if suite.redis != nil {
+		suite.redis.Cleanup(suite.ctx)
+		suite.redis.Close()
+	}
 	if suite.db != nil {
 		suite.db.Cleanup(suite.ctx)
 		suite.db.Close()
 	}
+}
+
+// createTestSession creates a test session using the session manager
+func (suite *WalletRESTTestSuite) createTestSession() (string, error) {
+	sessionManager := suite.restServer.GetSessionManager()
+	return sessionManager.CreateSession(suite.ctx, suite.testUser, suite.testAuthMethod, "google")
 }
 
 func (suite *WalletRESTTestSuite) TearDownTest() {
@@ -155,6 +193,9 @@ func (suite *WalletRESTTestSuite) TestCreateWallet_Success() {
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest("POST", "/api/v1/wallets", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
+	
+	// Add session authentication
+	testhelpers.AddSessionToRequest(req, suite.testSessionID)
 
 	w := httptest.NewRecorder()
 	suite.router.ServeHTTP(w, req)
