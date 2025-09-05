@@ -2,8 +2,20 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Dashboard', () => {
     test.beforeEach(async ({ page }) => {
-        // Navigate to dashboard before each test
-        await page.goto('/dashboard')
+        // Set mock authentication for dashboard tests
+        await page.addInitScript(() => {
+            // @ts-ignore
+            window.__MOCK_AUTH__ = true;
+        });
+        
+        // Navigate to home page first
+        await page.goto('/')
+        
+        // Click the dashboard link to authenticate and navigate to dashboard
+        await page.getByRole('link', { name: /go to dashboard/i }).click()
+        
+        // Wait for navigation to complete
+        await page.waitForURL(/.*\/dashboard/)
     })
 
     test('should display dashboard page', async ({ page }) => {
@@ -69,7 +81,20 @@ test.describe('Dashboard', () => {
 
 test.describe('Dashboard Functionality', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('/dashboard')
+        // Set mock authentication for dashboard tests
+        await page.addInitScript(() => {
+            // @ts-ignore
+            window.__MOCK_AUTH__ = true;
+        });
+        
+        // Navigate to home page first
+        await page.goto('/')
+        
+        // Click the dashboard link to authenticate and navigate to dashboard
+        await page.getByRole('link', { name: /go to dashboard/i }).click()
+        
+        // Wait for navigation to complete
+        await page.waitForURL(/.*\/dashboard/)
     })
 
     test('should create a new user', async ({ page }) => {
@@ -135,6 +160,23 @@ test.describe('Dashboard Functionality', () => {
 })
 
 test.describe('Dashboard Error Handling', () => {
+    test.beforeEach(async ({ page }) => {
+        // Set mock authentication for dashboard tests
+        await page.addInitScript(() => {
+            // @ts-ignore
+            window.__MOCK_AUTH__ = true;
+        });
+        
+        // Navigate to home page first
+        await page.goto('/')
+        
+        // Click the dashboard link to authenticate and navigate to dashboard
+        await page.getByRole('link', { name: /go to dashboard/i }).click()
+        
+        // Wait for navigation to complete
+        await page.waitForURL(/.*\/dashboard/)
+    })
+
     test('should handle network errors gracefully', async ({ page }) => {
         // Mock network failure
         await page.route('**/api/**', route => route.abort())

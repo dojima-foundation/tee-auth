@@ -42,7 +42,12 @@ deps: ## Install dependencies
 
 proto: ## Generate protobuf code
 	@echo "Generating protobuf code..."
-	protoc --go_out=api/proto --go-grpc_out=api/proto --proto_path=. api/proto/gauth.proto
+	protoc --go_out=. --go-grpc_out=. --proto_path=. api/proto/gauth.proto
+	@echo "Moving generated files to correct location..."
+	@if [ -d "github.com/dojima-foundation/tee-auth/gauth/api/proto" ]; then \
+		mv github.com/dojima-foundation/tee-auth/gauth/api/proto/*.pb.go api/proto/; \
+		rm -rf github.com; \
+	fi
 	@echo "Protobuf code generated successfully"
 
 build: proto ## Build the service
@@ -67,6 +72,7 @@ test: ## Run all tests with coverage
 
 test-unit: ## Run unit tests only
 	@echo "Running unit tests..."
+	@mkdir -p coverage
 	go test -v -race -coverprofile=coverage/unit.out ./internal/... ./pkg/...
 	go tool cover -html=coverage/unit.out -o coverage/unit.html
 	@echo "Unit tests completed. Coverage: coverage/unit.html"

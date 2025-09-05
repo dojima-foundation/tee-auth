@@ -144,6 +144,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const initializeSession = async () => {
             console.log('🔍 [AuthProvider] Starting session initialization...');
 
+            // Check if we're in test mode with mock authentication enabled
+            const isTestMode = process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_TEST_MODE === 'true';
+            const mockAuthEnabled = process.env.NEXT_PUBLIC_MOCK_AUTH === 'true' || 
+                (typeof window !== 'undefined' && (window as any).__MOCK_AUTH__);
+            
+            if (isTestMode && mockAuthEnabled) {
+                console.log('🧪 [AuthProvider] Test mode detected for dashboard route, using mock authentication');
+                // Create mock session data for testing
+                const mockSession: AuthSession = {
+                    session_id: 'test-session-id',
+                    user: {
+                        id: 'test-user-id',
+                        email: 'test@example.com',
+                        username: 'testuser',
+                        organization_id: 'test-org-id',
+                        public_key: 'test-public-key',
+                        tags: ['test'],
+                        is_active: true,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    },
+                    expires_at: (Date.now() + 24 * 60 * 60 * 1000).toString(), // 24 hours from now
+                    created_at: new Date().toISOString(),
+                    last_activity: new Date().toISOString(),
+                };
+                
+                dispatch({ type: 'AUTH_SUCCESS', payload: mockSession });
+                reduxDispatch(setAuthSession(mockSession));
+                return;
+            }
+
             const sessionToken = localStorage.getItem('gauth_session_token');
             const sessionData = localStorage.getItem('gauth_session_data');
 

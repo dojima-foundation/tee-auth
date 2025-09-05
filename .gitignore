@@ -66,7 +66,7 @@ dist/
 next-env.d.ts
 
 # Package managers
-package-lock.json
+# package-lock.json  # Commented out - needed for CI/CD
 yarn.lock
 pnpm-lock.yaml
 .npm
@@ -91,6 +91,7 @@ test-report.xml
 playwright-report/
 playwright/.cache
 lighthouse-report.html
+.lighthouseci/
 .percy/
 
 # Renclave-specific testing outputs

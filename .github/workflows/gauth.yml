@@ -211,22 +211,26 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
         
-    - name: Install migration tool
+    - name: Install migration tool with postgres driver
       run: |
         cd gauth
-        go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+        # Download pre-built binary with all drivers included
+        curl -L https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz | tar xvz
+        chmod +x migrate
+        sudo mv migrate /usr/local/bin/
         
     - name: Run migrations up
       run: |
         cd gauth
-        make migrate-up
+        # Use migrate with postgres driver explicitly
+        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" up
         
     - name: Check migration version
       run: |
         cd gauth
-        make migrate-version
+        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" version
         
     - name: Run migrations down
       run: |
         cd gauth
-        make migrate-down
+        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" down

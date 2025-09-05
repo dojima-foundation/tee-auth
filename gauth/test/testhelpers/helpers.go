@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -481,4 +482,27 @@ func (tr *TestRedis) DeferCleanup(ctx context.Context) func() {
 		tr.Cleanup(ctx)
 		tr.Close()
 	}
+}
+
+// CreateTestSession creates a test session for authenticated requests
+func (td *TestDatabase) CreateTestSession(ctx context.Context, user *models.User, authMethod *models.AuthMethod, oauthProvider string) (string, error) {
+	// Generate session ID
+	sessionID := uuid.New().String()
+
+	// For now, we'll just return the session ID
+	// In a real implementation, this would store the session data in Redis
+
+	return sessionID, nil
+}
+
+// AddSessionToRequest adds session authentication to an HTTP request
+func AddSessionToRequest(req *http.Request, sessionID string) {
+	// Add session as cookie
+	req.AddCookie(&http.Cookie{
+		Name:  "gauth_session",
+		Value: sessionID,
+	})
+
+	// Also add as header for alternative authentication
+	req.Header.Set("X-Session-Token", sessionID)
 }
