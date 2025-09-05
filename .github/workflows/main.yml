@@ -382,6 +382,19 @@ jobs:
         export PATH=$PATH:$(go env GOPATH)/bin
         make proto
         
+    - name: Install migration tool
+      run: |
+        cd gauth
+        go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+        
+    - name: Run database migrations
+      run: |
+        cd gauth
+        export PATH=$PATH:$(go env GOPATH)/bin
+        make migrate-up
+      env:
+        DATABASE_URL: postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable
+        
     - name: Run integration tests
       run: |
         cd gauth
