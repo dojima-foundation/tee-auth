@@ -73,17 +73,16 @@ export default defineConfig({
     ],
 
     /* Run your local dev server before starting the tests */
-    webServer: {
-        command: 'npm run dev',
-        url: 'http://localhost:3000',
-        reuseExistingServer: !process.env.CI,
-        timeout: 120 * 1000,
-        env: {
-            NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
-            NEXT_PUBLIC_GAUTH_API_URL: process.env.NEXT_PUBLIC_GAUTH_API_URL || 'http://localhost:8080',
-            NEXT_PUBLIC_GRPC_URL: process.env.NEXT_PUBLIC_GRPC_URL || 'localhost:9090',
-            NEXT_PUBLIC_TEST_MODE: 'true',
-            NEXT_PUBLIC_MOCK_AUTH: 'true',
-        },
+      webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+    env: {
+      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
+      NEXT_PUBLIC_GAUTH_API_URL: process.env.NEXT_PUBLIC_GAUTH_API_URL || 'http://localhost:8080',
+      NEXT_PUBLIC_GRPC_URL: process.env.NEXT_PUBLIC_GRPC_URL || 'localhost:9090',
+      NEXT_PUBLIC_TEST_MODE: 'true',
     },
+  },
 })

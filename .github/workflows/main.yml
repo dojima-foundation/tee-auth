@@ -430,17 +430,16 @@ jobs:
         # Check if service is running
         curl -f http://localhost:8080/health || echo "Gauth service not ready yet"
         
-    - name: Run E2E tests
-      run: |
-        cd web
-        # Set environment variables for web service (Playwright will start it)
-        export NEXT_PUBLIC_API_URL="http://localhost:8080"
-        export NEXT_PUBLIC_GAUTH_API_URL="http://localhost:8080"
-        export NEXT_PUBLIC_GRPC_URL="localhost:9090"
-        export NEXT_PUBLIC_TEST_MODE="true"
-        export NEXT_PUBLIC_MOCK_AUTH="true"
-        npx playwright install --with-deps
-        npm run test:e2e
+            - name: Run E2E tests
+          run: |
+            cd web
+            # Set environment variables for web service (Playwright will start it)
+            export NEXT_PUBLIC_API_URL="http://localhost:8080"
+            export NEXT_PUBLIC_GAUTH_API_URL="http://localhost:8080"
+            export NEXT_PUBLIC_GRPC_URL="localhost:9090"
+            export NEXT_PUBLIC_TEST_MODE="true"
+            npx playwright install --with-deps
+            npm run test:e2e
         
     - name: Stop gauth service
       if: always()
