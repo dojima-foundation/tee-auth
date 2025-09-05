@@ -43,6 +43,8 @@ deps: ## Install dependencies
 proto: ## Generate protobuf code
 	@echo "Generating protobuf code..."
 	protoc --go_out=. --go-grpc_out=. --proto_path=. api/proto/gauth.proto
+	@echo "Cleaning up nested directory structure..."
+	rm -rf github.com
 	@echo "Protobuf code generated successfully"
 
 build: proto ## Build the service
