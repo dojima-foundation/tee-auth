@@ -31,10 +31,10 @@ type SessionData struct {
 
 // SessionManager handles session operations
 type SessionManager struct {
-	server         *Server
-	testMode       bool
-	testOrgID      string
-	testUserID     string
+	server           *Server
+	testMode         bool
+	testOrgID        string
+	testUserID       string
 	testAuthMethodID string
 }
 

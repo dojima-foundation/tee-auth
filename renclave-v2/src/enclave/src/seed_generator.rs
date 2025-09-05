@@ -206,6 +206,7 @@ impl SeedGenerator {
     }
 
     /// Get entropy from existing mnemonic (for testing/verification)
+    #[allow(dead_code)]
     pub fn get_entropy_from_mnemonic(&self, mnemonic: &str) -> Result<Vec<u8>> {
         let mnemonic_obj = Mnemonic::parse_in_normalized(Language::English, mnemonic)
             .map_err(|e| anyhow!("Invalid mnemonic: {}", e))?;
@@ -230,6 +231,7 @@ impl SeedGenerator {
     }
 
     /// Verify entropy matches mnemonic
+    #[allow(dead_code)]
     pub async fn verify_entropy(&self, entropy: &[u8], mnemonic: &str) -> Result<bool> {
         let expected_mnemonic = Mnemonic::from_entropy_in(Language::English, entropy)
             .map_err(|e| anyhow!("Invalid entropy: {}", e))?;
@@ -273,8 +275,8 @@ impl SeedGenerator {
         );
 
         let result = KeyDerivationResult {
-            private_key: hex::encode(&child_key.private_key.secret_bytes()),
-            public_key: hex::encode(&public_key.public_key.serialize()),
+            private_key: hex::encode(child_key.private_key.secret_bytes()),
+            public_key: hex::encode(public_key.public_key.serialize()),
             address,
         };
 

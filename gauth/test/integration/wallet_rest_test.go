@@ -74,7 +74,7 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 			DefaultQuorumThreshold: 1,
 		},
 		Security: config.SecurityConfig{
-			TLSEnabled: false,
+			TLSEnabled:  false,
 			CORSOrigins: []string{"*"},
 		},
 	}
@@ -114,7 +114,7 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 
 	// Set Redis client for session management
 	suite.restServer.SetRedis(suite.redis.Client)
-	
+
 	// Enable test mode to bypass session validation
 	suite.restServer.GetSessionManager().SetTestMode(true)
 
@@ -127,7 +127,7 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 
 	// Setup router for testing
 	suite.router = gin.New()
-	
+
 	// Setup API routes normally - we'll override session validation
 	suite.restServer.SetupAPIRoutes(suite.router)
 
@@ -179,8 +179,6 @@ func (suite *WalletRESTTestSuite) createTestSession() (string, error) {
 	sessionManager := suite.restServer.GetSessionManager()
 	return sessionManager.CreateSession(suite.ctx, suite.testUser, suite.testAuthMethod, "google")
 }
-
-
 
 func (suite *WalletRESTTestSuite) TearDownTest() {
 	// Clean up wallets created during tests

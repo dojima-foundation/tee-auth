@@ -34,6 +34,7 @@ jobs:
       with:
         toolchain: ${{ env.RUST_VERSION }}
         targets: ${{ matrix.target }}
+        components: rustfmt, clippy
         
     - name: Cache Rust dependencies
       uses: Swatinem/rust-cache@v2
@@ -131,6 +132,7 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: ${{ env.RUST_VERSION }}
+        components: rustfmt, clippy
         
     - name: Install cargo-audit
       run: |

@@ -17,13 +17,10 @@ import (
 // BenchmarkWalletCreation measures wallet creation performance
 func BenchmarkWalletCreation(b *testing.B) {
 	// Setup
-	testDB := testhelpers.SetupTestDB(b)
+	testDB := testhelpers.SetupTestDBForBenchmark(b)
 	defer testDB.Cleanup()
 
-	testLogger := logger.NewLogger(&logger.Config{
-		Level:  "error", // Reduce logging for benchmarks
-		Format: "text",
-	})
+	testLogger := logger.NewDefault()
 
 	cfg := &config.Config{
 		Auth: config.AuthConfig{
@@ -93,13 +90,10 @@ func BenchmarkWalletCreation(b *testing.B) {
 // BenchmarkPrivateKeyCreation measures private key creation performance
 func BenchmarkPrivateKeyCreation(b *testing.B) {
 	// Setup
-	testDB := testhelpers.SetupTestDB(b)
+	testDB := testhelpers.SetupTestDBForBenchmark(b)
 	defer testDB.Cleanup()
 
-	testLogger := logger.NewLogger(&logger.Config{
-		Level:  "error",
-		Format: "text",
-	})
+	testLogger := logger.NewDefault()
 
 	cfg := &config.Config{
 		Auth: config.AuthConfig{
@@ -149,13 +143,10 @@ func BenchmarkPrivateKeyCreation(b *testing.B) {
 // BenchmarkWalletRetrieval measures wallet retrieval performance
 func BenchmarkWalletRetrieval(b *testing.B) {
 	// Setup
-	testDB := testhelpers.SetupTestDB(b)
+	testDB := testhelpers.SetupTestDBForBenchmark(b)
 	defer testDB.Cleanup()
 
-	testLogger := logger.NewLogger(&logger.Config{
-		Level:  "error",
-		Format: "text",
-	})
+	testLogger := logger.NewDefault()
 
 	cfg := &config.Config{
 		Auth: config.AuthConfig{
@@ -239,13 +230,10 @@ func BenchmarkWalletRetrieval(b *testing.B) {
 // BenchmarkConcurrentWalletCreation measures concurrent wallet creation performance
 func BenchmarkConcurrentWalletCreation(b *testing.B) {
 	// Setup
-	testDB := testhelpers.SetupTestDB(b)
+	testDB := testhelpers.SetupTestDBForBenchmark(b)
 	defer testDB.Cleanup()
 
-	testLogger := logger.NewLogger(&logger.Config{
-		Level:  "error",
-		Format: "text",
-	})
+	testLogger := logger.NewDefault()
 
 	cfg := &config.Config{
 		Auth: config.AuthConfig{
@@ -302,13 +290,10 @@ func BenchmarkConcurrentWalletCreation(b *testing.B) {
 // BenchmarkMemoryUsage measures memory usage patterns
 func BenchmarkMemoryUsage(b *testing.B) {
 	// Setup
-	testDB := testhelpers.SetupTestDB(b)
+	testDB := testhelpers.SetupTestDBForBenchmark(b)
 	defer testDB.Cleanup()
 
-	testLogger := logger.NewLogger(&logger.Config{
-		Level:  "error",
-		Format: "text",
-	})
+	testLogger := logger.NewDefault()
 
 	cfg := &config.Config{
 		Auth: config.AuthConfig{
@@ -364,7 +349,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 
 // BenchmarkDatabaseOperations measures raw database performance
 func BenchmarkDatabaseOperations(b *testing.B) {
-	testDB := testhelpers.SetupTestDB(b)
+	testDB := testhelpers.SetupTestDBForBenchmark(b)
 	defer testDB.Cleanup()
 
 	// Create test organization

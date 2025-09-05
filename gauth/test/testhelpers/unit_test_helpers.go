@@ -21,11 +21,21 @@ type TestDB struct {
 
 // SetupTestDB creates an in-memory SQLite database for unit tests
 func SetupTestDB(t *testing.T) *TestDB {
+	return setupTestDBWithTB(t)
+}
+
+// SetupTestDBForBenchmark creates an in-memory SQLite database for benchmark tests
+func SetupTestDBForBenchmark(b *testing.B) *TestDB {
+	return setupTestDBWithTB(b)
+}
+
+// setupTestDBWithTB creates an in-memory SQLite database using the common testing.TB interface
+func setupTestDBWithTB(tb testing.TB) *TestDB {
 	// Use SQLite in-memory database for fast unit tests
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent), // Silent for tests
 	})
-	require.NoError(t, err)
+	require.NoError(tb, err)
 
 	// Auto-migrate all models
 	err = db.AutoMigrate(
@@ -41,7 +51,7 @@ func SetupTestDB(t *testing.T) *TestDB {
 		&models.Activity{},
 		&models.Proof{},
 	)
-	require.NoError(t, err)
+	require.NoError(tb, err)
 
 	// Create the quorum_members table (many-to-many relationship)
 	err = db.Exec(`
@@ -51,7 +61,7 @@ func SetupTestDB(t *testing.T) *TestDB {
 			PRIMARY KEY (organization_id, user_id)
 		)
 	`).Error
-	require.NoError(t, err)
+	require.NoError(tb, err)
 
 	return &TestDB{db: db}
 }

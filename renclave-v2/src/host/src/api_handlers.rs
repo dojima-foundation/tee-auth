@@ -3,6 +3,7 @@ use log::{debug, error, info, warn};
 use uuid::Uuid;
 
 use crate::AppState;
+#[allow(unused_imports)]
 use renclave_network::HttpConnectivityResult;
 use renclave_shared::*;
 

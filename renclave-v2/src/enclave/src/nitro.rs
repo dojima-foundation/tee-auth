@@ -4,12 +4,14 @@ use std::fs;
 use std::process::Command;
 
 /// Nitro Enclave attestation and security features
+#[allow(dead_code)]
 pub struct NitroAttestation {
     pub enclave_id: String,
     pub measurements: NitroMeasurements,
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct NitroMeasurements {
     pub pcr0: String, // Boot measurement
     pub pcr1: String, // Kernel measurement
@@ -17,6 +19,7 @@ pub struct NitroMeasurements {
     pub pcr3: String, // Custom measurement
 }
 
+#[allow(dead_code)]
 impl NitroAttestation {
     /// Initialize Nitro attestation (mock for QEMU)
     pub fn new(enclave_id: String) -> Self {
@@ -135,6 +138,7 @@ impl NitroAttestation {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AttestationDocument {
     pub enclave_id: String,
     pub measurements: NitroMeasurements,
@@ -144,6 +148,7 @@ pub struct AttestationDocument {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct EnclaveEnvironment {
     pub is_nitro_enclave: bool,
     pub is_qemu: bool,
@@ -153,8 +158,10 @@ pub struct EnclaveEnvironment {
 }
 
 /// Nitro Secure Module interface (mock for QEMU)
+#[allow(dead_code)]
 pub struct NitroSecureModule;
 
+#[allow(dead_code)]
 impl NitroSecureModule {
     /// Get random bytes from NSM (fallback to system RNG in QEMU)
     pub fn get_random(num_bytes: usize) -> Result<Vec<u8>> {
@@ -193,6 +200,7 @@ impl NitroSecureModule {
 }
 
 /// Initialize Nitro-specific features
+#[allow(dead_code)]
 pub async fn initialize_nitro_features() -> Result<()> {
     info!("🔐 Initializing Nitro-specific features");
 

@@ -124,7 +124,7 @@ impl EnclaveClient {
         debug!("📥 Raw response from enclave: {}", response_line.trim());
 
         // Deserialize response
-        let response: EnclaveResponse = serde_json::from_str(&response_line.trim())
+        let response: EnclaveResponse = serde_json::from_str(response_line.trim())
             .context("Failed to deserialize response from enclave")?;
 
         debug!("✅ Response deserialized successfully");

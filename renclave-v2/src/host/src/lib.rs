@@ -8,6 +8,7 @@ pub mod enclave_client;
 
 // Re-export main types for convenience
 pub use api_handlers::*;
+#[allow(unused_imports)]
 pub use enclave_client::*;
 
 use enclave_client::EnclaveClient;

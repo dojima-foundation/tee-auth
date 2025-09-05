@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 /// Connectivity tester for network interfaces
 pub struct ConnectivityTester {
+    #[allow(dead_code)]
     timeout: Duration,
 }
 

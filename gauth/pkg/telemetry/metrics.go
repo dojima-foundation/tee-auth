@@ -293,4 +293,3 @@ func UpdateTelemetryWithMetrics(t *Telemetry, metricsPort int) error {
 
 	return nil
 }
-
