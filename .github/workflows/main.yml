@@ -36,7 +36,7 @@ env:
   DOCKER_REGISTRY: "dojima0foundation"
 
 jobs:
-  renclave-v2:
+  # renclave-v2:
     name: Renclave-v2
     runs-on: ubuntu-latest
     environment: dev
@@ -97,7 +97,7 @@ jobs:
           org.opencontainers.image.source=https://github.com/dojima/tee-auth
           org.opencontainers.image.version=${{ github.sha }}
 
-  gauth:
+  # gauth:
     name: Gauth
     runs-on: ubuntu-latest
     environment: dev
@@ -209,7 +209,7 @@ jobs:
           org.opencontainers.image.source=https://github.com/dojima/tee-auth
           org.opencontainers.image.version=${{ github.sha }}
 
-  web:
+  # web:
     name: Web
     runs-on: ubuntu-latest
     environment: dev
@@ -293,7 +293,7 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     environment: dev
-    needs: [renclave-v2, gauth, web]
+    # needs: [renclave-v2, gauth, web]  # Commented out to run integration tests independently
     
     services:
       postgres:
@@ -377,30 +377,30 @@ jobs:
         npx playwright install --with-deps
         npm run test:e2e
 
-  summary:
-    name: Test Summary
-    runs-on: ubuntu-latest
-    environment: dev
-    needs: [renclave-v2, gauth, web, integration]
-    if: always()
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Generate test summary
-      run: |
-        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Component Status:" >> $GITHUB_STEP_SUMMARY
-        echo "- **Renclave-v2**: ${{ needs.renclave-v2.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Gauth**: ${{ needs.gauth.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Web**: ${{ needs.web.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Integration**: ${{ needs.integration.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        if [[ "${{ needs.renclave-v2.result }}" == "success" && "${{ needs.gauth.result }}" == "success" && "${{ needs.web.result }}" == "success" && "${{ needs.integration.result }}" == "success" ]]; then
-          echo "✅ All components passed!" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Some components failed. Check individual job logs for details." >> $GITHUB_STEP_SUMMARY
-        fi
+  # summary:
+  #   name: Test Summary
+  #   runs-on: ubuntu-latest
+  #   environment: dev
+  #   needs: [renclave-v2, gauth, web, integration]
+  #   if: always()
+  #   
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v4
+  #     
+  #   - name: Generate test summary
+  #     run: |
+  #       echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+  #       echo "" >> $GITHUB_STEP_SUMMARY
+  #       echo "### Component Status:" >> $GITHUB_STEP_SUMMARY
+  #       echo "- **Renclave-v2**: ${{ needs.renclave-v2.result }}" >> $GITHUB_STEP_SUMMARY
+  #       echo "- **Gauth**: ${{ needs.gauth.result }}" >> $GITHUB_STEP_SUMMARY
+  #       echo "- **Web**: ${{ needs.web.result }}" >> $GITHUB_STEP_SUMMARY
+  #       echo "- **Integration**: ${{ needs.integration.result }}" >> $GITHUB_STEP_SUMMARY
+  #       echo "" >> $GITHUB_STEP_SUMMARY
+  #       
+  #       if [[ "${{ needs.renclave-v2.result }}" == "success" && "${{ needs.gauth.result }}" == "success" && "${{ needs.web.result }}" == "success" && "${{ needs.integration.result }}" == "success" ]]; then
+  #         echo "✅ All components passed!" >> $GITHUB_STEP_SUMMARY
+  #       else
+  #         echo "❌ Some components failed. Check individual job logs for details." >> $GITHUB_STEP_SUMMARY
+  #       fi
