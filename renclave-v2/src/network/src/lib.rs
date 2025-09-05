@@ -318,7 +318,10 @@ impl NetworkManager {
                 self.config.gateway_ip
             );
         } else {
-            warn!("⚠️  Gateway connectivity failed: {}", self.config.gateway_ip);
+            warn!(
+                "⚠️  Gateway connectivity failed: {}",
+                self.config.gateway_ip
+            );
         }
 
         Ok(())
