@@ -30,10 +30,10 @@ export default function SessionTestPage() {
             setLoading(true);
             const info = await getSessionInfo();
             setSessionInfo(info);
-            showSnackbar('Session info loaded', 'success');
+            showSnackbar({ title: 'Session info loaded', type: 'success' });
         } catch (error) {
             console.error('Failed to load session info:', error);
-            showSnackbar('Failed to load session info', 'error');
+            showSnackbar({ title: 'Failed to load session info', type: 'error' });
         } finally {
             setLoading(false);
         }
@@ -46,10 +46,10 @@ export default function SessionTestPage() {
             setLoading(true);
             const sessions = await listSessions();
             setAllSessions(sessions);
-            showSnackbar(`Loaded ${sessions.length} sessions`, 'success');
+            showSnackbar({ title: `Loaded ${sessions.length} sessions`, type: 'success' });
         } catch (error) {
             console.error('Failed to load sessions:', error);
-            showSnackbar('Failed to load sessions', 'error');
+            showSnackbar({ title: 'Failed to load sessions', type: 'error' });
         } finally {
             setLoading(false);
         }
@@ -59,20 +59,20 @@ export default function SessionTestPage() {
         try {
             await refreshSession();
             await loadSessionInfo();
-            showSnackbar('Session refreshed successfully', 'success');
+            showSnackbar({ title: 'Session refreshed successfully', type: 'success' });
         } catch (error) {
             console.error('Failed to refresh session:', error);
-            showSnackbar('Failed to refresh session', 'error');
+            showSnackbar({ title: 'Failed to refresh session', type: 'error' });
         }
     };
 
     const handleValidateSession = async () => {
         try {
             const isValid = await validateSession();
-            showSnackbar(`Session validation: ${isValid ? 'Valid' : 'Invalid'}`, isValid ? 'success' : 'error');
+            showSnackbar({ title: `Session validation: ${isValid ? 'Valid' : 'Invalid'}`, type: isValid ? 'success' : 'error' });
         } catch (error) {
             console.error('Failed to validate session:', error);
-            showSnackbar('Failed to validate session', 'error');
+            showSnackbar({ title: 'Failed to validate session', type: 'error' });
         }
     };
 
@@ -80,10 +80,10 @@ export default function SessionTestPage() {
         try {
             await destroySession(sessionId);
             await loadAllSessions();
-            showSnackbar('Session destroyed successfully', 'success');
+            showSnackbar({ title: 'Session destroyed successfully', type: 'success' });
         } catch (error) {
             console.error('Failed to destroy session:', error);
-            showSnackbar('Failed to destroy session', 'error');
+            showSnackbar({ title: 'Failed to destroy session', type: 'error' });
         }
     };
 

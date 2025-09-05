@@ -153,21 +153,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 console.log('🧪 [AuthProvider] Test mode detected for dashboard route, using mock authentication');
                 // Create mock session data for testing
                 const mockSession: AuthSession = {
-                    session_id: 'test-session-id',
+                    session_token: 'test-session-token',
                     user: {
                         id: 'test-user-id',
                         email: 'test@example.com',
                         username: 'testuser',
                         organization_id: 'test-org-id',
                         public_key: 'test-public-key',
-                        tags: ['test'],
                         is_active: true,
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
                     },
                     expires_at: (Date.now() + 24 * 60 * 60 * 1000).toString(), // 24 hours from now
-                    created_at: new Date().toISOString(),
-                    last_activity: new Date().toISOString(),
+                    auth_method: {
+                        id: 'test-auth-method-id',
+                        type: 'mock',
+                        name: 'Mock Authentication'
+                    }
                 };
                 
                 dispatch({ type: 'AUTH_SUCCESS', payload: mockSession });

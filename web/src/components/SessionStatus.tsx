@@ -45,10 +45,10 @@ export function SessionStatus({ showDetails = false, className = '' }: SessionSt
             setRefreshing(true);
             await refreshSession();
             await loadSessionInfo();
-            showSnackbar('Session refreshed', 'success');
+            showSnackbar({ title: 'Session refreshed', type: 'success' });
         } catch (error) {
             console.error('Failed to refresh session:', error);
-            showSnackbar('Failed to refresh session', 'error');
+            showSnackbar({ title: 'Failed to refresh session', type: 'error' });
         } finally {
             setRefreshing(false);
         }

@@ -34,7 +34,7 @@ export function SessionManager() {
             setCurrentSession(sessionInfo);
         } catch (error) {
             console.error('Failed to load current session:', error);
-            showSnackbar('Failed to load session information', 'error');
+            showSnackbar({ title: 'Failed to load session information', type: 'error' });
         } finally {
             setLoading(false);
         }
@@ -50,7 +50,7 @@ export function SessionManager() {
             setAllSessions(sessions);
         } catch (error) {
             console.error('Failed to load sessions:', error);
-            showSnackbar('Failed to load sessions', 'error');
+            showSnackbar({ title: 'Failed to load sessions', type: 'error' });
         } finally {
             setLoading(false);
         }
@@ -62,10 +62,10 @@ export function SessionManager() {
             setRefreshing(true);
             await refreshSession();
             await loadCurrentSession();
-            showSnackbar('Session refreshed successfully', 'success');
+            showSnackbar({ title: 'Session refreshed successfully', type: 'success' });
         } catch (error) {
             console.error('Failed to refresh session:', error);
-            showSnackbar('Failed to refresh session', 'error');
+            showSnackbar({ title: 'Failed to refresh session', type: 'error' });
         } finally {
             setRefreshing(false);
         }
@@ -76,10 +76,10 @@ export function SessionManager() {
         try {
             await destroySession(sessionId);
             await loadAllSessions();
-            showSnackbar('Session destroyed successfully', 'success');
+            showSnackbar({ title: 'Session destroyed successfully', type: 'success' });
         } catch (error) {
             console.error('Failed to destroy session:', error);
-            showSnackbar('Failed to destroy session', 'error');
+            showSnackbar({ title: 'Failed to destroy session', type: 'error' });
         }
     };
 
