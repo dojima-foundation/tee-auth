@@ -10,4 +10,4 @@
 
 - **Full Project**: ![Full Project CI/CD](https://github.com/dojima-foundation/tee-auth/workflows/Full%20Project%20CI%20CD/badge.svg)
 
-*Last updated: 2025-09-05T14:53:39Z*
+*Last updated: 2025-09-05T14:59:30Z*
