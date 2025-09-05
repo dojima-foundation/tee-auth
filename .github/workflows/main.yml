@@ -158,8 +158,12 @@ jobs:
         which protoc-gen-go-grpc || echo "protoc-gen-go-grpc not found"
         echo "Running proto generation:"
         make proto
-        echo "Checking generated files:"
+        echo "Checking generated files in api/proto/:"
         ls -la api/proto/
+        echo "Searching for all .pb.go files:"
+        find . -name "*.pb.go" -type f
+        echo "Checking current directory structure:"
+        find . -name "github.com" -type d
         
     - name: Run Go tests
       run: |
