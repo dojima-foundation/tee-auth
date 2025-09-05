@@ -157,16 +157,22 @@ jobs:
         echo "Checking if protoc-gen-go-grpc is available:"
         which protoc-gen-go-grpc || echo "protoc-gen-go-grpc not found"
         echo "Running proto generation with detailed output:"
+        echo "Current directory: $(pwd)"
+        echo "Proto file exists: $(ls -la api/proto/gauth.proto)"
+        echo "Running protoc command:"
         protoc --go_out=. --go-grpc_out=. --proto_path=. api/proto/gauth.proto
+        echo "Protoc exit code: $?"
         echo "Checking if files were generated before cleanup:"
         find . -name "*.pb.go" -type f
-        echo "Running make proto:"
+        echo "Checking directory structure before cleanup:"
+        find . -name "github.com" -type d
+        echo "Running make proto (which includes cleanup):"
         make proto
-        echo "Checking generated files in api/proto/:"
+        echo "Checking generated files in api/proto/ after cleanup:"
         ls -la api/proto/
-        echo "Searching for all .pb.go files:"
+        echo "Searching for all .pb.go files after cleanup:"
         find . -name "*.pb.go" -type f
-        echo "Checking current directory structure:"
+        echo "Checking if nested directory was cleaned up:"
         find . -name "github.com" -type d
         
     - name: Run Go tests
