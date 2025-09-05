@@ -35,14 +35,14 @@ test.describe('Authentication Flow', () => {
     })
 
     test('should navigate to dashboard page', async ({ page }) => {
-        // Click the dashboard link
+        // Click the dashboard link (should redirect to sign-in for unauthenticated users)
         await page.getByRole('link', { name: /go to dashboard/i }).click()
 
-        // Check that we're on the dashboard page
-        await expect(page).toHaveURL(/.*\/dashboard/)
+        // Check that we're redirected to the sign-in page (correct behavior for unauthenticated users)
+        await expect(page).toHaveURL(/.*\/auth\/signin/)
 
-        // Check for dashboard elements (these would depend on your actual dashboard)
-        // await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible()
+        // Check for sign-in form elements
+        // await expect(page.getByRole('button', { name: /sign in with google/i })).toBeVisible()
     })
 
     test('should handle navigation between pages', async ({ page }) => {
@@ -57,9 +57,9 @@ test.describe('Authentication Flow', () => {
         await page.goto('/')
         await expect(page.getByRole('heading', { name: /welcome to odeys/i })).toBeVisible()
 
-        // Navigate to dashboard
+        // Navigate to dashboard (should redirect to sign-in for unauthenticated users)
         await page.getByRole('link', { name: /go to dashboard/i }).click()
-        await expect(page).toHaveURL(/.*\/dashboard/)
+        await expect(page).toHaveURL(/.*\/auth\/signin/)
     })
 })
 

@@ -144,11 +144,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const initializeSession = async () => {
             console.log('🔍 [AuthProvider] Starting session initialization...');
 
-            // Check if we're in test mode
+            // Check if we're in test mode with mock authentication enabled
             const isTestMode = process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_TEST_MODE === 'true';
+            const mockAuthEnabled = process.env.NEXT_PUBLIC_MOCK_AUTH === 'true' || 
+                (typeof window !== 'undefined' && (window as any).__MOCK_AUTH__);
             
-            if (isTestMode) {
-                console.log('🧪 [AuthProvider] Test mode detected, using mock authentication');
+            if (isTestMode && mockAuthEnabled) {
+                console.log('🧪 [AuthProvider] Test mode detected for dashboard route, using mock authentication');
                 // Create mock session data for testing
                 const mockSession: AuthSession = {
                     session_id: 'test-session-id',

@@ -13,11 +13,18 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     const { isAuthenticated, loading } = useAuth();
     const router = useRouter();
 
+    // Check if we're in test mode with mock authentication enabled
+    const isTestMode = process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_TEST_MODE === 'true';
+    const mockAuthEnabled = process.env.NEXT_PUBLIC_MOCK_AUTH === 'true' || 
+        (typeof window !== 'undefined' && (window as any).__MOCK_AUTH__);
+
     useEffect(() => {
-        if (!loading && !isAuthenticated) {
+        // In test mode with mock auth, don't redirect
+        // Otherwise, redirect unauthenticated users to sign-in
+        if (!loading && !isAuthenticated && !(isTestMode && mockAuthEnabled)) {
             router.push('/auth/signin');
         }
-    }, [isAuthenticated, loading, router]);
+    }, [isAuthenticated, loading, router, isTestMode, mockAuthEnabled]);
 
     if (loading) {
         return fallback || (
@@ -30,7 +37,8 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
         );
     }
 
-    if (!isAuthenticated) {
+    // In test mode with mock auth, allow access even without authentication
+    if (!isAuthenticated && !(isTestMode && mockAuthEnabled)) {
         return null; // Will redirect
     }
 
