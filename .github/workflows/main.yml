@@ -156,7 +156,11 @@ jobs:
         which protoc-gen-go || echo "protoc-gen-go not found"
         echo "Checking if protoc-gen-go-grpc is available:"
         which protoc-gen-go-grpc || echo "protoc-gen-go-grpc not found"
-        echo "Running proto generation:"
+        echo "Running proto generation with verbose output:"
+        protoc --go_out=. --go-grpc_out=. --proto_path=. api/proto/gauth.proto --verbose
+        echo "Checking if files were generated before cleanup:"
+        find . -name "*.pb.go" -type f
+        echo "Running make proto:"
         make proto
         echo "Checking generated files in api/proto/:"
         ls -la api/proto/
