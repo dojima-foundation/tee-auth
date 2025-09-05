@@ -127,6 +127,7 @@ func BenchmarkPrivateKeyCreation(b *testing.B) {
 				_, err := service.CreatePrivateKey(
 					ctx,
 					organizationID,
+					"", // walletID - empty for standalone private keys
 					fmt.Sprintf("Benchmark Key %d", i),
 					curve,
 					nil, // Generate new key
