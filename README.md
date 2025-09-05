@@ -2,6 +2,16 @@
 
 TEE-Auth is a secure authentication and key management system leveraging trusted execution environments (TEEs) for cryptographic operations. It consists of two main components: `gauth` (Go Authentication Service) and `renclave-v2` (Rust-based Enclave for seed generation).
 
+## CI/CD Status
+
+### Component Workflows
+- **Renclave-v2**: ![Renclave-v2 CI/CD](https://github.com/dojima-foundation/tee-auth/workflows/Renclave-v2%20CI%20CD/badge.svg)
+- **Gauth**: ![Gauth CI/CD](https://github.com/dojima-foundation/tee-auth/workflows/Gauth%20CI%20CD/badge.svg)
+- **Web**: ![Web CI/CD](https://github.com/dojima-foundation/tee-auth/workflows/Web%20CI%20CD/badge.svg)
+
+### Integration Workflow
+- **Full Project**: ![Full Project CI/CD](https://github.com/dojima-foundation/tee-auth/workflows/Full%20Project%20CI%20CD/badge.svg)
+
 ## Project Structure
 
 - **gauth/**: The core authentication service written in Go.

@@ -22,24 +22,53 @@ jobs:
       
     - name: Generate Badge URLs
       run: |
-        echo "## CI/CD Status Badges" > badges.md
-        echo "" >> badges.md
-        echo "### Component Workflows" >> badges.md
-        echo "" >> badges.md
-        echo "- **Renclave-v2**: ![Renclave-v2 CI/CD](https://github.com/${{ github.repository }}/workflows/Renclave-v2%20CI%20CD/badge.svg)" >> badges.md
-        echo "- **Gauth**: ![Gauth CI/CD](https://github.com/${{ github.repository }}/workflows/Gauth%20CI%20CD/badge.svg)" >> badges.md
-        echo "- **Web**: ![Web CI/CD](https://github.com/${{ github.repository }}/workflows/Web%20CI%20CD/badge.svg)" >> badges.md
-        echo "" >> badges.md
-        echo "### Integration Workflow" >> badges.md
-        echo "" >> badges.md
-        echo "- **Full Project**: ![Full Project CI/CD](https://github.com/${{ github.repository }}/workflows/Full%20Project%20CI%20CD/badge.svg)" >> badges.md
-        echo "" >> badges.md
-        echo "*Last updated: ${{ github.event.workflow_run.updated_at }}*" >> badges.md
+        # Create a temporary file with the badges section
+        cat > badges_section.md << 'EOF'
+        
+        ## CI/CD Status
+        
+        ### Component Workflows
+        - **Renclave-v2**: ![Renclave-v2 CI/CD](https://github.com/${{ github.repository }}/workflows/Renclave-v2%20CI%20CD/badge.svg)
+        - **Gauth**: ![Gauth CI/CD](https://github.com/${{ github.repository }}/workflows/Gauth%20CI%20CD/badge.svg)
+        - **Web**: ![Web CI/CD](https://github.com/${{ github.repository }}/workflows/Web%20CI%20CD/badge.svg)
+        
+        ### Integration Workflow
+        - **Full Project**: ![Full Project CI/CD](https://github.com/${{ github.repository }}/workflows/Full%20Project%20CI%20CD/badge.svg)
+        
+        *Last updated: ${{ github.event.workflow_run.updated_at }}*
+        
+        EOF
+        
+        # Check if badges section already exists in README
+        if grep -q "## CI/CD Status" README.md; then
+          # Replace existing badges section
+          awk '
+            /^## CI/CD Status/ { 
+              skip = 1; 
+              while ((getline line < "badges_section.md") > 0) print line; 
+              close("badges_section.md");
+              next 
+            }
+            skip && /^##/ && !/^## CI\/CD Status/ { skip = 0 }
+            !skip { print }
+          ' README.md > README_new.md
+          mv README_new.md README.md
+        else
+          # Add badges section after the first heading
+          awk '
+            NR == 1 { print; print ""; while ((getline line < "badges_section.md") > 0) print line; close("badges_section.md"); next }
+            { print }
+          ' README.md > README_new.md
+          mv README_new.md README.md
+        fi
+        
+        # Clean up temporary file
+        rm badges_section.md
         
     - name: Commit Badge Updates
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add badges.md
-        git diff --quiet && git diff --staged --quiet || git commit -m "Update CI/CD status badges"
+        git add README.md
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update CI/CD status badges in README"
         git push
