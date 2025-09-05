@@ -363,7 +363,13 @@ jobs:
         cd gauth
         make test-integration
       env:
+        TEST_DB_HOST: localhost
+        TEST_DB_USER: gauth
+        TEST_DB_PASSWORD: password
         TEST_DB_NAME: gauth_integration
+        TEST_REDIS_HOST: localhost
+        TEST_REDIS_PORT: 6379
+        TEST_REDIS_PASSWORD: ""
         
     - name: Run E2E tests
       run: |
