@@ -19,10 +19,30 @@ on:
       - '.github/workflows/web.yml'
   workflow_dispatch:
     inputs:
-      run_all:
-        description: 'Run all component tests'
+      run_renclave:
+        description: 'Run Renclave-v2 tests and build'
         required: false
-        default: false
+        default: true
+        type: boolean
+      run_gauth:
+        description: 'Run Gauth tests and build'
+        required: false
+        default: true
+        type: boolean
+      run_web:
+        description: 'Run Web tests and build'
+        required: false
+        default: true
+        type: boolean
+      run_integration:
+        description: 'Run Integration tests'
+        required: false
+        default: true
+        type: boolean
+      run_summary:
+        description: 'Run Summary job'
+        required: false
+        default: true
         type: boolean
 
 env:
@@ -40,6 +60,7 @@ jobs:
     name: Renclave-v2
     runs-on: ubuntu-latest
     environment: dev
+    if: ${{ github.event.inputs.run_renclave == 'true' || github.event_name != 'workflow_dispatch' }}
 
     steps:
     - name: Checkout code
@@ -101,6 +122,7 @@ jobs:
     name: Gauth
     runs-on: ubuntu-latest
     environment: dev
+    if: ${{ github.event.inputs.run_gauth == 'true' || github.event_name != 'workflow_dispatch' }}
     
     services:
       postgres:
@@ -213,6 +235,7 @@ jobs:
     name: Web
     runs-on: ubuntu-latest
     environment: dev
+    if: ${{ github.event.inputs.run_web == 'true' || github.event_name != 'workflow_dispatch' }}
 
     steps:
     - name: Checkout code
@@ -293,6 +316,7 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     environment: dev
+    if: ${{ github.event.inputs.run_integration == 'true' || github.event_name != 'workflow_dispatch' }}
     # needs: [renclave-v2, gauth, web]  # Commented out to run integration tests independently
     
     services:
@@ -382,7 +406,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     needs: [renclave-v2, gauth, web, integration]
-    if: always()
+    if: ${{ github.event.inputs.run_summary == 'true' || github.event_name != 'workflow_dispatch' }} && always()
     
     steps:
     - name: Checkout code
