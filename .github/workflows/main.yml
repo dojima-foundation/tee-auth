@@ -341,6 +341,23 @@ jobs:
         cd ../web
         npm ci
         
+    - name: Install protoc
+      uses: arduino/setup-protoc@v1
+      with:
+        version: 3.x
+        
+    - name: Install protoc plugins
+      run: |
+        cd gauth
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+        
+    - name: Generate protobuf code
+      run: |
+        cd gauth
+        export PATH=$PATH:$(go env GOPATH)/bin
+        make proto
+        
     - name: Run integration tests
       run: |
         cd gauth
