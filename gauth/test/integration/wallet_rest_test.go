@@ -124,6 +124,10 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 
 	// Setup router for testing
 	suite.router = gin.New()
+	
+	// Add test middleware that bypasses authentication
+	suite.router.Use(suite.testAuthMiddleware())
+	
 	suite.restServer.SetupAPIRoutes(suite.router)
 
 	// Create test organization and user
@@ -168,6 +172,28 @@ func (suite *WalletRESTTestSuite) createTestSession() (string, error) {
 	return sessionManager.CreateSession(suite.ctx, suite.testUser, suite.testAuthMethod, "google")
 }
 
+// testAuthMiddleware creates a middleware that bypasses authentication for tests
+func (suite *WalletRESTTestSuite) testAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Set test session data in context to bypass authentication
+		c.Set("session", &rest.SessionData{
+			UserID:         suite.testUser.ID.String(),
+			OrganizationID: suite.testUser.OrganizationID.String(),
+			Email:          suite.testUser.Email,
+			Username:       suite.testUser.Username,
+			AuthMethodID:   suite.testAuthMethod.ID.String(),
+			OAuthProvider:  "google",
+			CreatedAt:      time.Now(),
+			LastActivity:   time.Now(),
+			ExpiresAt:      time.Now().Add(24 * time.Hour),
+		})
+		c.Set("user_id", suite.testUser.ID.String())
+		c.Set("organization_id", suite.testUser.OrganizationID.String())
+		c.Set("auth_method_id", suite.testAuthMethod.ID.String())
+		c.Next()
+	}
+}
+
 func (suite *WalletRESTTestSuite) TearDownTest() {
 	// Clean up wallets created during tests
 	suite.db.DB.GetDB().Exec("DELETE FROM wallet_accounts")
@@ -193,9 +219,6 @@ func (suite *WalletRESTTestSuite) TestCreateWallet_Success() {
 	body, _ := json.Marshal(requestBody)
 	req := httptest.NewRequest("POST", "/api/v1/wallets", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	
-	// Add session authentication
-	testhelpers.AddSessionToRequest(req, suite.testSessionID)
 
 	w := httptest.NewRecorder()
 	suite.router.ServeHTTP(w, req)
