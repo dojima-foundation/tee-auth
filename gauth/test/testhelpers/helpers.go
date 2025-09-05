@@ -486,23 +486,9 @@ func (tr *TestRedis) DeferCleanup(ctx context.Context) func() {
 
 // CreateTestSession creates a test session for authenticated requests
 func (td *TestDatabase) CreateTestSession(ctx context.Context, user *models.User, authMethod *models.AuthMethod, oauthProvider string) (string, error) {
-	// Create session data
-	sessionData := map[string]interface{}{
-		"user_id":             user.ID.String(),
-		"organization_id":     user.OrganizationID.String(),
-		"email":               user.Email,
-		"username":            user.Username,
-		"auth_method_id":      authMethod.ID.String(),
-		"oauth_provider":      oauthProvider,
-		"created_at":          time.Now(),
-		"last_activity":       time.Now(),
-		"expires_at":          time.Now().Add(24 * time.Hour),
-	}
-
 	// Generate session ID
 	sessionID := uuid.New().String()
 
-	// Store session in Redis (if available)
 	// For now, we'll just return the session ID
 	// In a real implementation, this would store the session data in Redis
 
