@@ -2,8 +2,14 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Dashboard', () => {
     test.beforeEach(async ({ page }) => {
-        // Navigate to dashboard before each test
-        await page.goto('/dashboard')
+        // Navigate to home page first
+        await page.goto('/')
+        
+        // Click the dashboard link to authenticate and navigate to dashboard
+        await page.getByRole('link', { name: /go to dashboard/i }).click()
+        
+        // Wait for navigation to complete
+        await page.waitForURL(/.*\/dashboard/)
     })
 
     test('should display dashboard page', async ({ page }) => {

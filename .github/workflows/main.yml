@@ -433,7 +433,9 @@ jobs:
         cd web
         # Set environment variables for web service (Playwright will start it)
         export NEXT_PUBLIC_API_URL="http://localhost:8080"
+        export NEXT_PUBLIC_GAUTH_API_URL="http://localhost:8080"
         export NEXT_PUBLIC_GRPC_URL="localhost:9090"
+        export NEXT_PUBLIC_TEST_MODE="true"
         npx playwright install --with-deps
         npm run test:e2e
         
