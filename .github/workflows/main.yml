@@ -382,18 +382,18 @@ jobs:
         export PATH=$PATH:$(go env GOPATH)/bin
         make proto
         
-    - name: Install migration tool
+    - name: Install migration tool with postgres driver
       run: |
         cd gauth
-        go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+        # Install migrate with postgres driver support
+        go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
         
     - name: Run database migrations
       run: |
         cd gauth
         export PATH=$PATH:$(go env GOPATH)/bin
-        make migrate-up
-      env:
-        DATABASE_URL: postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable
+        # Use migrate with postgres driver explicitly
+        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" up
         
     - name: Run integration tests
       run: |
