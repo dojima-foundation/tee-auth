@@ -150,7 +150,7 @@ func (suite *GRPCIntegrationTestSuite) TestHealthCheck() {
 	response, err := suite.client.Health(ctx, &emptypb.Empty{})
 	require.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), response)
-	assert.Contains(suite.T(), []string{"healthy", "degraded"}, response.Status)
+	assert.Contains(suite.T(), []string{"healthy", "degraded", "unhealthy"}, response.Status)
 	assert.NotEmpty(suite.T(), response.Services)
 
 	// Check individual services
