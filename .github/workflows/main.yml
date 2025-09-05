@@ -427,33 +427,18 @@ jobs:
         # Check if service is running
         curl -f http://localhost:8080/health || echo "Gauth service not ready yet"
         
-    - name: Start web service in background
-      run: |
-        cd web
-        # Set environment variables for web service
-        export NEXT_PUBLIC_API_URL="http://localhost:8080"
-        export NEXT_PUBLIC_GRPC_URL="localhost:9092"
-        # Start web service in background
-        nohup npm run dev > web.log 2>&1 &
-        echo $! > web.pid
-        # Wait for service to start
-        sleep 15
-        # Check if service is running
-        curl -f http://localhost:3000 || echo "Web service not ready yet"
-        
     - name: Run E2E tests
       run: |
         cd web
+        # Set environment variables for web service (Playwright will start it)
+        export NEXT_PUBLIC_API_URL="http://localhost:8080"
+        export NEXT_PUBLIC_GRPC_URL="localhost:9092"
         npx playwright install --with-deps
         npm run test:e2e
         
-    - name: Stop background services
+    - name: Stop gauth service
       if: always()
       run: |
-        # Stop web service
-        if [ -f web/web.pid ]; then
-          kill $(cat web/web.pid) 2>/dev/null || true
-        fi
         # Stop gauth service
         if [ -f gauth/gauth.pid ]; then
           kill $(cat gauth/gauth.pid) 2>/dev/null || true
