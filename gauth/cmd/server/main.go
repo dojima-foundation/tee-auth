@@ -105,7 +105,13 @@ func main() {
 	)
 
 	// Initialize service layer
-	svc := service.NewGAuthService(cfg, lgr, database, redis)
+	var svc *service.GAuthService
+	if os.Getenv("USE_MOCK_ENCLAVE") == "true" {
+		lgr.Info("Using mock enclave client for testing")
+		svc = service.NewGAuthServiceWithEnclave(cfg, lgr, database, redis, service.NewMockRenclaveClient())
+	} else {
+		svc = service.NewGAuthService(cfg, lgr, database, redis)
+	}
 
 	// Initialize servers
 	grpcSrv := grpcServer.NewServer(cfg, lgr, svc, tel)
