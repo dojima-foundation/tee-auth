@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Web Application",
-  description: "A clean Next.js application with Redux Saga and theme support",
+  title: "ODEYS - Secure Authentication Platform",
+  description: "Secure authentication and user management platform",
 };
 
 export default function RootLayout({

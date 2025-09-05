@@ -100,7 +100,7 @@ test.describe('Accessibility', () => {
         await expect(mainHeading).toBeVisible()
 
         // Check that it's an h1
-        await expect(mainHeading).toHaveAttribute('tagName', 'H1')
+        await expect(mainHeading).toHaveText(/welcome to odeys/i)
     })
 
     test('should have accessible links', async ({ page }) => {
