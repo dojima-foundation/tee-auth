@@ -133,7 +133,7 @@ jobs:
         # Download pre-built binary with all drivers included
         curl -L https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz | tar xvz
         chmod +x migrate
-        sudo mv migrate /usr/local/bin/
+        # Use local binary instead of moving to system path
         
     - name: Setup integration test database
       run: |
@@ -152,10 +152,10 @@ jobs:
         PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "CREATE DATABASE gauth_integration;" 2>/dev/null || echo "Database already exists"
         
         # Run migrations on integration test database
-        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" up
+        ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" up
         
         # Verify migrations were applied
-        VERSION=$(migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" version)
+        VERSION=$(./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" version)
         echo "Migration version: $VERSION"
         
         # Verify tables exist
@@ -266,21 +266,21 @@ jobs:
         # Download pre-built binary with all drivers included
         curl -L https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz | tar xvz
         chmod +x migrate
-        sudo mv migrate /usr/local/bin/
+        # Use local binary instead of moving to system path
         
     - name: Run migrations up
       run: |
         cd gauth
         # Use migrate with postgres driver explicitly
-        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" up
+        ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" up
         
     - name: Check migration version
       run: |
         cd gauth
-        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" version
+        ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" version
         
     - name: Run migrations down
       run: |
         cd gauth
         # Go down one migration step to test rollback functionality
-        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" down 1
+        ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" down 1
