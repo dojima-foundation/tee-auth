@@ -58,7 +58,7 @@ env:
 jobs:
   renclave-v2:
     name: Renclave-v2
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     environment: dev
     if: ${{ github.event.inputs.run_renclave == 'true' || github.event_name != 'workflow_dispatch' }}
 
@@ -120,7 +120,7 @@ jobs:
 
   gauth:
     name: Gauth
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     environment: dev
     if: ${{ github.event.inputs.run_gauth == 'true' || github.event_name != 'workflow_dispatch' }}
     
@@ -233,7 +233,7 @@ jobs:
 
   web:
     name: Web
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     environment: dev
     if: ${{ github.event.inputs.run_web == 'true' || github.event_name != 'workflow_dispatch' }}
 
@@ -314,7 +314,7 @@ jobs:
 
   integration:
     name: Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     environment: dev
     if: ${{ github.event.inputs.run_integration == 'true' || github.event_name != 'workflow_dispatch' }}
     # needs: [renclave-v2, gauth, web]  # Commented out to run integration tests independently
@@ -451,7 +451,7 @@ jobs:
 
   summary:
     name: Test Summary
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     environment: dev
     needs: [renclave-v2, gauth, web, integration]
     if: ${{ github.event.inputs.run_summary == 'true' || github.event_name != 'workflow_dispatch' }} && always()
