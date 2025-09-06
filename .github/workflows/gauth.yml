@@ -127,20 +127,20 @@ jobs:
         cd gauth
         make test-unit
         
-    - name: Install PostgreSQL client
+    - name: Check PostgreSQL client availability
       run: |
-        # Try to install PostgreSQL client without sudo
-        if command -v apt-get &> /dev/null; then
-          # For systems with apt-get but no sudo access
-          echo "Attempting to install postgresql-client..."
-          apt-get update && apt-get install -y postgresql-client || echo "Failed to install postgresql-client via apt-get"
-        fi
-        
         # Check if pg_isready is available, if not we'll use alternative method
         if ! command -v pg_isready &> /dev/null; then
-          echo "pg_isready not available, will use alternative database connection test"
+          echo "pg_isready not available, will use alternative database connection test with psql"
         else
           echo "pg_isready is available"
+        fi
+        
+        # Check if psql is available for alternative connection testing
+        if command -v psql &> /dev/null; then
+          echo "psql is available for database connection testing"
+        else
+          echo "Warning: Neither pg_isready nor psql is available"
         fi
         
     - name: Install migration tool
@@ -161,10 +161,16 @@ jobs:
               echo "Database is ready!"
               break
             fi
-          else
+          elif command -v psql &> /dev/null; then
             # Alternative: use psql to test connection
             if PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "SELECT 1;" &> /dev/null; then
               echo "Database is ready!"
+              break
+            fi
+          else
+            # Last resort: use netcat to check if port is open
+            if nc -z localhost 5432; then
+              echo "Database port is open, assuming database is ready"
               break
             fi
           fi
@@ -284,20 +290,20 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
         
-    - name: Install PostgreSQL client
+    - name: Check PostgreSQL client availability
       run: |
-        # Try to install PostgreSQL client without sudo
-        if command -v apt-get &> /dev/null; then
-          # For systems with apt-get but no sudo access
-          echo "Attempting to install postgresql-client..."
-          apt-get update && apt-get install -y postgresql-client || echo "Failed to install postgresql-client via apt-get"
-        fi
-        
         # Check if pg_isready is available, if not we'll use alternative method
         if ! command -v pg_isready &> /dev/null; then
-          echo "pg_isready not available, will use alternative database connection test"
+          echo "pg_isready not available, will use alternative database connection test with psql"
         else
           echo "pg_isready is available"
+        fi
+        
+        # Check if psql is available for alternative connection testing
+        if command -v psql &> /dev/null; then
+          echo "psql is available for database connection testing"
+        else
+          echo "Warning: Neither pg_isready nor psql is available"
         fi
         
     - name: Install migration tool with postgres driver
