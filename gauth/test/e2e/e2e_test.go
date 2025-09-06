@@ -23,11 +23,10 @@ import (
 
 type E2ETestSuite struct {
 	suite.Suite
-	client          pb.GAuthServiceClient
-	conn            *grpc.ClientConn
-	serverProcess   *exec.Cmd
-	renclaveProcess *exec.Cmd
-	config          E2EConfig
+	client        pb.GAuthServiceClient
+	conn          *grpc.ClientConn
+	serverProcess *exec.Cmd
+	config        E2EConfig
 }
 
 type E2EConfig struct {
@@ -174,15 +173,15 @@ func (suite *E2ETestSuite) stopServices() {
 	suite.T().Log("Stopping services...")
 
 	if suite.serverProcess != nil {
-		suite.serverProcess.Process.Kill()
-		suite.serverProcess.Wait()
+		_ = suite.serverProcess.Process.Kill()
+		_ = suite.serverProcess.Wait()
 		suite.T().Log("Stopped gauth server")
 	}
 
 	// Stop renclave container if we started it
 	if suite.config.RenclaveHost == "localhost" {
 		stopCmd := exec.Command("docker", "stop", "gauth-e2e-renclave")
-		stopCmd.Run() // Ignore errors
+		_ = stopCmd.Run() // Ignore errors
 		suite.T().Log("Stopped renclave-v2 container")
 	}
 }
@@ -199,21 +198,21 @@ func (suite *E2ETestSuite) connectToGAuth() {
 	// The E2E_START_SERVICES flag is now optional and defaults to true
 
 	// Use a context with longer timeout for E2E tests
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	_, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	suite.T().Logf("Attempting to connect to gRPC server at %s", address)
 
-	conn, err := grpc.DialContext(ctx, address, opts...)
+	conn, err := grpc.NewClient(address, opts...)
 	if err != nil {
 		suite.T().Logf("Failed to establish connection to gRPC server: %v", err)
 		suite.T().Logf("This might be because the server is still starting up. Retrying...")
 
 		// Retry with a longer timeout
-		retryCtx, retryCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		_, retryCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer retryCancel()
 
-		conn, err = grpc.DialContext(retryCtx, address, opts...)
+		conn, err = grpc.NewClient(address, opts...)
 		if err != nil {
 			suite.T().Fatalf("Failed to establish connection to gRPC server after retry: %v", err)
 			return

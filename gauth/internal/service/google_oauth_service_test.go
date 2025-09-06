@@ -133,7 +133,7 @@ func TestGoogleOAuthService_getGoogleUserInfo(t *testing.T) {
 				assert.Equal(t, "Bearer "+tt.accessToken, r.Header.Get("Authorization"))
 
 				w.WriteHeader(tt.mockStatus)
-				json.NewEncoder(w).Encode(tt.mockResponse)
+				_ = json.NewEncoder(w).Encode(tt.mockResponse)
 			}))
 			defer server.Close()
 

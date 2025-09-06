@@ -149,7 +149,7 @@ func (suite *GoogleOAuthE2ETestSuite) setupMockGoogleServer() {
 					"error":             "invalid_grant",
 					"error_description": "Invalid authorization code",
 				}
-				json.NewEncoder(w).Encode(errorResponse)
+				_ = json.NewEncoder(w).Encode(errorResponse)
 				return
 			}
 
@@ -160,7 +160,7 @@ func (suite *GoogleOAuthE2ETestSuite) setupMockGoogleServer() {
 				"token_type":    "Bearer",
 				"expires_in":    3600,
 			}
-			json.NewEncoder(w).Encode(tokenResponse)
+			_ = json.NewEncoder(w).Encode(tokenResponse)
 
 		case "/oauth2/v2/userinfo":
 			// Mock Google user info endpoint
@@ -174,7 +174,7 @@ func (suite *GoogleOAuthE2ETestSuite) setupMockGoogleServer() {
 				"picture":        "https://example.com/e2e-avatar.jpg",
 				"verified_email": true,
 			}
-			json.NewEncoder(w).Encode(userInfo)
+			_ = json.NewEncoder(w).Encode(userInfo)
 
 		default:
 			http.NotFound(w, r)
@@ -303,7 +303,7 @@ func (suite *GoogleOAuthE2ETestSuite) TestGoogleOAuthMultipleOrganizations() {
 				"picture":        "https://example.com/e2e-avatar-2.jpg",
 				"verified_email": true,
 			}
-			json.NewEncoder(w).Encode(userInfo)
+			_ = json.NewEncoder(w).Encode(userInfo)
 		} else {
 			originalHandler.ServeHTTP(w, r)
 		}

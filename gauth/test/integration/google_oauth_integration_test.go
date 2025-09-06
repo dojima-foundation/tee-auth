@@ -145,7 +145,7 @@ func (suite *GoogleOAuthIntegrationTestSuite) setupMockGoogleServer() {
 				"token_type":    "Bearer",
 				"expires_in":    3600,
 			}
-			json.NewEncoder(w).Encode(tokenResponse)
+			_ = json.NewEncoder(w).Encode(tokenResponse)
 
 		case "/oauth2/v2/userinfo":
 			// Mock Google user info endpoint
@@ -159,7 +159,7 @@ func (suite *GoogleOAuthIntegrationTestSuite) setupMockGoogleServer() {
 				"picture":        "https://example.com/avatar.jpg",
 				"verified_email": true,
 			}
-			json.NewEncoder(w).Encode(userInfo)
+			_ = json.NewEncoder(w).Encode(userInfo)
 
 		default:
 			http.NotFound(w, r)
@@ -374,7 +374,7 @@ func (suite *GoogleOAuthIntegrationTestSuite) TestGoogleOAuthCallback_DuplicateE
 				"picture":        "https://example.com/avatar.jpg",
 				"verified_email": true,
 			}
-			json.NewEncoder(w).Encode(userInfo)
+			_ = json.NewEncoder(w).Encode(userInfo)
 		} else {
 			originalHandler.ServeHTTP(w, r)
 		}

@@ -8,7 +8,6 @@ import (
 
 	pb "github.com/dojima-foundation/tee-auth/gauth/api/proto"
 	"github.com/dojima-foundation/tee-auth/gauth/internal/db"
-	"github.com/dojima-foundation/tee-auth/gauth/internal/service"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/config"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/logger"
 	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
@@ -21,16 +20,15 @@ import (
 
 // Server represents the REST API server that communicates with gRPC internally
 type Server struct {
-	config             *config.Config
-	logger             *logger.Logger
-	grpcClient         pb.GAuthServiceClient
-	grpcConn           *grpc.ClientConn
-	router             *gin.Engine
-	httpServer         *http.Server
-	telemetry          *telemetry.Telemetry
-	googleOAuthService *service.GoogleOAuthService
-	sessionManager     *SessionManager
-	redis              db.RedisInterface
+	config         *config.Config
+	logger         *logger.Logger
+	grpcClient     pb.GAuthServiceClient
+	grpcConn       *grpc.ClientConn
+	router         *gin.Engine
+	httpServer     *http.Server
+	telemetry      *telemetry.Telemetry
+	sessionManager *SessionManager
+	redis          db.RedisInterface
 }
 
 // NewServer creates a new REST API server instance
@@ -97,7 +95,7 @@ func (s *Server) Stop() error {
 
 	// Close gRPC connection
 	if s.grpcConn != nil {
-		s.grpcConn.Close()
+		_ = s.grpcConn.Close()
 	}
 
 	// Shutdown HTTP server
@@ -112,13 +110,12 @@ func (s *Server) Stop() error {
 func (s *Server) connectToGRPC() error {
 	grpcAddr := s.config.GetGRPCAddr()
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.config.GRPC.ConnectionTimeout)
+	_, cancel := context.WithTimeout(context.Background(), s.config.GRPC.ConnectionTimeout)
 	defer cancel()
 
 	// Configure gRPC client options
 	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 	}
 
 	// Add OpenTelemetry middleware if telemetry is available and tracing is enabled
@@ -128,7 +125,7 @@ func (s *Server) connectToGRPC() error {
 		)
 	}
 
-	conn, err := grpc.DialContext(ctx, grpcAddr, dialOpts...)
+	conn, err := grpc.NewClient(grpcAddr, dialOpts...)
 	if err != nil {
 		return fmt.Errorf("failed to connect to gRPC server at %s: %w", grpcAddr, err)
 	}
@@ -175,13 +172,12 @@ func (s *Server) setupRouter() {
 
 // ConnectToGRPCForTesting manually connects to gRPC server for testing
 func (s *Server) ConnectToGRPCForTesting(grpcAddr string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Configure gRPC client options
 	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 	}
 
 	// Add OpenTelemetry middleware if telemetry is available and tracing is enabled
@@ -191,7 +187,7 @@ func (s *Server) ConnectToGRPCForTesting(grpcAddr string) error {
 		)
 	}
 
-	conn, err := grpc.DialContext(ctx, grpcAddr, dialOpts...)
+	conn, err := grpc.NewClient(grpcAddr, dialOpts...)
 	if err != nil {
 		return fmt.Errorf("failed to connect to gRPC server at %s: %w", grpcAddr, err)
 	}

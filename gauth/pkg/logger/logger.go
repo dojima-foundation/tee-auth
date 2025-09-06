@@ -42,7 +42,7 @@ func New(cfg *config.LoggingConfig) (*Logger, error) {
 		if cfg.Filename == "" {
 			return nil, fmt.Errorf("filename is required when output is 'file'")
 		}
-		file, err := os.OpenFile(cfg.Filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		file, err := os.OpenFile(cfg.Filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open log file: %w", err)
 		}

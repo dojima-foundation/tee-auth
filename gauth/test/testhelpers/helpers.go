@@ -2,9 +2,10 @@ package testhelpers
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"os"
 	"testing"
@@ -97,14 +98,14 @@ func NewTestRedis(t *testing.T) *TestRedis {
 // Close closes the test database connection
 func (td *TestDatabase) Close() {
 	if td.DB != nil {
-		td.DB.Close()
+		_ = td.DB.Close()
 	}
 }
 
 // Close closes the test Redis connection
 func (tr *TestRedis) Close() {
 	if tr.Client != nil {
-		tr.Client.Close()
+		_ = tr.Client.Close()
 	}
 }
 
@@ -215,7 +216,7 @@ func (td *TestDatabase) CreateTestWallet(ctx context.Context, orgID uuid.UUID, a
 			WalletID:      wallet.ID,
 			Name:          fmt.Sprintf("Account %d", i),
 			Path:          fmt.Sprintf("m/44'/0'/0'/0/%d", i),
-			PublicKey:     fmt.Sprintf("03%064x", rand.Int63()),
+			PublicKey:     fmt.Sprintf("03%064x", generateSecureRandomInt64()),
 			Address:       generateTestAddress(i),
 			Curve:         "SECP256K1",
 			AddressFormat: "P2PKH",
@@ -263,20 +264,75 @@ func AssertEventuallyConsistent(t *testing.T, timeout time.Duration, check func(
 
 // GenerateTestData generates random test data for performance testing
 type TestDataGenerator struct {
-	rand *rand.Rand
+	// Using crypto/rand instead of math/rand for security
 }
 
 func NewTestDataGenerator() *TestDataGenerator {
-	return &TestDataGenerator{
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
+	return &TestDataGenerator{}
+}
+
+// generateSecureRandomInt64 generates a cryptographically secure random int64
+func generateSecureRandomInt64() int64 {
+	b := make([]byte, 8)
+	_, err := rand.Read(b)
+	if err != nil {
+		// Fallback to time-based seed if crypto/rand fails
+		return time.Now().UnixNano()
 	}
+	// Safe conversion with bounds checking
+	val := binary.BigEndian.Uint64(b)
+	maxInt64 := uint64(9223372036854775807) // Max int64 value
+	if val > maxInt64 {
+		val = val % (maxInt64 + 1)
+	}
+	return int64(val) // #nosec G115 -- Test helper function, safe for test data generation
+}
+
+// generateSecureRandomInt generates a cryptographically secure random int between min and max (exclusive)
+func generateSecureRandomInt(min, max int) int {
+	if min >= max {
+		return min
+	}
+
+	// Generate random bytes
+	b := make([]byte, 4)
+	_, err := rand.Read(b)
+	if err != nil {
+		// Fallback to time-based seed if crypto/rand fails
+		return min + int(time.Now().UnixNano()%int64(max-min))
+	}
+
+	// Convert to int and scale to range
+	randomInt := int(binary.BigEndian.Uint32(b))
+	return min + (randomInt % (max - min))
+}
+
+// generateSecureRandomFloat generates a cryptographically secure random float32 between 0 and 1
+func generateSecureRandomFloat() float32 {
+	b := make([]byte, 4)
+	_, err := rand.Read(b)
+	if err != nil {
+		// Fallback to time-based seed if crypto/rand fails
+		return float32(time.Now().UnixNano()%1000) / 1000.0
+	}
+
+	// Convert to float32 and normalize to 0-1 range
+	randomInt := binary.BigEndian.Uint32(b)
+	return float32(randomInt) / float32(^uint32(0))
 }
 
 func (g *TestDataGenerator) RandomString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, length)
 	for i := range b {
-		b[i] = charset[g.rand.Intn(len(charset))]
+		// Use crypto/rand for secure random selection
+		randomBytes := make([]byte, 1)
+		_, err := rand.Read(randomBytes)
+		if err != nil {
+			// Fallback to time-based seed if crypto/rand fails
+			randomBytes[0] = byte(time.Now().UnixNano() % 256)
+		}
+		b[i] = charset[randomBytes[0]%byte(len(charset))]
 	}
 	return string(b)
 }
@@ -291,7 +347,7 @@ func (g *TestDataGenerator) RandomOrganization() *models.Organization {
 		Version: "1.0",
 		Name:    "Test Org " + g.RandomString(8),
 		RootQuorum: models.Quorum{
-			Threshold: g.rand.Intn(3) + 1,
+			Threshold: generateSecureRandomInt(1, 4), // Random between 1-3
 		},
 	}
 }
@@ -303,7 +359,7 @@ func (g *TestDataGenerator) RandomUser(orgID uuid.UUID) *models.User {
 		Username:       "user" + g.RandomString(8),
 		Email:          g.RandomEmail(),
 		PublicKey:      g.RandomString(64),
-		IsActive:       g.rand.Float32() > 0.1, // 90% active
+		IsActive:       generateSecureRandomFloat() > 0.1, // 90% active
 	}
 }
 

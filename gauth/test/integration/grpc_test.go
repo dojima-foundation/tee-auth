@@ -113,12 +113,11 @@ func (suite *GRPCIntegrationTestSuite) SetupSuite() {
 	go func() {
 		grpcSrv := grpc.NewServer()
 		pb.RegisterGAuthServiceServer(grpcSrv, suite.server)
-		grpcSrv.Serve(suite.listener)
+		_ = grpcSrv.Serve(suite.listener)
 	}()
 
 	// Setup client connection
-	suite.conn, err = grpc.DialContext(
-		context.Background(),
+	suite.conn, err = grpc.NewClient(
 		"bufnet",
 		grpc.WithContextDialer(suite.bufDialer),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -656,11 +655,10 @@ func BenchmarkGRPCOperations(b *testing.B) {
 	go func() {
 		grpcSrv := grpc.NewServer()
 		pb.RegisterGAuthServiceServer(grpcSrv, server)
-		grpcSrv.Serve(listener)
+		_ = grpcSrv.Serve(listener)
 	}()
 
-	conn, err := grpc.DialContext(
-		context.Background(),
+	conn, err := grpc.NewClient(
 		"bufnet",
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 			return listener.Dial()

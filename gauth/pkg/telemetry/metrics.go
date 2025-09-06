@@ -153,8 +153,9 @@ func NewMetricsServer(port int, meter metric.Meter) (*MetricsServer, error) {
 
 	// Create HTTP server for metrics
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: promhttp.HandlerFor(registry, promhttp.HandlerOpts{}),
+		Addr:              fmt.Sprintf(":%d", port),
+		Handler:           promhttp.HandlerFor(registry, promhttp.HandlerOpts{}),
+		ReadHeaderTimeout: 30 * time.Second, // Prevent Slowloris attacks
 	}
 
 	return &MetricsServer{

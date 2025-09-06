@@ -418,7 +418,7 @@ func (suite *DatabaseIntegrationTestSuite) TestRedisOperations() {
 	assert.True(suite.T(), acquired3)
 
 	// Clean up
-	suite.redis.ReleaseLock(ctx, lockKey)
+	_ = suite.redis.ReleaseLock(ctx, lockKey)
 }
 
 func (suite *DatabaseIntegrationTestSuite) TestTransactionRollback() {

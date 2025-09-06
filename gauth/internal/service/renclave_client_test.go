@@ -85,7 +85,7 @@ func TestRenclaveClient_GenerateSeed(t *testing.T) {
 
 				w.WriteHeader(tt.serverStatus)
 				if tt.serverStatus == http.StatusOK {
-					json.NewEncoder(w).Encode(tt.serverResponse)
+					_ = json.NewEncoder(w).Encode(tt.serverResponse)
 				}
 			}))
 			defer server.Close()
@@ -187,7 +187,7 @@ func TestRenclaveClient_ValidateSeed(t *testing.T) {
 
 				w.WriteHeader(tt.serverStatus)
 				if tt.serverStatus == http.StatusOK {
-					json.NewEncoder(w).Encode(tt.serverResponse)
+					_ = json.NewEncoder(w).Encode(tt.serverResponse)
 				}
 			}))
 			defer server.Close()
@@ -261,7 +261,7 @@ func TestRenclaveClient_GetInfo(t *testing.T) {
 
 				w.WriteHeader(tt.serverStatus)
 				if tt.serverStatus == http.StatusOK {
-					json.NewEncoder(w).Encode(tt.serverResponse)
+					_ = json.NewEncoder(w).Encode(tt.serverResponse)
 				}
 			}))
 			defer server.Close()
@@ -395,7 +395,7 @@ func TestRenclaveClient_InvalidJSON(t *testing.T) {
 	// Create server that returns invalid JSON
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("invalid json"))
+		_, _ = w.Write([]byte("invalid json"))
 	}))
 	defer server.Close()
 
@@ -447,7 +447,7 @@ func BenchmarkRenclaveClient_GenerateSeed(b *testing.B) {
 	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(GenerateSeedResponse{
+		_ = json.NewEncoder(w).Encode(GenerateSeedResponse{
 			SeedPhrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
 			Entropy:    "00000000000000000000000000000000",
 			Strength:   256,

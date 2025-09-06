@@ -115,7 +115,7 @@ func (sm *SessionManager) ValidateSession(ctx context.Context, sessionID string)
 	// Check if session is expired
 	if time.Now().After(sessionData.ExpiresAt) {
 		// Clean up expired session
-		sm.server.redis.Delete(ctx, sessionKey)
+		_ = sm.server.redis.Delete(ctx, sessionKey)
 		return nil, fmt.Errorf("session expired")
 	}
 
@@ -123,7 +123,7 @@ func (sm *SessionManager) ValidateSession(ctx context.Context, sessionID string)
 	sessionData.LastActivity = time.Now()
 	updatedSessionDataJSON, err := json.Marshal(sessionData)
 	if err == nil {
-		sm.server.redis.Set(ctx, sessionKey, string(updatedSessionDataJSON), 24*time.Hour)
+		_ = sm.server.redis.Set(ctx, sessionKey, string(updatedSessionDataJSON), 24*time.Hour)
 	}
 
 	return &sessionData, nil
@@ -276,7 +276,7 @@ func (sm *SessionManager) SessionMiddleware() gin.HandlerFunc {
 		sessionData.LastActivity = time.Now()
 		sessionKey := fmt.Sprintf("session:%s", sessionID)
 		sessionDataJSON, _ := json.Marshal(sessionData)
-		sm.server.redis.Set(c.Request.Context(), sessionKey, string(sessionDataJSON), 24*time.Hour)
+		_ = sm.server.redis.Set(c.Request.Context(), sessionKey, string(sessionDataJSON), 24*time.Hour)
 
 		c.Next()
 	}

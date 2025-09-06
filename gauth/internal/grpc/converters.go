@@ -1,6 +1,8 @@
 package grpc
 
 import (
+	"math"
+
 	pb "github.com/dojima-foundation/tee-auth/gauth/api/proto"
 	"github.com/dojima-foundation/tee-auth/gauth/internal/models"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -119,9 +121,15 @@ func convertQuorumToProto(quorum *models.Quorum) *pb.Quorum {
 		userIds[i] = id.String()
 	}
 
+	// Safe conversion with bounds checking
+	var threshold int32
+	if quorum.Threshold > 0 && quorum.Threshold <= math.MaxInt32 {
+		threshold = int32(quorum.Threshold)
+	}
+
 	return &pb.Quorum{
 		UserIds:   userIds,
-		Threshold: int32(quorum.Threshold),
+		Threshold: threshold,
 	}
 }
 

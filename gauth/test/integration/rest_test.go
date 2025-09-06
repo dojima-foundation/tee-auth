@@ -127,7 +127,7 @@ func (suite *RESTIntegrationTestSuite) SetupSuite() {
 	// Initialize and start gRPC server
 	suite.grpcServer = grpcServer.NewServer(suite.config, logger, svc, telemetry)
 	go func() {
-		suite.grpcServer.Start()
+		_ = suite.grpcServer.Start()
 	}()
 
 	// Wait for gRPC server to start
@@ -136,7 +136,7 @@ func (suite *RESTIntegrationTestSuite) SetupSuite() {
 	// Initialize and start REST server
 	suite.restServer = restServer.NewServer(suite.config, logger, telemetry)
 	go func() {
-		suite.restServer.Start()
+		_ = suite.restServer.Start()
 	}()
 
 	// Wait for REST server to start
@@ -145,7 +145,7 @@ func (suite *RESTIntegrationTestSuite) SetupSuite() {
 
 func (suite *RESTIntegrationTestSuite) TearDownSuite() {
 	if suite.restServer != nil {
-		suite.restServer.Stop()
+		_ = suite.restServer.Stop()
 	}
 	if suite.grpcServer != nil {
 		suite.grpcServer.Stop()

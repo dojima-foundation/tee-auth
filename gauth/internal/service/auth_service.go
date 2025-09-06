@@ -102,8 +102,8 @@ func (s *AuthService) Authorize(ctx context.Context, sessionToken, activityType,
 	s.logger.Warn("Session validation not fully implemented - implement in production")
 
 	// Check authorization based on activity type
-	authorized := true
-	reason := "Authorized"
+	var authorized bool
+	var reason string
 	var requiredApprovals []string
 
 	switch activityType {

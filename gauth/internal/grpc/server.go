@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"math"
 	"net"
 	"time"
 
@@ -294,11 +295,20 @@ func (s *Server) RequestSeedGeneration(ctx context.Context, req *pb.SeedGenerati
 		return nil, status.Errorf(codes.Internal, "failed to generate seed: %v", err)
 	}
 
+	// Safe conversion with bounds checking
+	var strength, wordCount int32
+	if response.Strength > 0 && response.Strength <= math.MaxInt32 {
+		strength = int32(response.Strength)
+	}
+	if response.WordCount > 0 && response.WordCount <= math.MaxInt32 {
+		wordCount = int32(response.WordCount)
+	}
+
 	return &pb.SeedGenerationResponse{
 		SeedPhrase: response.SeedPhrase,
 		Entropy:    response.Entropy,
-		Strength:   int32(response.Strength),
-		WordCount:  int32(response.WordCount),
+		Strength:   strength,
+		WordCount:  wordCount,
 		RequestId:  response.RequestID,
 	}, nil
 }
@@ -310,10 +320,19 @@ func (s *Server) ValidateSeed(ctx context.Context, req *pb.SeedValidationRequest
 		return nil, status.Errorf(codes.Internal, "failed to validate seed: %v", err)
 	}
 
+	// Safe conversion with bounds checking
+	var strength, wordCount int32
+	if response.Strength > 0 && response.Strength <= math.MaxInt32 {
+		strength = int32(response.Strength)
+	}
+	if response.WordCount > 0 && response.WordCount <= math.MaxInt32 {
+		wordCount = int32(response.WordCount)
+	}
+
 	return &pb.SeedValidationResponse{
 		IsValid:   response.IsValid,
-		Strength:  int32(response.Strength),
-		WordCount: int32(response.WordCount),
+		Strength:  strength,
+		WordCount: wordCount,
 		Errors:    response.Errors,
 	}, nil
 }

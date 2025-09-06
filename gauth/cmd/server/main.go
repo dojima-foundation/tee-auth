@@ -203,24 +203,6 @@ func main() {
 	lgr.Info("gauth service stopped")
 }
 
-// healthCheck performs a basic health check of all dependencies
-func healthCheck(ctx context.Context, database db.DatabaseInterface, redis db.RedisInterface, lgr *logger.Logger) error {
-	// Check database
-	if err := database.Health(ctx); err != nil {
-		lgr.Error("Database health check failed", "error", err)
-		return fmt.Errorf("database unhealthy: %w", err)
-	}
-
-	// Check Redis
-	if err := redis.Health(ctx); err != nil {
-		lgr.Error("Redis health check failed", "error", err)
-		return fmt.Errorf("redis unhealthy: %w", err)
-	}
-
-	lgr.Info("All health checks passed")
-	return nil
-}
-
 // printBanner prints the service banner
 func printBanner() {
 	banner := `

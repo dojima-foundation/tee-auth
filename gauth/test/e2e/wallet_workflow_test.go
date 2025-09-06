@@ -119,7 +119,7 @@ func (suite *WalletWorkflowE2ETestSuite) TearDownSuite() {
 		suite.grpcServer.Stop()
 	}
 	if suite.restServer != nil {
-		suite.restServer.Stop()
+		_ = suite.restServer.Stop()
 	}
 	if suite.redis != nil {
 		suite.redis.Cleanup(suite.ctx)

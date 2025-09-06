@@ -17,6 +17,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 // Config holds configuration for telemetry setup
@@ -74,7 +75,7 @@ func New(ctx context.Context, cfg Config) (*Telemetry, error) {
 		}
 	} else {
 		// Use noop tracer if tracing is disabled
-		telemetry.TracerProvider = trace.NewNoopTracerProvider()
+		telemetry.TracerProvider = noop.NewTracerProvider()
 		telemetry.Tracer = telemetry.TracerProvider.Tracer(cfg.ServiceName)
 	}
 
