@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"testing"
 	"time"
@@ -22,19 +21,15 @@ import (
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-const bufSize = 1024 * 1024
-
 type GRPCIntegrationTestSuite struct {
 	suite.Suite
-	server   *grpcServer.Server
-	client   pb.GAuthServiceClient
-	conn     *grpc.ClientConn
-	listener *bufconn.Listener
-	config   *config.Config
+	server *grpcServer.Server
+	client pb.GAuthServiceClient
+	conn   *grpc.ClientConn
+	config *config.Config
 }
 
 func (suite *GRPCIntegrationTestSuite) SetupSuite() {
@@ -77,6 +72,16 @@ func (suite *GRPCIntegrationTestSuite) SetupSuite() {
 			UseTLS:  false,
 			Timeout: 30 * time.Second,
 		},
+		GRPC: config.GRPCConfig{
+			Host:                "localhost",
+			Port:                9092, // Different port to avoid conflicts
+			ConnectionTimeout:   10 * time.Second,
+			MaxRecvMsgSize:      4 * 1024 * 1024,
+			MaxSendMsgSize:      4 * 1024 * 1024,
+			KeepAliveTime:       30 * time.Second,
+			KeepAliveTimeout:    5 * time.Second,
+			PermitWithoutStream: true,
+		},
 	}
 
 	// Initialize dependencies
@@ -105,42 +110,34 @@ func (suite *GRPCIntegrationTestSuite) SetupSuite() {
 	})
 	require.NoError(suite.T(), err)
 
-	// Setup in-memory gRPC server
-	suite.listener = bufconn.Listen(bufSize)
+	// Setup gRPC server with real TCP connection
 	suite.server = grpcServer.NewServer(suite.config, logger, svc, telemetry)
 
 	// Start server in background
 	go func() {
-		grpcSrv := grpc.NewServer()
-		pb.RegisterGAuthServiceServer(grpcSrv, suite.server)
-		_ = grpcSrv.Serve(suite.listener)
+		_ = suite.server.Start()
 	}()
 
-	// Setup client connection
+	// Wait for server to be ready
+	time.Sleep(2 * time.Second)
+
+	// Setup client connection to real server
 	suite.conn, err = grpc.NewClient(
-		"bufnet",
-		grpc.WithContextDialer(suite.bufDialer),
+		suite.config.GetGRPCAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	require.NoError(suite.T(), err)
 
 	suite.client = pb.NewGAuthServiceClient(suite.conn)
-
-	// Wait for server to be ready
-	time.Sleep(100 * time.Millisecond)
 }
 
 func (suite *GRPCIntegrationTestSuite) TearDownSuite() {
 	if suite.conn != nil {
 		suite.conn.Close()
 	}
-	if suite.listener != nil {
-		suite.listener.Close()
+	if suite.server != nil {
+		suite.server.Stop()
 	}
-}
-
-func (suite *GRPCIntegrationTestSuite) bufDialer(context.Context, string) (net.Conn, error) {
-	return suite.listener.Dial()
 }
 
 func (suite *GRPCIntegrationTestSuite) TestHealthCheck() {
@@ -616,6 +613,16 @@ func BenchmarkGRPCOperations(b *testing.B) {
 			DefaultQuorumThreshold: 1,
 			SessionTimeout:         30 * time.Minute,
 		},
+		GRPC: config.GRPCConfig{
+			Host:                "localhost",
+			Port:                9093, // Different port for benchmarks
+			ConnectionTimeout:   10 * time.Second,
+			MaxRecvMsgSize:      4 * 1024 * 1024,
+			MaxSendMsgSize:      4 * 1024 * 1024,
+			KeepAliveTime:       30 * time.Second,
+			KeepAliveTimeout:    5 * time.Second,
+			PermitWithoutStream: true,
+		},
 	}
 
 	database, err := db.NewPostgresDB(&config.Database)
@@ -649,26 +656,24 @@ func BenchmarkGRPCOperations(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	listener := bufconn.Listen(bufSize)
 	server := grpcServer.NewServer(config, logger, svc, telemetry)
 
 	go func() {
-		grpcSrv := grpc.NewServer()
-		pb.RegisterGAuthServiceServer(grpcSrv, server)
-		_ = grpcSrv.Serve(listener)
+		_ = server.Start()
 	}()
 
+	// Wait for server to be ready
+	time.Sleep(2 * time.Second)
+
 	conn, err := grpc.NewClient(
-		"bufnet",
-		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
-			return listener.Dial()
-		}),
+		config.GetGRPCAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		b.Fatal(err)
 	}
 	defer conn.Close()
+	defer server.Stop()
 
 	client := pb.NewGAuthServiceClient(conn)
 

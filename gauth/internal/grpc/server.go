@@ -53,6 +53,36 @@ func (s *Server) Start() error {
 		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
 
+	// Create the gRPC server
+	if err := s.CreateServer(); err != nil {
+		return fmt.Errorf("failed to create gRPC server: %w", err)
+	}
+
+	s.logger.Info("Starting gRPC server", "address", addr)
+
+	// Start serving
+	if err := s.server.Serve(listener); err != nil {
+		return fmt.Errorf("failed to serve gRPC server: %w", err)
+	}
+
+	return nil
+}
+
+// Stop gracefully stops the gRPC server
+func (s *Server) Stop() {
+	if s.server != nil {
+		s.logger.Info("Stopping gRPC server")
+		s.server.GracefulStop()
+	}
+}
+
+// GetServer returns the underlying gRPC server instance for testing
+func (s *Server) GetServer() *grpc.Server {
+	return s.server
+}
+
+// CreateServer creates the gRPC server instance without starting it (for testing)
+func (s *Server) CreateServer() error {
 	// Configure gRPC server options
 	opts := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(s.config.GRPC.MaxRecvMsgSize),
@@ -88,22 +118,7 @@ func (s *Server) Start() error {
 	// Enable reflection for development
 	reflection.Register(s.server)
 
-	s.logger.Info("Starting gRPC server", "address", addr)
-
-	// Start serving
-	if err := s.server.Serve(listener); err != nil {
-		return fmt.Errorf("failed to serve gRPC server: %w", err)
-	}
-
 	return nil
-}
-
-// Stop gracefully stops the gRPC server
-func (s *Server) Stop() {
-	if s.server != nil {
-		s.logger.Info("Stopping gRPC server")
-		s.server.GracefulStop()
-	}
 }
 
 // Unary interceptor for logging and error handling
