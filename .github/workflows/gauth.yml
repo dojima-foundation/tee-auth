@@ -127,10 +127,51 @@ jobs:
         cd gauth
         make test-unit
         
+    - name: Install migration tool
+      run: |
+        cd gauth
+        # Download pre-built binary with all drivers included
+        curl -L https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz | tar xvz
+        chmod +x migrate
+        sudo mv migrate /usr/local/bin/
+        
+    - name: Setup integration test database
+      run: |
+        cd gauth
+        # Wait for database to be ready
+        for i in {1..30}; do
+          if pg_isready -h localhost -p 5432 -U gauth; then
+            echo "Database is ready!"
+            break
+          fi
+          echo "Attempt $i/30: Database not ready, waiting 2 seconds..."
+          sleep 2
+        done
+        
+        # Create integration test database if it doesn't exist
+        PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "CREATE DATABASE gauth_integration;" 2>/dev/null || echo "Database already exists"
+        
+        # Run migrations on integration test database
+        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" up
+        
+        # Verify migrations were applied
+        VERSION=$(migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" version)
+        echo "Migration version: $VERSION"
+        
+        # Verify tables exist
+        TABLES=$(PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d gauth_integration -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" | tr -d ' ')
+        echo "Number of tables: $TABLES"
+        
+        if [ "$TABLES" -lt 10 ]; then
+          echo "ERROR: Expected at least 10 tables, found $TABLES"
+          PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d gauth_integration -c "\dt"
+          exit 1
+        fi
+        
     - name: Run integration tests
       run: |
         cd gauth
-        make test-integration
+        INTEGRATION_TESTS=true TEST_DB_HOST=localhost TEST_DB_USER=gauth TEST_DB_PASSWORD=password TEST_DB_NAME=gauth_integration TEST_REDIS_HOST=localhost TEST_REDIS_PORT=6379 TEST_REDIS_PASSWORD="" make test-integration
         
     - name: Run E2E tests
       run: |
