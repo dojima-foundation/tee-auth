@@ -127,20 +127,25 @@ jobs:
         cd gauth
         make test-unit
         
-    - name: Check PostgreSQL client availability
+    - name: Install PostgreSQL client tools
       run: |
-        # Check if pg_isready is available, if not we'll use alternative method
-        if ! command -v pg_isready &> /dev/null; then
-          echo "pg_isready not available, will use alternative database connection test with psql"
-        else
+        # Install PostgreSQL client tools
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client
+        
+        # Verify installation
+        if command -v pg_isready &> /dev/null; then
           echo "pg_isready is available"
+        else
+          echo "ERROR: pg_isready not available after installation"
+          exit 1
         fi
         
-        # Check if psql is available for alternative connection testing
         if command -v psql &> /dev/null; then
           echo "psql is available for database connection testing"
         else
-          echo "Warning: Neither pg_isready nor psql is available"
+          echo "ERROR: psql not available after installation"
+          exit 1
         fi
         
     - name: Install migration tool
@@ -156,32 +161,42 @@ jobs:
         cd gauth
         # Wait for database to be ready
         for i in {1..30}; do
-          if command -v pg_isready &> /dev/null; then
-            if pg_isready -h localhost -p 5432 -U gauth; then
-              echo "Database is ready!"
-              break
-            fi
-          elif command -v psql &> /dev/null; then
-            # Alternative: use psql to test connection
-            if PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "SELECT 1;" &> /dev/null; then
-              echo "Database is ready!"
-              break
-            fi
-          else
-            # Last resort: use netcat to check if port is open
-            if nc -z localhost 5432; then
-              echo "Database port is open, assuming database is ready"
-              break
-            fi
+          if pg_isready -h localhost -p 5432 -U gauth; then
+            echo "Database is ready!"
+            break
           fi
           echo "Attempt $i/30: Database not ready, waiting 2 seconds..."
           sleep 2
         done
         
+        # Test connection to default database first
+        echo "Testing connection to default database..."
+        if ! PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "SELECT 1;" &> /dev/null; then
+          echo "ERROR: Cannot connect to PostgreSQL"
+          exit 1
+        fi
+        echo "Connection to PostgreSQL successful"
+        
         # Create integration test database if it doesn't exist
-        PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "CREATE DATABASE gauth_integration;" 2>/dev/null || echo "Database already exists"
+        echo "Creating integration test database..."
+        if PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "CREATE DATABASE gauth_integration;" 2>/dev/null; then
+          echo "Database gauth_integration created successfully"
+        else
+          echo "Database gauth_integration already exists or creation failed"
+        fi
+        
+        # Verify database exists
+        echo "Verifying database exists..."
+        if ! PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d gauth_integration -c "SELECT 1;" &> /dev/null; then
+          echo "ERROR: Cannot connect to gauth_integration database"
+          echo "Available databases:"
+          PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "\l"
+          exit 1
+        fi
+        echo "Connection to gauth_integration database successful"
         
         # Run migrations on integration test database
+        echo "Running migrations..."
         ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" up
         
         # Verify migrations were applied
@@ -290,20 +305,25 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
         
-    - name: Check PostgreSQL client availability
+    - name: Install PostgreSQL client tools
       run: |
-        # Check if pg_isready is available, if not we'll use alternative method
-        if ! command -v pg_isready &> /dev/null; then
-          echo "pg_isready not available, will use alternative database connection test with psql"
-        else
+        # Install PostgreSQL client tools
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client
+        
+        # Verify installation
+        if command -v pg_isready &> /dev/null; then
           echo "pg_isready is available"
+        else
+          echo "ERROR: pg_isready not available after installation"
+          exit 1
         fi
         
-        # Check if psql is available for alternative connection testing
         if command -v psql &> /dev/null; then
           echo "psql is available for database connection testing"
         else
-          echo "Warning: Neither pg_isready nor psql is available"
+          echo "ERROR: psql not available after installation"
+          exit 1
         fi
         
     - name: Install migration tool with postgres driver
