@@ -20,7 +20,7 @@ env:
 jobs:
   test:
     name: Test and Build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     
     services:
       postgres:
@@ -94,6 +94,14 @@ jobs:
         cd gauth
         make proto
         
+    - name: Fix protobuf security warnings
+      run: |
+        cd gauth
+        # Add nosec comments to generated protobuf files to suppress false positives
+        sed -i 's|GAuthService_RefreshGoogleOAuthToken_FullMethodName   = "/gauth.v1.GAuthService/RefreshGoogleOAuthToken"|GAuthService_RefreshGoogleOAuthToken_FullMethodName   = "/gauth.v1.GAuthService/RefreshGoogleOAuthToken" // #nosec G101 -- Generated protobuf code|g' api/proto/gauth_grpc.pb.go
+        sed -i 's|file_api_proto_gauth_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_gauth_proto_rawDesc), len(file_api_proto_gauth_proto_rawDesc)))|file_api_proto_gauth_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_gauth_proto_rawDesc), len(file_api_proto_gauth_proto_rawDesc))) // #nosec G103 -- Generated protobuf code|g' api/proto/gauth.pb.go
+        sed -i 's|RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_gauth_proto_rawDesc), len(file_api_proto_gauth_proto_rawDesc)),|RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_gauth_proto_rawDesc), len(file_api_proto_gauth_proto_rawDesc)), // #nosec G103 -- Generated protobuf code|g' api/proto/gauth.pb.go
+        
     - name: Check code formatting
       run: |
         cd gauth
@@ -155,7 +163,7 @@ jobs:
 
   docker:
     name: Docker Build and Test
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: test
     
     steps:
@@ -185,7 +193,7 @@ jobs:
 
   database:
     name: Database Migrations
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     
     services:
       postgres:
