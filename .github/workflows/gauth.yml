@@ -129,8 +129,19 @@ jobs:
         
     - name: Install PostgreSQL client
       run: |
-        sudo apt-get update
-        sudo apt-get install -y postgresql-client
+        # Try to install PostgreSQL client without sudo
+        if command -v apt-get &> /dev/null; then
+          # For systems with apt-get but no sudo access
+          echo "Attempting to install postgresql-client..."
+          apt-get update && apt-get install -y postgresql-client || echo "Failed to install postgresql-client via apt-get"
+        fi
+        
+        # Check if pg_isready is available, if not we'll use alternative method
+        if ! command -v pg_isready &> /dev/null; then
+          echo "pg_isready not available, will use alternative database connection test"
+        else
+          echo "pg_isready is available"
+        fi
         
     - name: Install migration tool
       run: |
@@ -145,9 +156,17 @@ jobs:
         cd gauth
         # Wait for database to be ready
         for i in {1..30}; do
-          if pg_isready -h localhost -p 5432 -U gauth; then
-            echo "Database is ready!"
-            break
+          if command -v pg_isready &> /dev/null; then
+            if pg_isready -h localhost -p 5432 -U gauth; then
+              echo "Database is ready!"
+              break
+            fi
+          else
+            # Alternative: use psql to test connection
+            if PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "SELECT 1;" &> /dev/null; then
+              echo "Database is ready!"
+              break
+            fi
           fi
           echo "Attempt $i/30: Database not ready, waiting 2 seconds..."
           sleep 2
@@ -267,8 +286,19 @@ jobs:
         
     - name: Install PostgreSQL client
       run: |
-        sudo apt-get update
-        sudo apt-get install -y postgresql-client
+        # Try to install PostgreSQL client without sudo
+        if command -v apt-get &> /dev/null; then
+          # For systems with apt-get but no sudo access
+          echo "Attempting to install postgresql-client..."
+          apt-get update && apt-get install -y postgresql-client || echo "Failed to install postgresql-client via apt-get"
+        fi
+        
+        # Check if pg_isready is available, if not we'll use alternative method
+        if ! command -v pg_isready &> /dev/null; then
+          echo "pg_isready not available, will use alternative database connection test"
+        else
+          echo "pg_isready is available"
+        fi
         
     - name: Install migration tool with postgres driver
       run: |
