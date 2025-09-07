@@ -17,7 +17,7 @@ env:
   POSTGRES_VERSION: "15"
   REDIS_VERSION: "7-alpine"
   # Enhanced environment variables for our comprehensive toolset
-  PATH: "/usr/local/go/bin:$PATH"
+  PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:$PATH"
   GOCACHE: "$HOME/.cache/go-build"
   GOPATH: "$HOME/go"
   GOROOT: "/usr/local/go"
@@ -56,6 +56,43 @@ jobs:
           - 6379:6379
     
     steps:
+    - name: Verify system tools
+      run: |
+        echo "🔍 Verifying basic system tools..."
+        echo "PATH: $PATH"
+        echo "Current directory: $(pwd)"
+        echo "User: $(whoami)"
+        echo "Home: $HOME"
+        
+        # Check if basic tools are available
+        which tar || echo "❌ tar not found"
+        which gzip || echo "❌ gzip not found"
+        which unzip || echo "❌ unzip not found"
+        which curl || echo "❌ curl not found"
+        which wget || echo "❌ wget not found"
+        which git || echo "❌ git not found"
+        
+        # Try to find tar in common locations
+        echo "Searching for tar in common locations:"
+        ls -la /bin/tar 2>/dev/null || echo "Not in /bin"
+        ls -la /usr/bin/tar 2>/dev/null || echo "Not in /usr/bin"
+        ls -la /usr/local/bin/tar 2>/dev/null || echo "Not in /usr/local/bin"
+        
+        # Update PATH to include common locations
+        export PATH="/bin:/usr/bin:/usr/local/bin:$PATH"
+        echo "Updated PATH: $PATH"
+        
+        # Check again after PATH update
+        which tar && echo "✅ tar found after PATH update" || echo "❌ tar still not found"
+        
+        # If tar is still not found, try to install basic tools
+        if ! which tar; then
+          echo "🔧 Installing basic system tools..."
+          sudo apt-get update -y
+          sudo apt-get install -y tar gzip unzip curl wget git
+          echo "✅ Basic system tools installed"
+        fi
+        
     - name: Checkout code
       uses: actions/checkout@v4
       
