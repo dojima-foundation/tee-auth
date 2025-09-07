@@ -17,7 +17,7 @@ env:
   POSTGRES_VERSION: "15"
   REDIS_VERSION: "7-alpine"
   # Enhanced environment variables for our comprehensive toolset
-  PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:$PATH"
+  PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:$HOME/go/bin:$PATH"
   GOCACHE: "$HOME/.cache/go-build"
   GOPATH: "$HOME/go"
   GOROOT: "/usr/local/go"
@@ -113,6 +113,8 @@ jobs:
         echo "Go version: $(go version)"
         echo "Go path: $(which go)"
         echo "Protoc version: $(protoc --version)"
+        echo "Protoc-gen-go: $(which protoc-gen-go || echo 'not found')"
+        echo "Protoc-gen-go-grpc: $(which protoc-gen-go-grpc || echo 'not found')"
         echo "Golangci-lint version: $(golangci-lint --version)"
         echo "Goimports version: $(goimports --version)"
         echo "Gosec version: $(gosec --version)"
@@ -179,12 +181,43 @@ jobs:
         go mod download
         go mod verify
         
-    - name: Generate protobuf code
+    - name: Install protobuf plugins
       run: |
         cd gauth
         
         # Ensure Go environment is properly set up
         export PATH="/usr/local/go/bin:$PATH"
+        export GOPATH="$HOME/go"
+        export GOROOT="/usr/local/go"
+        export GOCACHE="$HOME/.cache/go-build"
+        export GOTMPDIR="$HOME/.cache/go-tmp"
+        
+        # Create necessary directories
+        mkdir -p "$HOME/.cache/go-build" "$HOME/.cache/go-tmp"
+        
+        echo "Installing protobuf plugins..."
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+        
+        # Verify plugins are installed
+        echo "Verifying protobuf plugins:"
+        which protoc-gen-go || echo "protoc-gen-go not found"
+        which protoc-gen-go-grpc || echo "protoc-gen-go-grpc not found"
+        
+        # Add Go bin to PATH
+        export PATH="$HOME/go/bin:$PATH"
+        echo "Updated PATH: $PATH"
+        
+        # Verify again after PATH update
+        which protoc-gen-go && echo "✅ protoc-gen-go found" || echo "❌ protoc-gen-go still not found"
+        which protoc-gen-go-grpc && echo "✅ protoc-gen-go-grpc found" || echo "❌ protoc-gen-go-grpc still not found"
+        
+    - name: Generate protobuf code
+      run: |
+        cd gauth
+        
+        # Ensure Go environment is properly set up
+        export PATH="/usr/local/go/bin:$HOME/go/bin:$PATH"
         export GOPATH="$HOME/go"
         export GOROOT="/usr/local/go"
         export GOCACHE="$HOME/.cache/go-build"
