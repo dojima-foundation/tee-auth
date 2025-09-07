@@ -5,11 +5,40 @@ name: Gauth CI/CD
 # on the runner instance, eliminating the need for redundant setup steps
 
 on:
+  # Default workflow - runs on any push to main/develop
   push:
     branches: [ main, develop ]
-    paths:
-      - 'gauth/**'
-      - '.github/workflows/gauth.yml'
+  # Manual trigger - can be run from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+      run_tests:
+        description: 'Run all tests'
+        required: true
+        default: true
+        type: boolean
+      run_security_scan:
+        description: 'Run security scans'
+        required: true
+        default: true
+        type: boolean
+      run_performance_tests:
+        description: 'Run performance tests'
+        required: true
+        default: false
+        type: boolean
+  # Scheduled runs - daily at 2 AM UTC
+  schedule:
+    - cron: '0 2 * * *'
+  # Pull request trigger
   pull_request:
     branches: [ main, develop ]
     paths:
@@ -34,6 +63,8 @@ jobs:
   test:
     name: Test and Build
     runs-on: [self-hosted, ovh, ubuntu-22.04]
+    # Skip tests if run_tests is false in manual dispatch
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_tests == 'true' }}
     
     services:
       postgres:
@@ -465,6 +496,8 @@ jobs:
     name: Enhanced Testing and Security
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: test
+    # Skip enhanced testing if run_tests is false in manual dispatch
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_tests == 'true' }}
     
     steps:
     - name: Checkout code
@@ -483,6 +516,7 @@ jobs:
         mkdir -p $HOME/.cache/go-build $HOME/.cache/go-tmp
         
     - name: Enhanced security scanning
+      if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_security_scan == 'true' }}
       run: |
         cd gauth
         echo "🔒 Running enhanced security scans..."
@@ -502,6 +536,7 @@ jobs:
         echo "✅ Security scanning completed"
         
     - name: Performance testing
+      if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_performance_tests == 'true' }}
       run: |
         cd gauth
         echo "⚡ Running performance tests..."
@@ -548,3 +583,32 @@ jobs:
           gauth/cpu.prof
           gauth/dependencies.txt
         retention-days: 30
+
+  deploy:
+    name: Deploy to Environment
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
+    needs: [test, docker]
+    # Only run deployment on manual dispatch or scheduled runs
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Deploy to ${{ github.event.inputs.environment || 'dev' }}
+      run: |
+        echo "🚀 Deploying to ${{ github.event.inputs.environment || 'dev' }} environment..."
+        echo "Environment: ${{ github.event.inputs.environment || 'dev' }}"
+        echo "Run tests: ${{ github.event.inputs.run_tests || 'true' }}"
+        echo "Security scan: ${{ github.event.inputs.run_security_scan || 'true' }}"
+        echo "Performance tests: ${{ github.event.inputs.run_performance_tests || 'false' }}"
+        
+        # Add your deployment logic here
+        # For example:
+        # - Copy artifacts to deployment location
+        # - Update configuration files
+        # - Restart services
+        # - Run health checks
+        
+        echo "✅ Deployment completed successfully!"
