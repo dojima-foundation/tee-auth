@@ -21,13 +21,14 @@ env:
   POSTGRES_VERSION: "15"
   REDIS_VERSION: "7-alpine"
   # Enhanced environment variables for our comprehensive toolset
-  PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:$HOME/go/bin:$PATH"
-  GOCACHE: "$HOME/.cache/go-build"
-  GOPATH: "$HOME/go"
+  PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+  GOCACHE: "/opt/go-cache/go-build"
+  GOPATH: "/home/ubuntu/go"
   GOROOT: "/usr/local/go"
-  GOTMPDIR: "$HOME/.cache/go-tmp"
-  TMPDIR: "$HOME/.cache"
-  NVM_DIR: "$HOME/.nvm"
+  GOTMPDIR: "/opt/go-cache/go-tmp"
+  GOMODCACHE: "/opt/go-cache/go-mod"
+  TMPDIR: "/opt/go-cache"
+  NVM_DIR: "/home/ubuntu/.nvm"
 
 jobs:
   test:
@@ -81,8 +82,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          ${{ env.GOCACHE }}
-          ${{ env.GOPATH }}/pkg/mod
+          /opt/go-cache/go-build
+          /opt/go-cache/go-mod
         key: ${{ runner.os }}-go-${{ hashFiles('gauth/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
