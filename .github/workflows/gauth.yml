@@ -66,6 +66,12 @@ jobs:
         go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
         go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
         
+    - name: Install system dependencies
+      run: |
+        # Install PostgreSQL client tools for Ubuntu
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client netcat-openbsd
+
     - name: Install development tools
       run: |
         cd gauth
@@ -200,32 +206,48 @@ jobs:
         # Create integration test database if it doesn't exist
         echo "Creating integration test database..."
         if command -v psql &> /dev/null; then
+          echo "Creating gauth_integration database..."
           if PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "CREATE DATABASE gauth_integration;" 2>/dev/null; then
-            echo "Database gauth_integration created successfully"
+            echo "✓ Database gauth_integration created successfully"
           else
             echo "Database gauth_integration already exists or creation failed"
           fi
-          
-          # Verify database exists
-          echo "Verifying database exists..."
-          if ! PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d gauth_integration -c "SELECT 1;" &> /dev/null; then
-            echo "ERROR: Cannot connect to gauth_integration database"
+
+          # Verify database exists and is accessible
+          echo "Verifying database exists and is accessible..."
+          if PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d gauth_integration -c "SELECT 1;" &> /dev/null; then
+            echo "✓ Connection to gauth_integration database successful"
+          else
+            echo "✗ ERROR: Cannot connect to gauth_integration database"
             echo "Available databases:"
-            PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "\l"
+            PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "\l" 2>/dev/null || echo "Failed to list databases"
             exit 1
           fi
-          echo "Connection to gauth_integration database successful"
         else
-          echo "psql not available, skipping database creation verification"
+          echo "✗ psql not available, cannot create or verify database"
+          echo "This will likely cause migration failures"
+          exit 1
         fi
         
         # Run migrations on integration test database
         echo "Running migrations..."
-        ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" up
-        
+        if ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" up; then
+          echo "✓ Migrations completed successfully"
+        else
+          echo "✗ ERROR: Migration failed"
+          echo "Checking migration status..."
+          ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" version || echo "Could not get migration version"
+          exit 1
+        fi
+
         # Verify migrations were applied
-        VERSION=$(./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" version)
-        echo "Migration version: $VERSION"
+        echo "Checking migration version..."
+        if VERSION=$(./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" version 2>/dev/null); then
+          echo "✓ Migration version: $VERSION"
+        else
+          echo "✗ ERROR: Could not retrieve migration version"
+          exit 1
+        fi
         
         # Verify tables exist
         if command -v psql &> /dev/null; then
@@ -332,7 +354,13 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
-        
+
+    - name: Install system dependencies
+      run: |
+        # Install PostgreSQL client tools for Ubuntu
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client netcat-openbsd
+
     - name: Check PostgreSQL client availability
       run: |
         # Check if PostgreSQL client tools are available
@@ -366,27 +394,54 @@ jobs:
     - name: Create test databases
       run: |
         cd gauth
-        # Create gauth_integration database for integration tests
+        # Create databases for testing
         if command -v psql &> /dev/null; then
-          PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "CREATE DATABASE gauth_integration;" 2>/dev/null || echo "Database gauth_integration already exists"
-          PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "CREATE DATABASE gauth_migrate;" 2>/dev/null || echo "Database gauth_migrate already exists"
+          echo "Creating gauth_integration database..."
+          PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "CREATE DATABASE gauth_integration;" 2>/dev/null && echo "✓ gauth_integration created" || echo "gauth_integration already exists"
+
+          echo "Creating gauth_migrate database..."
+          PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d postgres -c "CREATE DATABASE gauth_migrate;" 2>/dev/null && echo "✓ gauth_migrate created" || echo "gauth_migrate already exists"
+
+          # Verify databases exist
+          echo "Verifying databases..."
+          PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d gauth_integration -c "SELECT 1;" &> /dev/null && echo "✓ gauth_integration accessible" || (echo "✗ gauth_integration not accessible" && exit 1)
+          PGPASSWORD=password psql -h localhost -p 5432 -U gauth -d gauth_migrate -c "SELECT 1;" &> /dev/null && echo "✓ gauth_migrate accessible" || (echo "✗ gauth_migrate not accessible" && exit 1)
         else
-          echo "psql not available, skipping database creation"
+          echo "✗ psql not available, cannot create or verify databases"
+          exit 1
         fi
         
     - name: Run migrations up
       run: |
         cd gauth
         # Use migrate with postgres driver explicitly
-        ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" up
-        
+        echo "Running migrations up..."
+        if ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" up; then
+          echo "✓ Migrations up completed successfully"
+        else
+          echo "✗ ERROR: Migrations up failed"
+          exit 1
+        fi
+
     - name: Check migration version
       run: |
         cd gauth
-        ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" version
-        
+        echo "Checking migration version..."
+        if VERSION=$(./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" version 2>/dev/null); then
+          echo "✓ Migration version: $VERSION"
+        else
+          echo "✗ ERROR: Could not retrieve migration version"
+          exit 1
+        fi
+
     - name: Run migrations down
       run: |
         cd gauth
         # Go down one migration step to test rollback functionality
-        ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" down 1
+        echo "Testing migration rollback..."
+        if ./migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_migrate?sslmode=disable" down 1; then
+          echo "✓ Migration down completed successfully"
+        else
+          echo "✗ ERROR: Migration down failed"
+          exit 1
+        fi
