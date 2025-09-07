@@ -17,6 +17,7 @@ env:
   POSTGRES_VERSION: "15"
   REDIS_VERSION: "7-alpine"
   # Enhanced environment variables for our comprehensive toolset
+  PATH: "/usr/local/go/bin:$PATH"
   GOCACHE: "$HOME/.cache/go-build"
   GOPATH: "$HOME/go"
   GOROOT: "/usr/local/go"
@@ -61,7 +62,19 @@ jobs:
     - name: Verify pre-installed tools
       run: |
         echo "🔍 Verifying pre-installed development tools..."
+        
+        # Ensure Go environment is properly set up
+        export PATH="/usr/local/go/bin:$PATH"
+        export GOPATH="$HOME/go"
+        export GOROOT="/usr/local/go"
+        export GOCACHE="$HOME/.cache/go-build"
+        export GOTMPDIR="$HOME/.cache/go-tmp"
+        
+        # Create necessary directories
+        mkdir -p "$HOME/.cache/go-build" "$HOME/.cache/go-tmp"
+        
         echo "Go version: $(go version)"
+        echo "Go path: $(which go)"
         echo "Protoc version: $(protoc --version)"
         echo "Golangci-lint version: $(golangci-lint --version)"
         echo "Goimports version: $(goimports --version)"
@@ -108,12 +121,38 @@ jobs:
     - name: Download dependencies
       run: |
         cd gauth
+        
+        # Ensure Go environment is properly set up
+        export PATH="/usr/local/go/bin:$PATH"
+        export GOPATH="$HOME/go"
+        export GOROOT="/usr/local/go"
+        export GOCACHE="$HOME/.cache/go-build"
+        export GOTMPDIR="$HOME/.cache/go-tmp"
+        
+        # Create necessary directories
+        mkdir -p "$HOME/.cache/go-build" "$HOME/.cache/go-tmp"
+        
+        # Verify Go is available
+        echo "Go version: $(go version)"
+        echo "Go path: $(which go)"
+        echo "GOPATH: $GOPATH"
+        echo "GOROOT: $GOROOT"
+        
+        # Download and verify dependencies
         go mod download
         go mod verify
         
     - name: Generate protobuf code
       run: |
         cd gauth
+        
+        # Ensure Go environment is properly set up
+        export PATH="/usr/local/go/bin:$PATH"
+        export GOPATH="$HOME/go"
+        export GOROOT="/usr/local/go"
+        export GOCACHE="$HOME/.cache/go-build"
+        export GOTMPDIR="$HOME/.cache/go-tmp"
+        
         make proto
         
     - name: Fix protobuf security warnings
