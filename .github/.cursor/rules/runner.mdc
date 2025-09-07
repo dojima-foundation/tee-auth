@@ -1,0 +1,15 @@
+---
+description: self hosted github action runner
+globs:
+alwaysApply: true
+---
+
+We are using self-hosted runners on OVH Cloud (Singapore region).
+
+- Infrastructure: OVH Cloud, Ubuntu 22.04, 2 vCPUs, 7GB RAM (b2-7)
+- Repository: dojima-foundation/tee-auth (repository-level runners)
+- Labels: ["ovh", "self-hosted", "ubuntu-22.04"]
+- Features: Docker support, health monitoring, status pages
+- Access: SSH with key authentication, health checks every 5 minutes
+- Management: Terraform-based infrastructure, automated setup
+
