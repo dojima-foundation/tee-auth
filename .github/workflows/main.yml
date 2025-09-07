@@ -1,24 +1,17 @@
-name: Full Project CI/CD
+name: Full Project CI/CD (DISABLED)
+
+# DISABLED: Only gauth.yml workflow is enabled
+# This workflow is disabled to prevent conflicts with the main gauth workflow
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths-ignore:
-      - 'docs/**'
-      - 'terraform/**'
-      - '.github/workflows/renclave-v2.yml'
-      - '.github/workflows/gauth.yml'
-      - '.github/workflows/web.yml'
-  pull_request:
-    branches: [ main, develop ]
-    paths-ignore:
-      - 'docs/**'
-      - 'terraform/**'
-      - '.github/workflows/renclave-v2.yml'
-      - '.github/workflows/gauth.yml'
-      - '.github/workflows/web.yml'
+  # Disabled - will never trigger
   workflow_dispatch:
     inputs:
+      force_run:
+        description: 'Force run this workflow (DISABLED)'
+        required: true
+        default: false
+        type: boolean
       run_renclave:
         description: 'Run Renclave-v2 tests and build'
         required: false
@@ -365,18 +358,7 @@ jobs:
         cd ../web
         npm ci
         
-    - name: Install protoc
-      run: |
-        # Install protobuf compiler directly from package manager
-        sudo apt-get update
-        sudo apt-get install -y protobuf-compiler
-        protoc --version
-        
-    - name: Install protoc plugins
-      run: |
-        cd gauth
-        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+    # Protobuf tools are now pre-installed on the runner
         
     - name: Generate protobuf code
       run: |
@@ -384,13 +366,7 @@ jobs:
         export PATH=$PATH:$(go env GOPATH)/bin
         make proto
         
-    - name: Install migration tool with postgres driver
-      run: |
-        cd gauth
-        # Download pre-built binary with all drivers included
-        curl -L https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz | tar xvz
-        chmod +x migrate
-        sudo mv migrate /usr/local/bin/
+    # Migration tool is now pre-installed on the runner
         
     - name: Run database migrations
       run: |

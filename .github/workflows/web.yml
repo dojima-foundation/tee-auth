@@ -1,16 +1,17 @@
-name: Web CI/CD
+name: Web CI/CD (DISABLED)
+
+# DISABLED: Only gauth.yml workflow is enabled
+# This workflow is disabled to prevent conflicts with the main gauth workflow
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'web/**'
-      - '.github/workflows/web.yml'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'web/**'
-      - '.github/workflows/web.yml'
+  # Disabled - will never trigger
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: 'Force run this workflow (DISABLED)'
+        required: true
+        default: false
+        type: boolean
 
 env:
   NODE_VERSION: "20"
@@ -18,7 +19,7 @@ env:
 jobs:
   test:
     name: Test and Build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     
     steps:
     - name: Checkout code
@@ -67,7 +68,7 @@ jobs:
 
   e2e:
     name: End-to-End Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: test
     
     steps:
@@ -86,10 +87,7 @@ jobs:
         cd web
         npm ci
         
-    - name: Install Playwright browsers
-      run: |
-        cd web
-        npx playwright install --with-deps
+    # Playwright browsers are now pre-installed on the runner
         
     - name: Run E2E tests
       run: |
@@ -106,7 +104,7 @@ jobs:
 
   performance:
     name: Performance Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: test
     
     steps:
@@ -151,7 +149,7 @@ jobs:
 
   accessibility:
     name: Accessibility Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: test
     
     steps:
@@ -170,10 +168,7 @@ jobs:
         cd web
         npm ci
         
-    - name: Install Playwright browsers
-      run: |
-        cd web
-        npx playwright install --with-deps
+    # Playwright browsers are now pre-installed on the runner
         
     - name: Run accessibility tests
       run: |
@@ -190,7 +185,7 @@ jobs:
 
   mobile:
     name: Mobile Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: test
     
     steps:
@@ -209,10 +204,7 @@ jobs:
         cd web
         npm ci
         
-    - name: Install Playwright browsers
-      run: |
-        cd web
-        npx playwright install --with-deps
+    # Playwright browsers are now pre-installed on the runner
         
     - name: Run mobile tests
       run: |

@@ -1,10 +1,17 @@
-name: Generate Status Badges
+name: Generate Status Badges (DISABLED)
+
+# DISABLED: Only gauth.yml workflow is enabled
+# This workflow is disabled to prevent conflicts with the main gauth workflow
 
 on:
-  workflow_run:
-    workflows: ["Renclave-v2 CI/CD", "Gauth CI/CD", "Web CI/CD", "Full Project CI/CD"]
-    types:
-      - completed
+  # Disabled - will never trigger
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: 'Force run this workflow (DISABLED)'
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   update-badges:

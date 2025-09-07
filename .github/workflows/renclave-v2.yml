@@ -1,16 +1,10 @@
-name: Renclave-v2 CI/CD (Improved)
+name: Renclave-v2 CI/CD (DISABLED) (Improved)
+
+# DISABLED: Only gauth.yml workflow is enabled
+# This workflow is disabled to prevent conflicts with the main gauth workflow
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'renclave-v2/**'
-      - '.github/workflows/renclave-v2*.yml'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'renclave-v2/**'
-      - '.github/workflows/renclave-v2*.yml'
+  # Disabled - will never trigger
   workflow_dispatch:
     inputs:
       run_tests:
@@ -332,20 +326,14 @@ jobs:
         key: renclave-v2-security-${{ hashFiles('renclave-v2/Cargo.lock') }}
         target-dir: renclave-v2/target
         
-    - name: Install cargo-audit
-      run: |
-        cd renclave-v2
-        cargo install cargo-audit
+    # cargo-audit is now pre-installed on the runner
         
     - name: Run security audit
       run: |
         cd renclave-v2
         cargo audit
         
-    - name: Install cargo-deny
-      run: |
-        cd renclave-v2
-        cargo install cargo-deny
+    # cargo-deny is now pre-installed on the runner
         
     - name: Run cargo-deny
       run: |
@@ -375,10 +363,7 @@ jobs:
         key: renclave-v2-coverage-${{ hashFiles('renclave-v2/Cargo.lock') }}
         target-dir: renclave-v2/target
         
-    - name: Install cargo-tarpaulin
-      run: |
-        cd renclave-v2
-        cargo install cargo-tarpaulin --version 0.26.0
+    # cargo-tarpaulin is now pre-installed on the runner
         
     - name: Generate coverage report
       run: |
