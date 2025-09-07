@@ -444,30 +444,94 @@ log "Installing Go development tools..."
 wget -q https://go.dev/dl/go1.23.0.linux-amd64.tar.gz
 rm -rf /usr/local/go && tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz
 
-# Set up Go environment
+# Set up Go environment with comprehensive GitHub Runner support
+log "Setting up Go environment with GitHub Runner support..."
+
+# Define shared cache directory for GitHub Runner compatibility
+SHARED_GO_CACHE="/opt/go-cache"
+SHARED_GO_BUILD="$SHARED_GO_CACHE/go-build"
+SHARED_GO_TMP="$SHARED_GO_CACHE/go-tmp"
+SHARED_GO_MOD="$SHARED_GO_CACHE/go-mod"
+SHARED_GO_SUMDB="$SHARED_GO_CACHE/go-sumdb"
+
+# Create shared cache directories with proper permissions
+mkdir -p "$SHARED_GO_BUILD" "$SHARED_GO_TMP" "$SHARED_GO_MOD" "$SHARED_GO_SUMDB"
+mkdir -p "$SHARED_GO_SUMDB/sum.golang.org"
+
+# Set ownership to github-runner and permissions for shared access
+chown -R github-runner:github-runner "$SHARED_GO_CACHE"
+chmod -R 775 "$SHARED_GO_CACHE"
+
+# Create the sumdb directory structure that Go expects
+chown -R github-runner:github-runner "$SHARED_GO_SUMDB"
+chmod -R 775 "$SHARED_GO_SUMDB"
+
+# Ensure parent directories exist
+mkdir -p /home/ubuntu/go/pkg /home/ubuntu/.cache
+chown -R ubuntu:ubuntu /home/ubuntu/go /home/ubuntu/.cache
+
+# Create symlinks from default locations to shared cache
+ln -sf "$SHARED_GO_SUMDB" "/home/ubuntu/go/pkg/sumdb"
+ln -sf "$SHARED_GO_MOD" "/home/ubuntu/go/pkg/mod"
+ln -sf "$SHARED_GO_BUILD" "/home/ubuntu/.cache/go-build"
+ln -sf "$SHARED_GO_TMP" "/home/ubuntu/.cache/go-tmp"
+
+# Set proper ownership on symlinks
+chown -h ubuntu:ubuntu "/home/ubuntu/go/pkg/sumdb"
+chown -h ubuntu:ubuntu "/home/ubuntu/go/pkg/mod"
+chown -h ubuntu:ubuntu "/home/ubuntu/.cache/go-build"
+chown -h ubuntu:ubuntu "/home/ubuntu/.cache/go-tmp"
+
+# Add users to groups for shared access
+usermod -aG ubuntu github-runner || true
+usermod -aG github-runner ubuntu || true
+
+# Set up Go environment variables
 export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
 export GOPATH="/home/ubuntu/go"
 export GOROOT="/usr/local/go"
-export GOCACHE="/home/ubuntu/.cache/go-build"
-export GOTMPDIR="/home/ubuntu/.cache/go-tmp"
-
-# Create necessary directories
-mkdir -p /home/ubuntu/go /home/ubuntu/.cache/go-build /home/ubuntu/.cache/go-tmp
+export GOCACHE="$SHARED_GO_BUILD"
+export GOTMPDIR="$SHARED_GO_TMP"
+export GOMODCACHE="$SHARED_GO_MOD"
+export GOSUMDB="sum.golang.org"
+export GOPROXY="https://proxy.golang.org,direct"
+export TMPDIR="$SHARED_GO_CACHE"
 
 # Add Go environment to system-wide profile
 echo 'export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"' >> /etc/profile
 echo 'export GOPATH="/home/ubuntu/go"' >> /etc/profile
 echo 'export GOROOT="/usr/local/go"' >> /etc/profile
-echo 'export GOCACHE="/home/ubuntu/.cache/go-build"' >> /etc/profile
-echo 'export GOTMPDIR="/home/ubuntu/.cache/go-tmp"' >> /etc/profile
+echo "export GOCACHE=\"$SHARED_GO_BUILD\"" >> /etc/profile
+echo "export GOTMPDIR=\"$SHARED_GO_TMP\"" >> /etc/profile
+echo "export GOMODCACHE=\"$SHARED_GO_MOD\"" >> /etc/profile
+echo 'export GOSUMDB="sum.golang.org"' >> /etc/profile
+echo 'export GOPROXY="https://proxy.golang.org,direct"' >> /etc/profile
+echo "export TMPDIR=\"$SHARED_GO_CACHE\"" >> /etc/profile
 
 # Add Go environment to ubuntu user's bashrc
 touch /home/ubuntu/.bashrc
 echo 'export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"' >> /home/ubuntu/.bashrc
 echo 'export GOPATH="/home/ubuntu/go"' >> /home/ubuntu/.bashrc
 echo 'export GOROOT="/usr/local/go"' >> /home/ubuntu/.bashrc
-echo 'export GOCACHE="/home/ubuntu/.cache/go-build"' >> /home/ubuntu/.bashrc
-echo 'export GOTMPDIR="/home/ubuntu/.cache/go-tmp"' >> /home/ubuntu/.bashrc
+echo "export GOCACHE=\"$SHARED_GO_BUILD\"" >> /home/ubuntu/.bashrc
+echo "export GOTMPDIR=\"$SHARED_GO_TMP\"" >> /home/ubuntu/.bashrc
+echo "export GOMODCACHE=\"$SHARED_GO_MOD\"" >> /home/ubuntu/.bashrc
+echo 'export GOSUMDB="sum.golang.org"' >> /home/ubuntu/.bashrc
+echo 'export GOPROXY="https://proxy.golang.org,direct"' >> /home/ubuntu/.bashrc
+echo "export TMPDIR=\"$SHARED_GO_CACHE\"" >> /home/ubuntu/.bashrc
+
+# Add Go environment to github-runner user's bashrc
+sudo -u github-runner bash -c "
+    echo 'export PATH=\"/usr/local/go/bin:/home/ubuntu/go/bin:\$PATH\"' >> ~/.bashrc
+    echo 'export GOPATH=\"/home/ubuntu/go\"' >> ~/.bashrc
+    echo 'export GOROOT=\"/usr/local/go\"' >> ~/.bashrc
+    echo 'export GOCACHE=\"$SHARED_GO_BUILD\"' >> ~/.bashrc
+    echo 'export GOTMPDIR=\"$SHARED_GO_TMP\"' >> ~/.bashrc
+    echo 'export GOMODCACHE=\"$SHARED_GO_MOD\"' >> ~/.bashrc
+    echo 'export GOSUMDB=\"sum.golang.org\"' >> ~/.bashrc
+    echo 'export GOPROXY=\"https://proxy.golang.org,direct\"' >> ~/.bashrc
+    echo 'export TMPDIR=\"$SHARED_GO_CACHE\"' >> ~/.bashrc
+"
 
 # Install Go development tools
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
