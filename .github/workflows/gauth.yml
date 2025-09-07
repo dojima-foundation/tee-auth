@@ -17,12 +17,12 @@ env:
   POSTGRES_VERSION: "15"
   REDIS_VERSION: "7-alpine"
   # Enhanced environment variables for our comprehensive toolset
-  GOCACHE: "/home/ubuntu/.cache/go-build"
-  GOPATH: "/home/ubuntu/go"
+  GOCACHE: "$HOME/.cache/go-build"
+  GOPATH: "$HOME/go"
   GOROOT: "/usr/local/go"
-  GOTMPDIR: "/home/ubuntu/.cache/go-tmp"
-  TMPDIR: "/home/ubuntu/.cache"
-  NVM_DIR: "/home/ubuntu/.nvm"
+  GOTMPDIR: "$HOME/.cache/go-tmp"
+  TMPDIR: "$HOME/.cache"
+  NVM_DIR: "$HOME/.nvm"
 
 jobs:
   test:
@@ -79,13 +79,13 @@ jobs:
       run: |
         # Ensure Go environment is properly configured
         export PATH="/usr/local/go/bin:$PATH"
-        export GOPATH="/home/ubuntu/go"
+        export GOPATH="$HOME/go"
         export GOROOT="/usr/local/go"
-        export GOCACHE="/home/ubuntu/.cache/go-build"
-        export GOTMPDIR="/home/ubuntu/.cache/go-tmp"
+        export GOCACHE="$HOME/.cache/go-build"
+        export GOTMPDIR="$HOME/.cache/go-tmp"
         
         # Create necessary directories
-        mkdir -p /home/ubuntu/.cache/go-build /home/ubuntu/.cache/go-tmp
+        mkdir -p "$HOME/.cache/go-build" "$HOME/.cache/go-tmp"
         
         # Verify Go tools are available
         echo "Go tools verification:"
@@ -99,8 +99,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
+          ${{ env.GOCACHE }}
+          ${{ env.GOPATH }}/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('gauth/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
@@ -434,13 +434,13 @@ jobs:
       run: |
         # Ensure Go environment is properly configured
         export PATH="/usr/local/go/bin:$PATH"
-        export GOPATH="/home/ubuntu/go"
+        export GOPATH="$HOME/go"
         export GOROOT="/usr/local/go"
-        export GOCACHE="/home/ubuntu/.cache/go-build"
-        export GOTMPDIR="/home/ubuntu/.cache/go-tmp"
+        export GOCACHE="$HOME/.cache/go-build"
+        export GOTMPDIR="$HOME/.cache/go-tmp"
         
         # Create necessary directories
-        mkdir -p /home/ubuntu/.cache/go-build /home/ubuntu/.cache/go-tmp
+        mkdir -p $HOME/.cache/go-build $HOME/.cache/go-tmp
         
     - name: Create test databases
       run: |
@@ -483,13 +483,13 @@ jobs:
       run: |
         # Ensure Go environment is properly configured
         export PATH="/usr/local/go/bin:$PATH"
-        export GOPATH="/home/ubuntu/go"
+        export GOPATH="$HOME/go"
         export GOROOT="/usr/local/go"
-        export GOCACHE="/home/ubuntu/.cache/go-build"
-        export GOTMPDIR="/home/ubuntu/.cache/go-tmp"
+        export GOCACHE="$HOME/.cache/go-build"
+        export GOTMPDIR="$HOME/.cache/go-tmp"
         
         # Create necessary directories
-        mkdir -p /home/ubuntu/.cache/go-build /home/ubuntu/.cache/go-tmp
+        mkdir -p $HOME/.cache/go-build $HOME/.cache/go-tmp
         
     - name: Enhanced security scanning
       run: |
