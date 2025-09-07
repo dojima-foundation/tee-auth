@@ -42,7 +42,7 @@ deps: ## Install dependencies
 
 proto: ## Generate protobuf code
 	@echo "Generating protobuf code..."
-	protoc --go_out=. --go-grpc_out=. --proto_path=. api/proto/gauth.proto
+	protoc --experimental_allow_proto3_optional --go_out=. --go-grpc_out=. --proto_path=. api/proto/gauth.proto
 	@echo "Moving generated files to correct location..."
 	@if [ -d "github.com/dojima-foundation/tee-auth/gauth/api/proto" ]; then \
 		mv github.com/dojima-foundation/tee-auth/gauth/api/proto/*.pb.go api/proto/; \
