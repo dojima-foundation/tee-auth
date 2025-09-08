@@ -375,6 +375,50 @@ jobs:
         PGPASSWORD=password psql -h localhost -U gauth -d postgres -c "CREATE DATABASE gauth_test;" || echo "Database gauth_test already exists"
         PGPASSWORD=password psql -h localhost -U gauth -d postgres -c "CREATE DATABASE gauth_integration;" || echo "Database gauth_integration already exists"
         
+    - name: Run database migrations for test databases
+      run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+        
+        cd gauth
+        # Run migrations for each test database
+        echo "Running migrations for gauth_e2e database..."
+        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_e2e?sslmode=disable" up || echo "Migrations failed for gauth_e2e"
+        
+        echo "Running migrations for gauth_test database..."
+        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_test?sslmode=disable" up || echo "Migrations failed for gauth_test"
+        
+        echo "Running migrations for gauth_integration database..."
+        migrate -path migrations -database "postgres://gauth:password@localhost:5432/gauth_integration?sslmode=disable" up || echo "Migrations failed for gauth_integration"
+        
+    - name: Prepare E2E test binary
+      run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+        
+        cd gauth
+        # Create the directory where E2E tests expect the binary
+        mkdir -p test/e2e/bin
+        # Copy the built binary to the expected location
+        cp bin/gauth test/e2e/bin/gauth
+        echo "Binary copied to test/e2e/bin/gauth"
+        
     - name: Run integration tests
       run: |
         # Set up Go environment explicitly
