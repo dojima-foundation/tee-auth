@@ -8,6 +8,7 @@ set -e
 echo "🐳 Building renclave test image manually..."
 
 # Build the image using traditional docker build (no Buildx)
+# Note: This script should be run from the renclave-v2 directory
 docker build -f docker/Dockerfile.test -t renclave-test-runner:latest .
 
 echo "✅ Image built successfully!"

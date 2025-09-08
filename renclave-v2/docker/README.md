@@ -18,11 +18,11 @@ docker compose -f docker/docker-compose.test.yml down --volumes --remove-orphans
 
 ### Option 2: Manual Docker Build
 ```bash
-# Build image directly
-docker build -f docker/Dockerfile.test -t renclave-test-runner .
+# Build image directly (from project root)
+docker build -f renclave-v2/docker/Dockerfile.test -t renclave-test-runner:latest renclave-v2/
 
 # Run tests
-docker run --rm -v $(pwd):/app renclave-test-runner /app/scripts/run-tests-docker.sh --integration
+docker run --rm -v $(pwd)/renclave-v2:/app renclave-test-runner /app/scripts/run-tests-docker.sh --integration
 ```
 
 ## Files Overview

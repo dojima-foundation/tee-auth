@@ -179,9 +179,9 @@ jobs:
         
     - name: Build Docker image
       run: |
-        cd renclave-v2
         # Build the image using traditional docker build (avoids Buildx issues)
-        if ! docker build -f docker/Dockerfile.test -t renclave-test-runner:latest .; then
+        # Use full path from repo root to avoid path resolution issues
+        if ! docker build -f renclave-v2/docker/Dockerfile.test -t renclave-test-runner:latest renclave-v2/; then
           echo "Docker build failed"
           exit 1
         fi
@@ -262,11 +262,11 @@ jobs:
         
     - name: Build Docker image for E2E tests
       run: |
-        cd renclave-v2
         # Ensure the image exists for E2E tests
         if ! docker images | grep -q renclave-test-runner; then
           echo "Building Docker image for E2E tests..."
-          docker build -f docker/Dockerfile.test -t renclave-test-runner:latest .
+          # Use full path from repo root to avoid path resolution issues
+          docker build -f renclave-v2/docker/Dockerfile.test -t renclave-test-runner:latest renclave-v2/
         else
           echo "Docker image already exists, skipping build"
         fi
