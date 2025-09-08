@@ -1,14 +1,10 @@
-name: Gauth CI/CD
+name: Gauth CI/CD (DISABLED)
 
-# Optimized for self-hosted runners with pre-installed tools
-# All Go tools, protobuf plugins, and system utilities are pre-installed
-# on the runner instance, eliminating the need for redundant setup steps
+# DISABLED: Only renclave-v2.yml workflow is enabled
+# This workflow is disabled to prevent conflicts with the main renclave workflow
 
 on:
-  # Default workflow - runs on any push to main/develop
-  push:
-    branches: [ main, develop ]
-  # Manual trigger - can be run from GitHub Actions UI
+  # Disabled - will never trigger
   workflow_dispatch:
     inputs:
       environment:
@@ -35,15 +31,6 @@ on:
         required: true
         default: false
         type: boolean
-  # Scheduled runs - daily at 2 AM UTC
-  schedule:
-    - cron: '0 2 * * *'
-  # Pull request trigger
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'gauth/**'
-      - '.github/workflows/gauth.yml'
 
 jobs:
   test:

@@ -1,10 +1,16 @@
-name: Renclave-v2 CI/CD (DISABLED) (Improved)
+name: Renclave-v2 CI/CD
 
-# DISABLED: Only gauth.yml workflow is enabled
-# This workflow is disabled to prevent conflicts with the main gauth workflow
+# Enabled: Only renclave-v2 workflow is enabled
+# This workflow handles Rust-based TEE enclave service testing and building
 
 on:
-  # Disabled - will never trigger
+  # Default workflow - runs on any push to main/develop
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'renclave-v2/**'
+      - '.github/workflows/renclave-v2.yml'
+  # Manual trigger - can be run from GitHub Actions UI
   workflow_dispatch:
     inputs:
       run_tests:
