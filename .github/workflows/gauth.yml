@@ -529,6 +529,7 @@ jobs:
 
         # Build for single platform (amd64) for testing
         docker buildx build \
+          --file docker/Dockerfile \
           --platform linux/amd64 \
           --tag gauth:latest \
           --tag gauth:$(git rev-parse --short HEAD) \
@@ -684,7 +685,7 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Set up Go environment
       run: |
         # Ensure Go environment is properly configured
@@ -693,10 +694,41 @@ jobs:
         export GOROOT="/usr/local/go"
         export GOCACHE="$HOME/.cache/go-build"
         export GOTMPDIR="$HOME/.cache/go-tmp"
-        
+
         # Create necessary directories
         mkdir -p $HOME/.cache/go-build $HOME/.cache/go-tmp
-        
+
+    - name: Generate protobuf code for enhanced testing
+      run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+
+        cd gauth
+        echo "🔧 Generating protobuf code for enhanced testing..."
+
+        # Install protoc plugins if needed
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+        # Generate protobuf code
+        protoc --experimental_allow_proto3_optional --go_out=. --go-grpc_out=. --proto_path=. api/proto/gauth.proto
+
+        # Move generated files to correct location if needed
+        if [ -d "github.com/dojima-foundation/tee-auth/gauth/api/proto" ]; then
+          mv github.com/dojima-foundation/tee-auth/gauth/api/proto/*.pb.go api/proto/
+          rm -rf github.com
+        fi
+
+        echo "✅ Protobuf code generated successfully"
+
     - name: Enhanced security scanning
       if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_security_scan == 'true' }}
       run: |
