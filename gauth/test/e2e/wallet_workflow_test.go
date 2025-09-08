@@ -102,6 +102,13 @@ func (suite *WalletWorkflowE2ETestSuite) SetupSuite() {
 	// Create REST server
 	suite.restServer = rest.NewServer(cfg, testLogger, telemetry)
 
+	// Set Redis for session management
+	suite.restServer.SetRedis(suite.redis.Client)
+
+	// Set session manager to test mode to bypass session validation
+	sessionManager := suite.restServer.GetSessionManager()
+	sessionManager.SetTestMode(true)
+
 	// Connect REST server to gRPC server
 	err = suite.restServer.ConnectToGRPCForTesting("localhost:9093")
 	require.NoError(suite.T(), err)
@@ -185,6 +192,10 @@ func (suite *WalletWorkflowE2ETestSuite) TestCompleteWalletWorkflow() {
 	// Check that organization was created successfully
 	assert.Equal(suite.T(), "E2E Test Corporation", org["name"])
 	assert.NotEmpty(suite.T(), org["id"])
+
+	// Update session manager with the created organization ID for subsequent requests
+	sessionManager := suite.restServer.GetSessionManager()
+	sessionManager.SetTestData(organizationID, "test-user-id", "test-auth-method-id")
 
 	// Step 2: Create additional users (with and without public keys)
 	suite.T().Log("Step 2: Creating additional users")
