@@ -1,5 +1,9 @@
 name: Renclave-v2 CI/CD
 
+# FIXED: Docker Buildx issues resolved - uses traditional docker build
+# FIXED: Image pull policy set to 'never' to prevent registry attempts
+# FIXED: Workflow updated to match local Docker fixes
+#
 # Default: Only integration tests are enabled by default for push events
 # Manual workflow_dispatch allows fine-grained control over which jobs run
 # This workflow handles Rust-based TEE enclave service testing and building
@@ -173,16 +177,12 @@ jobs:
       with:
         key: renclave-v2-integration-${{ hashFiles('renclave-v2/Cargo.lock') }}
         
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
-    - name: Build Docker images
+    - name: Build Docker image
       run: |
         cd renclave-v2
-        # Build with better error handling
-        if ! docker compose -f docker/docker-compose.test.yml build; then
-          echo "Docker build failed, checking logs..."
-          docker compose -f docker/docker-compose.test.yml logs || true
+        # Build the image using traditional docker build (avoids Buildx issues)
+        if ! docker build -f docker/Dockerfile.test -t renclave-test-runner:latest .; then
+          echo "Docker build failed"
           exit 1
         fi
         
@@ -260,17 +260,25 @@ jobs:
       with:
         key: renclave-v2-e2e-${{ hashFiles('renclave-v2/Cargo.lock') }}
         
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
+    - name: Build Docker image for E2E tests
+      run: |
+        cd renclave-v2
+        # Ensure the image exists for E2E tests
+        if ! docker images | grep -q renclave-test-runner; then
+          echo "Building Docker image for E2E tests..."
+          docker build -f docker/Dockerfile.test -t renclave-test-runner:latest .
+        else
+          echo "Docker image already exists, skipping build"
+        fi
+
     - name: Run E2E tests
       run: |
         cd renclave-v2
         echo "Starting E2E tests..."
-        
+
         # Clean up any existing containers
         docker compose -f docker/docker-compose.test.yml down --volumes --remove-orphans || true
-        
+
         # Start services
         docker compose -f docker/docker-compose.test.yml up -d
         

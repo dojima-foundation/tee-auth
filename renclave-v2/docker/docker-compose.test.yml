@@ -1,6 +1,7 @@
 services:
   test-runner:
     image: renclave-test-runner:latest
+    pull_policy: never
     container_name: renclave-test-runner
     volumes:
       - ./target:/app/target
@@ -15,6 +16,7 @@ services:
 
   performance-runner:
     image: renclave-test-runner:latest
+    pull_policy: never
     container_name: renclave-performance-runner
     volumes:
       - ./target:/app/target

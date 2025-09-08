@@ -38,6 +38,12 @@ If you encounter "load local bake definitions" errors:
 1. Use the `build.sh` script instead of `docker compose build`
 2. Or use `DOCKER_BUILDKIT=0 docker compose build`
 
+### Docker Registry Pull Issues
+If you get "pull access denied" errors:
+1. Ensure the image exists locally: `docker images | grep renclave`
+2. Use `pull_policy: never` in docker-compose.yml (already configured)
+3. Rebuild the image: `./docker/build.sh`
+
 ### Disk Space Issues
 ```bash
 # Clean up Docker
