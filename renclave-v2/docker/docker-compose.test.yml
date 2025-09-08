@@ -1,8 +1,8 @@
 services:
   test-runner:
     build:
-      context: ..
-      dockerfile: renclave-v2/docker/Dockerfile.test
+      context: /Users/luffybhaagi/dojima/tee-auth/renclave-v2
+      dockerfile: docker/Dockerfile.test
     container_name: renclave-test-runner
     volumes:
       - ./target:/app/target
@@ -17,8 +17,8 @@ services:
 
   performance-runner:
     build:
-      context: ..
-      dockerfile: renclave-v2/docker/Dockerfile.test
+      context: /Users/luffybhaagi/dojima/tee-auth/renclave-v2
+      dockerfile: docker/Dockerfile.test
     container_name: renclave-performance-runner
     volumes:
       - ./target:/app/target
