@@ -368,6 +368,13 @@ jobs:
           echo "psql not available, skipping table count verification"
         fi
         
+    - name: Setup test databases
+      run: |
+        # Create test databases for E2E tests
+        PGPASSWORD=password psql -h localhost -U gauth -d postgres -c "CREATE DATABASE gauth_e2e;" || echo "Database gauth_e2e already exists"
+        PGPASSWORD=password psql -h localhost -U gauth -d postgres -c "CREATE DATABASE gauth_test;" || echo "Database gauth_test already exists"
+        PGPASSWORD=password psql -h localhost -U gauth -d postgres -c "CREATE DATABASE gauth_integration;" || echo "Database gauth_integration already exists"
+        
     - name: Run integration tests
       run: |
         # Set up Go environment explicitly
@@ -425,6 +432,17 @@ jobs:
         
     - name: Build binary
       run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+        
         cd gauth
         make build
         
