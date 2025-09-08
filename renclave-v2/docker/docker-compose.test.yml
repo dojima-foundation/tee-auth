@@ -3,6 +3,8 @@ services:
     build:
       context: /Users/luffybhaagi/dojima/tee-auth/renclave-v2
       dockerfile: docker/Dockerfile.test
+      args:
+        BUILDKIT_INLINE_CACHE: 0
     container_name: renclave-test-runner
     volumes:
       - ./target:/app/target
@@ -19,6 +21,8 @@ services:
     build:
       context: /Users/luffybhaagi/dojima/tee-auth/renclave-v2
       dockerfile: docker/Dockerfile.test
+      args:
+        BUILDKIT_INLINE_CACHE: 0
     container_name: renclave-performance-runner
     volumes:
       - ./target:/app/target
