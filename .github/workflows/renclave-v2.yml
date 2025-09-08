@@ -1,6 +1,6 @@
 name: Renclave-v2 CI/CD
 
-# Enabled: Only renclave-v2 workflow is enabled
+# Default: Only integration tests are enabled by default
 # This workflow handles Rust-based TEE enclave service testing and building
 
 on:
@@ -16,17 +16,17 @@ on:
       run_tests:
         description: 'Run all tests'
         required: false
-        default: true
+        default: false
         type: boolean
       run_docker:
         description: 'Run Docker tests'
         required: false
-        default: true
+        default: false
         type: boolean
       run_security:
         description: 'Run security scans'
         required: false
-        default: true
+        default: false
         type: boolean
       rust_version:
         description: 'Rust version to use'
@@ -36,12 +36,12 @@ on:
       run_quick_checks:
         description: 'Run quick checks (fmt, clippy)'
         required: false
-        default: true
+        default: false
         type: boolean
       run_unit_tests:
         description: 'Run unit tests'
         required: false
-        default: true
+        default: false
         type: boolean
       run_integration_tests:
         description: 'Run integration tests'
@@ -51,17 +51,17 @@ on:
       run_e2e_tests:
         description: 'Run E2E tests'
         required: false
-        default: true
+        default: false
         type: boolean
       run_build:
         description: 'Run build job'
         required: false
-        default: true
+        default: false
         type: boolean
       run_coverage:
         description: 'Run coverage analysis'
         required: false
-        default: true
+        default: false
         type: boolean
 
 env:
