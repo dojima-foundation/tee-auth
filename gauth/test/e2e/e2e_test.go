@@ -127,8 +127,16 @@ func (suite *E2ETestSuite) startServices() {
 	// If the binary still doesn't exist, build it
 	if _, err := os.Stat(gauthBinary); os.IsNotExist(err) {
 		suite.T().Log("Binary not found, building gauth...")
+
+		// Create the bin directory if it doesn't exist
+		binDir := filepath.Dir(gauthBinary)
+		if err := os.MkdirAll(binDir, 0755); err != nil {
+			suite.T().Fatalf("Failed to create bin directory: %v", err)
+		}
+
+		// Build the binary from the project root
 		buildCmd := exec.Command("go", "build", "-o", gauthBinary, "./cmd/server")
-		buildCmd.Dir = filepath.Dir(gauthBinary)
+		buildCmd.Dir = "../../" // Go to project root
 		if err := buildCmd.Run(); err != nil {
 			suite.T().Fatalf("Failed to build gauth binary: %v", err)
 		}
