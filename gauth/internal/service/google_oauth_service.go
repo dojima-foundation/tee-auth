@@ -283,122 +283,158 @@ func (s *GoogleOAuthService) findOrCreateUser(ctx context.Context, organizationI
 	}
 
 	// User doesn't exist, create new organization and user
+	// Handle potential race conditions by implementing a simple retry mechanism
 	var orgUUID uuid.UUID
 	var user models.User
 	var authMethod models.AuthMethod
 
-	err = s.db.Transaction(func(tx *gorm.DB) error {
-		// Check if organization ID is provided and valid
-		if organizationID != "" {
-			parsedOrgID, err := uuid.Parse(organizationID)
-			if err != nil {
-				return fmt.Errorf("invalid organization ID: %w", err)
-			}
-
-			// Verify organization exists
-			var existingOrg models.Organization
-			if err := tx.First(&existingOrg, parsedOrgID).Error; err != nil {
-				return fmt.Errorf("organization not found: %w", err)
-			}
-
-			orgUUID = parsedOrgID
-		} else {
-			// Create organization for new user
-			org := &models.Organization{
-				ID:      uuid.New(),
-				Version: "1.0",
-				Name:    fmt.Sprintf("%s's Organization", googleUser.Name),
-				RootQuorum: models.Quorum{
-					Threshold: s.GAuthService.config.Auth.DefaultQuorumThreshold,
-				},
-			}
-
-			if err := tx.Create(org).Error; err != nil {
-				return fmt.Errorf("failed to create organization: %w", err)
-			}
-
-			orgUUID = org.ID
-		}
-
-		// Create Root user
-		user = models.User{
-			ID:             uuid.New(),
-			OrganizationID: orgUUID,
-			Username:       "Root user",
-			Email:          googleUser.Email,
-			PublicKey:      "", // Will be generated or set later
-			IsActive:       true,
-		}
-
-		// Check if email is already taken globally
-		var existingUser models.User
-		err := tx.Where("email = ?", googleUser.Email).First(&existingUser).Error
-		if err == nil {
-			// Email exists globally, generate a unique email and username
-			baseUsername := "Root user"
-			counter := 1
-			for {
-				newUsername := fmt.Sprintf("%s_%d", baseUsername, counter)
-				newEmail := fmt.Sprintf("%s+%d@%s",
-					strings.Split(googleUser.Email, "@")[0],
-					counter,
-					strings.Split(googleUser.Email, "@")[1])
-
-				// Check if both username and email are available
-				var existingUserWithUsername models.User
-				var existingUserWithEmail models.User
-				err1 := tx.Where("organization_id = ? AND username = ?", orgUUID, newUsername).First(&existingUserWithUsername).Error
-				err2 := tx.Where("email = ?", newEmail).First(&existingUserWithEmail).Error
-
-				if err1 != nil && err2 != nil {
-					user.Username = newUsername
-					user.Email = newEmail
-					break
+	// Try up to 3 times to handle race conditions
+	maxRetries := 3
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err = s.db.Transaction(func(tx *gorm.DB) error {
+			// Check if organization ID is provided and valid
+			if organizationID != "" {
+				parsedOrgID, err := uuid.Parse(organizationID)
+				if err != nil {
+					return fmt.Errorf("invalid organization ID: %w", err)
 				}
-				counter++
+
+				// Verify organization exists
+				var existingOrg models.Organization
+				if err := tx.First(&existingOrg, parsedOrgID).Error; err != nil {
+					return fmt.Errorf("organization not found: %w", err)
+				}
+
+				orgUUID = parsedOrgID
+			} else {
+				// Create organization for new user
+				org := &models.Organization{
+					ID:      uuid.New(),
+					Version: "1.0",
+					Name:    fmt.Sprintf("%s's Organization", googleUser.Name),
+					RootQuorum: models.Quorum{
+						Threshold: s.GAuthService.config.Auth.DefaultQuorumThreshold,
+					},
+				}
+
+				if err := tx.Create(org).Error; err != nil {
+					return fmt.Errorf("failed to create organization: %w", err)
+				}
+
+				orgUUID = org.ID
 			}
+
+			// Create Root user
+			user = models.User{
+				ID:             uuid.New(),
+				OrganizationID: orgUUID,
+				Username:       "Root user",
+				Email:          googleUser.Email,
+				PublicKey:      "", // Will be generated or set later
+				IsActive:       true,
+			}
+
+			// Check if email is already taken globally
+			var existingUser models.User
+			err := tx.Where("email = ?", googleUser.Email).First(&existingUser).Error
+			if err == nil {
+				// Email exists globally, generate a unique email and username
+				baseUsername := "Root user"
+				counter := 1
+				for {
+					newUsername := fmt.Sprintf("%s_%d", baseUsername, counter)
+					newEmail := fmt.Sprintf("%s+%d@%s",
+						strings.Split(googleUser.Email, "@")[0],
+						counter,
+						strings.Split(googleUser.Email, "@")[1])
+
+					// Check if both username and email are available
+					var existingUserWithUsername models.User
+					var existingUserWithEmail models.User
+					err1 := tx.Where("organization_id = ? AND username = ?", orgUUID, newUsername).First(&existingUserWithUsername).Error
+					err2 := tx.Where("email = ?", newEmail).First(&existingUserWithEmail).Error
+
+					if err1 != nil && err2 != nil {
+						user.Username = newUsername
+						user.Email = newEmail
+						break
+					}
+					counter++
+				}
+			}
+
+			// Create user
+			if err := tx.Create(&user).Error; err != nil {
+				return fmt.Errorf("failed to create user: %w", err)
+			}
+
+			// Add user to root quorum
+			if err := tx.Create(&QuorumMember{
+				OrganizationID: orgUUID,
+				UserID:         user.ID,
+			}).Error; err != nil {
+				return fmt.Errorf("failed to add user to quorum: %w", err)
+			}
+
+			// Create auth method
+			oauthData := GoogleOAuthData{
+				GoogleUserID: googleUser.ID,
+				Email:        googleUser.Email,
+				Name:         googleUser.Name,
+				Picture:      googleUser.Picture,
+				AccessToken:  token.AccessToken,
+				RefreshToken: token.RefreshToken,
+				ExpiresAt:    token.Expiry,
+			}
+
+			dataJSON, _ := json.Marshal(oauthData)
+			authMethod = models.AuthMethod{
+				ID:       uuid.New(),
+				UserID:   user.ID,
+				Type:     "OAUTH",
+				Name:     "Google OAuth",
+				Data:     string(dataJSON),
+				IsActive: true,
+			}
+
+			if err := tx.Create(&authMethod).Error; err != nil {
+				return fmt.Errorf("failed to create auth method: %w", err)
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			// Check if this is a duplicate key error (race condition)
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") ||
+				strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				// Another process might have created the user, check again
+				var existingAuthMethod models.AuthMethod
+				checkErr := s.db.GetDB().WithContext(ctx).
+					Where("type = ? AND data->>'google_user_id' = ?", "OAUTH", googleUser.ID).
+					First(&existingAuthMethod).Error
+
+				if checkErr == nil {
+					// User was created by another process, return it
+					var existingUser models.User
+					if getErr := s.db.GetDB().WithContext(ctx).First(&existingUser, existingAuthMethod.UserID).Error; getErr == nil {
+						return &existingUser, &existingAuthMethod, nil
+					}
+				}
+
+				// If we can't find the existing user, return the original error
+				if attempt == maxRetries-1 {
+					return nil, nil, err
+				}
+				// Wait a bit before retrying
+				time.Sleep(time.Duration(attempt+1) * 50 * time.Millisecond)
+				continue
+			}
+			return nil, nil, err
 		}
 
-		// Create user
-		if err := tx.Create(&user).Error; err != nil {
-			return fmt.Errorf("failed to create user: %w", err)
-		}
-
-		// Add user to root quorum
-		if err := tx.Create(&QuorumMember{
-			OrganizationID: orgUUID,
-			UserID:         user.ID,
-		}).Error; err != nil {
-			return fmt.Errorf("failed to add user to quorum: %w", err)
-		}
-
-		// Create auth method
-		oauthData := GoogleOAuthData{
-			GoogleUserID: googleUser.ID,
-			Email:        googleUser.Email,
-			Name:         googleUser.Name,
-			Picture:      googleUser.Picture,
-			AccessToken:  token.AccessToken,
-			RefreshToken: token.RefreshToken,
-			ExpiresAt:    token.Expiry,
-		}
-
-		dataJSON, _ := json.Marshal(oauthData)
-		authMethod = models.AuthMethod{
-			ID:       uuid.New(),
-			UserID:   user.ID,
-			Type:     "OAUTH",
-			Name:     "Google OAuth",
-			Data:     string(dataJSON),
-			IsActive: true,
-		}
-
-		if err := tx.Create(&authMethod).Error; err != nil {
-			return fmt.Errorf("failed to create auth method: %w", err)
-		}
-
-		return nil
-	})
+		break // Success, exit retry loop
+	}
 
 	if err != nil {
 		return nil, nil, err
