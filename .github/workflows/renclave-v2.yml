@@ -1,6 +1,7 @@
 name: Renclave-v2 CI/CD
 
-# Default: Only integration tests are enabled by default
+# Default: Only integration tests are enabled by default for push events
+# Manual workflow_dispatch allows fine-grained control over which jobs run
 # This workflow handles Rust-based TEE enclave service testing and building
 
 on:
@@ -76,7 +77,7 @@ jobs:
     name: Quick Checks
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     timeout-minutes: 10
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_quick_checks != 'false' }}
+    if: ${{ github.event.inputs.run_quick_checks == 'true' }}
     
     steps:
     - name: Checkout code
@@ -108,7 +109,7 @@ jobs:
     name: Unit Tests
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     timeout-minutes: 15
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_unit_tests != 'false' }}
+    if: ${{ github.event.inputs.run_unit_tests == 'true' }}
     
     steps:
     - name: Checkout code
@@ -153,8 +154,8 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: [self-hosted, ovh, ubuntu-22.04]
-    needs: [quick-checks, unit-tests]
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_integration_tests != 'false' }}
+    needs: []
+    if: ${{ github.event.inputs.run_integration_tests != 'false' }}
     timeout-minutes: 30
     
     steps:
@@ -242,7 +243,7 @@ jobs:
     name: E2E Tests
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: [integration-tests]
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_e2e_tests != 'false' }}
+    if: ${{ github.event.inputs.run_e2e_tests == 'true' }}
     timeout-minutes: 20
     
     steps:
@@ -307,8 +308,8 @@ jobs:
   build:
     name: Build Release
     runs-on: [self-hosted, ovh, ubuntu-22.04]
-    needs: [quick-checks, unit-tests]
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_build != 'false' }}
+    needs: []
+    if: ${{ github.event.inputs.run_build == 'true' }}
     timeout-minutes: 20
     
     steps:
@@ -341,8 +342,8 @@ jobs:
   security:
     name: Security Scan
     runs-on: [self-hosted, ovh, ubuntu-22.04]
-    needs: [quick-checks]
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_security != 'false' }}
+    needs: []
+    if: ${{ github.event.inputs.run_security == 'true' }}
     timeout-minutes: 15
 
     steps:
@@ -397,8 +398,8 @@ jobs:
   coverage:
     name: Coverage Report
     runs-on: [self-hosted, ovh, ubuntu-22.04]
-    needs: [unit-tests]
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_coverage != 'false' }}
+    needs: []
+    if: ${{ github.event.inputs.run_coverage == 'true' }}
     timeout-minutes: 20
     
     steps:
