@@ -1,7 +1,7 @@
 services:
   test-runner:
     build:
-      context: /Users/luffybhaagi/dojima/tee-auth/renclave-v2
+      context: ..
       dockerfile: docker/Dockerfile.test
       args:
         BUILDKIT_INLINE_CACHE: 0
@@ -19,7 +19,7 @@ services:
 
   performance-runner:
     build:
-      context: /Users/luffybhaagi/dojima/tee-auth/renclave-v2
+      context: ..
       dockerfile: docker/Dockerfile.test
       args:
         BUILDKIT_INLINE_CACHE: 0
