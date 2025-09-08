@@ -187,6 +187,8 @@ jobs:
         export TMPDIR="/opt/go-cache"
         
         cd gauth
+        # Update go.mod before formatting
+        go mod tidy
         make fmt
         
     - name: Run go vet
