@@ -316,10 +316,8 @@ func TestWalletService_PaginationLogic(t *testing.T) {
 	require.NoError(t, testDB.Create(org).Error)
 
 	// Create multiple wallets with different timestamps
-	var walletIDs []uuid.UUID
 	for i := 0; i < 5; i++ {
 		walletID := uuid.New()
-		walletIDs = append(walletIDs, walletID)
 
 		wallet := &models.Wallet{
 			ID:             walletID,

@@ -230,10 +230,8 @@ func TestPrivateKeyService_PaginationLogic(t *testing.T) {
 	require.NoError(t, testDB.Create(wallet).Error)
 
 	// Create multiple private keys with different timestamps
-	var privateKeyIDs []uuid.UUID
 	for i := 0; i < 5; i++ {
 		privateKeyID := uuid.New()
-		privateKeyIDs = append(privateKeyIDs, privateKeyID)
 
 		privateKey := &models.PrivateKey{
 			ID:             privateKeyID,
