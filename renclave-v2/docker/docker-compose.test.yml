@@ -1,10 +1,6 @@
 services:
   test-runner:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.test
-      args:
-        BUILDKIT_INLINE_CACHE: 0
+    image: renclave-test-runner:latest
     container_name: renclave-test-runner
     volumes:
       - ./target:/app/target
@@ -18,11 +14,7 @@ services:
     command: [ "tail", "-f", "/dev/null" ] # Keep container running
 
   performance-runner:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.test
-      args:
-        BUILDKIT_INLINE_CACHE: 0
+    image: renclave-test-runner:latest
     container_name: renclave-performance-runner
     volumes:
       - ./target:/app/target
