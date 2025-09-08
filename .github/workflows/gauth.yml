@@ -121,33 +121,35 @@ jobs:
           ${{ runner.os }}-go-
           
     - name: Download dependencies
-      env:
-        PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-        GOCACHE: "/opt/go-cache/go-build"
-        GOPATH: "/home/ubuntu/go"
-        GOROOT: "/usr/local/go"
-        GOTMPDIR: "/opt/go-cache/go-tmp"
-        GOMODCACHE: "/opt/go-cache/go-mod"
-        GOSUMDB: "sum.golang.org"
-        GOPROXY: "https://proxy.golang.org,direct"
-        TMPDIR: "/opt/go-cache"
       run: |
+        # Set up Go environment explicitly (step-level env: failed)
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/ubuntu/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+        
         cd gauth
         go mod download
         go mod verify
         
     - name: Generate protobuf code
-      env:
-        PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-        GOCACHE: "/opt/go-cache/go-build"
-        GOPATH: "/home/ubuntu/go"
-        GOROOT: "/usr/local/go"
-        GOTMPDIR: "/opt/go-cache/go-tmp"
-        GOMODCACHE: "/opt/go-cache/go-mod"
-        GOSUMDB: "sum.golang.org"
-        GOPROXY: "https://proxy.golang.org,direct"
-        TMPDIR: "/opt/go-cache"
       run: |
+        # Set up Go environment explicitly (step-level env: failed)
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/ubuntu/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+        
         cd gauth
         echo "Generating protobuf code..."
         protoc --experimental_allow_proto3_optional --go_out=. --go-grpc_out=. --proto_path=. api/proto/gauth.proto
@@ -328,17 +330,18 @@ jobs:
         name: gauth-coverage
         
     - name: Build binary
-      env:
-        PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-        GOCACHE: "/opt/go-cache/go-build"
-        GOPATH: "/home/ubuntu/go"
-        GOROOT: "/usr/local/go"
-        GOTMPDIR: "/opt/go-cache/go-tmp"
-        GOMODCACHE: "/opt/go-cache/go-mod"
-        GOSUMDB: "sum.golang.org"
-        GOPROXY: "https://proxy.golang.org,direct"
-        TMPDIR: "/opt/go-cache"
       run: |
+        # Set up Go environment explicitly (step-level env: failed)
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/ubuntu/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+        
         cd gauth
         make build
         
