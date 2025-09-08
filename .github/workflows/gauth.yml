@@ -121,12 +121,32 @@ jobs:
           ${{ runner.os }}-go-
           
     - name: Download dependencies
+      env:
+        PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+        GOCACHE: "/opt/go-cache/go-build"
+        GOPATH: "/home/ubuntu/go"
+        GOROOT: "/usr/local/go"
+        GOTMPDIR: "/opt/go-cache/go-tmp"
+        GOMODCACHE: "/opt/go-cache/go-mod"
+        GOSUMDB: "sum.golang.org"
+        GOPROXY: "https://proxy.golang.org,direct"
+        TMPDIR: "/opt/go-cache"
       run: |
         cd gauth
         go mod download
         go mod verify
         
     - name: Generate protobuf code
+      env:
+        PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+        GOCACHE: "/opt/go-cache/go-build"
+        GOPATH: "/home/ubuntu/go"
+        GOROOT: "/usr/local/go"
+        GOTMPDIR: "/opt/go-cache/go-tmp"
+        GOMODCACHE: "/opt/go-cache/go-mod"
+        GOSUMDB: "sum.golang.org"
+        GOPROXY: "https://proxy.golang.org,direct"
+        TMPDIR: "/opt/go-cache"
       run: |
         cd gauth
         echo "Generating protobuf code..."
@@ -308,6 +328,16 @@ jobs:
         name: gauth-coverage
         
     - name: Build binary
+      env:
+        PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+        GOCACHE: "/opt/go-cache/go-build"
+        GOPATH: "/home/ubuntu/go"
+        GOROOT: "/usr/local/go"
+        GOTMPDIR: "/opt/go-cache/go-tmp"
+        GOMODCACHE: "/opt/go-cache/go-mod"
+        GOSUMDB: "sum.golang.org"
+        GOPROXY: "https://proxy.golang.org,direct"
+        TMPDIR: "/opt/go-cache"
       run: |
         cd gauth
         make build
