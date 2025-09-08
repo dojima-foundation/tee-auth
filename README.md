@@ -424,3 +424,4 @@ For more details, refer to the individual component READMEs:
 - [gauth/README.md](gauth/README.md) - Go authentication service
 - [renclave-v2/README.md](renclave-v2/README.md) - Rust enclave component
 # Test trigger for gauth workflow
+# Test trigger after fixing circular symlink issue
