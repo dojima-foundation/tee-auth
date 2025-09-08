@@ -1,6 +1,6 @@
 services:
   test-runner:
-    image: localhost/renclave-test-runner:latest
+    image: renclave-test-runner:latest
     container_name: renclave-test-runner
     volumes:
       - ./target:/app/target
@@ -14,7 +14,7 @@ services:
     command: [ "tail", "-f", "/dev/null" ] # Keep container running
 
   performance-runner:
-    image: localhost/renclave-test-runner:latest
+    image: renclave-test-runner:latest
     container_name: renclave-performance-runner
     volumes:
       - ./target:/app/target

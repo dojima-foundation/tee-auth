@@ -6,7 +6,7 @@ This directory contains the Docker configuration for testing the renclave-v2 pro
 
 ### Option 1: Automated Build & Test (Recommended)
 ```bash
-# Build the Docker image (includes tagging to avoid Docker Hub pulls)
+# Build the Docker image
 ./docker/build.sh
 
 # Run integration tests

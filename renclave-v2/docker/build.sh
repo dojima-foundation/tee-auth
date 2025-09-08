@@ -10,8 +10,5 @@ echo "🐳 Building renclave test image manually..."
 # Build the image using traditional docker build (no Buildx)
 docker build -f docker/Dockerfile.test -t renclave-test-runner:latest .
 
-# Tag the image to avoid Docker Hub pull attempts
-docker tag renclave-test-runner:latest localhost/renclave-test-runner:latest
-
-echo "✅ Image built and tagged successfully!"
+echo "✅ Image built successfully!"
 echo "🚀 Now you can run docker compose commands normally"
