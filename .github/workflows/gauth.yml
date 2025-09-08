@@ -175,26 +175,81 @@ jobs:
         
     - name: Check code formatting
       run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+        
         cd gauth
         make fmt
         
     - name: Run go vet
       run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+        
         cd gauth
         make vet
         
     - name: Run linter
       run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+        
         cd gauth
         make lint
         
     - name: Run security scan
       run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+        
         cd gauth
         make security-check
         
     - name: Run unit tests
       run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+        
         cd gauth
         make test-unit
         
