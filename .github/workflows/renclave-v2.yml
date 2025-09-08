@@ -33,6 +33,36 @@ on:
         required: false
         default: '1.82'
         type: string
+      run_quick_checks:
+        description: 'Run quick checks (fmt, clippy)'
+        required: false
+        default: true
+        type: boolean
+      run_unit_tests:
+        description: 'Run unit tests'
+        required: false
+        default: true
+        type: boolean
+      run_integration_tests:
+        description: 'Run integration tests'
+        required: false
+        default: true
+        type: boolean
+      run_e2e_tests:
+        description: 'Run E2E tests'
+        required: false
+        default: true
+        type: boolean
+      run_build:
+        description: 'Run build job'
+        required: false
+        default: true
+        type: boolean
+      run_coverage:
+        description: 'Run coverage analysis'
+        required: false
+        default: true
+        type: boolean
 
 env:
   CARGO_TERM_COLOR: always
@@ -46,6 +76,7 @@ jobs:
     name: Quick Checks
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     timeout-minutes: 10
+    if: ${{ github.event.inputs.run_quick_checks == 'true' || github.event_name != 'workflow_dispatch' }}
     
     steps:
     - name: Checkout code
@@ -77,6 +108,7 @@ jobs:
     name: Unit Tests
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     timeout-minutes: 15
+    if: ${{ github.event.inputs.run_unit_tests == 'true' || github.event_name != 'workflow_dispatch' }}
     
     steps:
     - name: Checkout code
@@ -122,7 +154,7 @@ jobs:
     name: Integration Tests
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: [quick-checks, unit-tests]
-    if: ${{ github.event.inputs.run_tests == 'true' || github.event_name != 'workflow_dispatch' }}
+    if: ${{ github.event.inputs.run_integration_tests == 'true' || (github.event.inputs.run_tests == 'true' && github.event_name == 'workflow_dispatch') || github.event_name != 'workflow_dispatch' }}
     timeout-minutes: 30
     
     steps:
@@ -210,7 +242,7 @@ jobs:
     name: E2E Tests
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: [integration-tests]
-    if: ${{ github.event.inputs.run_tests == 'true' || github.event_name != 'workflow_dispatch' }}
+    if: ${{ github.event.inputs.run_e2e_tests == 'true' || (github.event.inputs.run_tests == 'true' && github.event_name == 'workflow_dispatch') || github.event_name != 'workflow_dispatch' }}
     timeout-minutes: 20
     
     steps:
@@ -276,6 +308,7 @@ jobs:
     name: Build Release
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: [quick-checks, unit-tests]
+    if: ${{ github.event.inputs.run_build == 'true' || (github.event.inputs.run_tests == 'true' && github.event_name == 'workflow_dispatch') || github.event_name != 'workflow_dispatch' }}
     timeout-minutes: 20
     
     steps:
@@ -309,7 +342,7 @@ jobs:
     name: Security Scan
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: [quick-checks]
-    if: ${{ github.event.inputs.run_security == 'true' || github.event_name != 'workflow_dispatch' }}
+    if: ${{ github.event.inputs.run_security == 'true' || (github.event.inputs.run_tests == 'true' && github.event_name == 'workflow_dispatch') || github.event_name != 'workflow_dispatch' }}
     timeout-minutes: 15
 
     steps:
@@ -365,7 +398,7 @@ jobs:
     name: Coverage Report
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: [unit-tests]
-    if: ${{ github.event.inputs.run_tests == 'true' || github.event_name != 'workflow_dispatch' }}
+    if: ${{ github.event.inputs.run_coverage == 'true' || (github.event.inputs.run_tests == 'true' && github.event_name == 'workflow_dispatch') || github.event_name != 'workflow_dispatch' }}
     timeout-minutes: 20
     
     steps:
@@ -416,27 +449,31 @@ jobs:
         echo "## Renclave-v2 Test Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Component Status:" >> $GITHUB_STEP_SUMMARY
-        echo "- **Quick Checks**: ${{ needs.quick-checks.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Unit Tests**: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Integration Tests**: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **E2E Tests**: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Build**: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Security**: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Coverage**: ${{ needs.coverage.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Quick Checks**: ${{ github.event.inputs.run_quick_checks != 'false' && needs.quick-checks.result || 'Skipped' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Unit Tests**: ${{ github.event.inputs.run_unit_tests != 'false' && needs.unit-tests.result || 'Skipped' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Integration Tests**: ${{ github.event.inputs.run_integration_tests != 'false' && needs.integration-tests.result || 'Skipped' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **E2E Tests**: ${{ github.event.inputs.run_e2e_tests != 'false' && needs.e2e-tests.result || 'Skipped' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build**: ${{ github.event.inputs.run_build != 'false' && needs.build.result || 'Skipped' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Security**: ${{ github.event.inputs.run_security != 'false' && needs.security.result || 'Skipped' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Coverage**: ${{ github.event.inputs.run_coverage != 'false' && needs.coverage.result || 'Skipped' }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        
-        # Determine overall status
-        if [[ "${{ needs.quick-checks.result }}" == "success" && 
-              "${{ needs.unit-tests.result }}" == "success" && 
-              "${{ needs.build.result }}" == "success" ]]; then
+
+        # Determine overall status based on enabled jobs
+        if [[ "${{ github.event.inputs.run_quick_checks != 'false' && needs.quick-checks.result || 'success' }}" == "success" &&
+              "${{ github.event.inputs.run_unit_tests != 'false' && needs.unit-tests.result || 'success' }}" == "success" &&
+              "${{ github.event.inputs.run_build != 'false' && needs.build.result || 'success' }}" == "success" ]]; then
           echo "✅ Core functionality passed!" >> $GITHUB_STEP_SUMMARY
+        elif [[ "${{ github.event.inputs.run_quick_checks }}" == "false" && "${{ github.event.inputs.run_unit_tests }}" == "false" && "${{ github.event.inputs.run_build }}" == "false" ]]; then
+          echo "ℹ️  All core jobs disabled - selective testing mode" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Core functionality failed. Check individual job logs for details." >> $GITHUB_STEP_SUMMARY
         fi
-        
-        if [[ "${{ needs.integration-tests.result }}" == "success" && 
-              "${{ needs.e2e-tests.result }}" == "success" ]]; then
+
+        if [[ "${{ github.event.inputs.run_integration_tests != 'false' && needs.integration-tests.result || 'success' }}" == "success" &&
+              "${{ github.event.inputs.run_e2e_tests != 'false' && needs.e2e-tests.result || 'success' }}" == "success" ]]; then
           echo "✅ Integration tests passed!" >> $GITHUB_STEP_SUMMARY
+        elif [[ "${{ github.event.inputs.run_integration_tests }}" == "false" && "${{ github.event.inputs.run_e2e_tests }}" == "false" ]]; then
+          echo "ℹ️  Integration and E2E tests disabled" >> $GITHUB_STEP_SUMMARY
         else
           echo "⚠️  Some integration tests failed or were skipped." >> $GITHUB_STEP_SUMMARY
         fi
