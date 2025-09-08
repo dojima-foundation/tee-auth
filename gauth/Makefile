@@ -174,7 +174,7 @@ dev-setup: ## Setup development environment
 # Docker operations
 docker-build: ## Build Docker image
 	@echo "Building Docker image..."
-	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) -f docker/Dockerfile .
 	docker tag $(DOCKER_IMAGE):$(DOCKER_TAG) $(DOCKER_IMAGE):latest
 
 docker-run: ## Run Docker container

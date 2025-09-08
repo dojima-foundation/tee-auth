@@ -526,18 +526,17 @@ jobs:
       run: |
         cd gauth
         echo "🔨 Building Docker image with enhanced features..."
-        
-        # Build with multi-architecture support
+
+        # Build for single platform (amd64) for testing
         docker buildx build \
-          --platform linux/amd64,linux/arm64 \
+          --platform linux/amd64 \
           --tag gauth:latest \
           --tag gauth:$(git rev-parse --short HEAD) \
           --cache-from type=local,src=/tmp/.buildx-cache \
           --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
-          --push=false \
           --load \
           .
-        
+
         # Move cache
         rm -rf /tmp/.buildx-cache
         mv /tmp/.buildx-cache-new /tmp/.buildx-cache
@@ -701,57 +700,90 @@ jobs:
     - name: Enhanced security scanning
       if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_security_scan == 'true' }}
       run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+
         cd gauth
         echo "🔒 Running enhanced security scans..."
-        
+
         # Run gosec security scanner
         echo "Running gosec security scan..."
         gosec -fmt json -out security-report.json ./... || true
-        
+
         # Run golangci-lint with security-focused rules
         echo "Running golangci-lint with security rules..."
         golangci-lint run --config .golangci-security.yml ./... || true
-        
+
         # Check for known vulnerabilities in dependencies
         echo "Checking for known vulnerabilities..."
         go list -json -deps ./... | jq -r '.Module | select(.Path != null) | .Path' | sort | uniq > dependencies.txt
-        
+
         echo "✅ Security scanning completed"
         
     - name: Performance testing
       if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_performance_tests == 'true' }}
       run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+
         cd gauth
         echo "⚡ Running performance tests..."
-        
+
         # Run benchmarks
         echo "Running Go benchmarks..."
         go test -bench=. -benchmem ./... || true
-        
+
         # Memory profiling
         echo "Running memory profiling..."
         go test -memprofile=mem.prof -cpuprofile=cpu.prof ./... || true
-        
+
         echo "✅ Performance testing completed"
         
     - name: Code quality analysis
       run: |
+        # Set up Go environment explicitly
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOPATH="/home/github-runner/go"
+        export GOROOT="/usr/local/go"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
+
         cd gauth
         echo "📊 Running code quality analysis..."
-        
+
         # Generate detailed coverage report
         echo "Generating detailed coverage report..."
         go test -coverprofile=coverage.out -covermode=atomic ./...
         go tool cover -html=coverage.out -o coverage.html
-        
+
         # Run go vet with additional checks
         echo "Running enhanced go vet..."
         go vet -vettool=$(which gosec) ./... || true
-        
+
         # Check for race conditions
         echo "Checking for race conditions..."
         go test -race ./... || true
-        
+
         echo "✅ Code quality analysis completed"
         
     - name: Upload enhanced reports
