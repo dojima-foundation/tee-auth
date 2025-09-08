@@ -45,26 +45,25 @@ on:
       - 'gauth/**'
       - '.github/workflows/gauth.yml'
 
-env:
-  GO_VERSION: "1.23"
-  POSTGRES_VERSION: "15"
-  REDIS_VERSION: "7-alpine"
-  # Enhanced environment variables for our comprehensive toolset
-  PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-  GOCACHE: "/opt/go-cache/go-build"
-  GOPATH: "/home/ubuntu/go"
-  GOROOT: "/usr/local/go"
-  GOTMPDIR: "/opt/go-cache/go-tmp"
-  GOMODCACHE: "/opt/go-cache/go-mod"
-  GOSUMDB: "sum.golang.org"
-  GOPROXY: "https://proxy.golang.org,direct"
-  TMPDIR: "/opt/go-cache"
-  NVM_DIR: "/home/ubuntu/.nvm"
-
 jobs:
   test:
     name: Test and Build
     runs-on: [self-hosted, ovh, ubuntu-22.04]
+    env:
+      GO_VERSION: "1.23"
+      POSTGRES_VERSION: "15"
+      REDIS_VERSION: "7-alpine"
+      # Enhanced environment variables for our comprehensive toolset
+      PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+      GOCACHE: "/opt/go-cache/go-build"
+      GOPATH: "/home/ubuntu/go"
+      GOROOT: "/usr/local/go"
+      GOTMPDIR: "/opt/go-cache/go-tmp"
+      GOMODCACHE: "/opt/go-cache/go-mod"
+      GOSUMDB: "sum.golang.org"
+      GOPROXY: "https://proxy.golang.org,direct"
+      TMPDIR: "/opt/go-cache"
+      NVM_DIR: "/home/ubuntu/.nvm"
     # Skip tests if run_tests is false in manual dispatch
     if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_tests == 'true' }}
     
@@ -123,34 +122,12 @@ jobs:
           
     - name: Download dependencies
       run: |
-        # Set up Go environment explicitly
-        export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-        export GOPATH="/home/ubuntu/go"
-        export GOROOT="/usr/local/go"
-        export GOCACHE="/opt/go-cache/go-build"
-        export GOTMPDIR="/opt/go-cache/go-tmp"
-        export GOMODCACHE="/opt/go-cache/go-mod"
-        export GOSUMDB="sum.golang.org"
-        export GOPROXY="https://proxy.golang.org,direct"
-        export TMPDIR="/opt/go-cache"
-        
         cd gauth
         go mod download
         go mod verify
         
     - name: Generate protobuf code
       run: |
-        # Set up Go environment explicitly
-        export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-        export GOPATH="/home/ubuntu/go"
-        export GOROOT="/usr/local/go"
-        export GOCACHE="/opt/go-cache/go-build"
-        export GOTMPDIR="/opt/go-cache/go-tmp"
-        export GOMODCACHE="/opt/go-cache/go-mod"
-        export GOSUMDB="sum.golang.org"
-        export GOPROXY="https://proxy.golang.org,direct"
-        export TMPDIR="/opt/go-cache"
-        
         cd gauth
         echo "Generating protobuf code..."
         protoc --experimental_allow_proto3_optional --go_out=. --go-grpc_out=. --proto_path=. api/proto/gauth.proto
@@ -192,17 +169,6 @@ jobs:
         
     - name: Run unit tests
       run: |
-        # Set up Go environment explicitly
-        export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-        export GOPATH="/home/ubuntu/go"
-        export GOROOT="/usr/local/go"
-        export GOCACHE="/opt/go-cache/go-build"
-        export GOTMPDIR="/opt/go-cache/go-tmp"
-        export GOMODCACHE="/opt/go-cache/go-mod"
-        export GOSUMDB="sum.golang.org"
-        export GOPROXY="https://proxy.golang.org,direct"
-        export TMPDIR="/opt/go-cache"
-        
         cd gauth
         make test-unit
         
@@ -321,49 +287,16 @@ jobs:
         
     - name: Run integration tests
       run: |
-        # Set up Go environment explicitly
-        export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-        export GOPATH="/home/ubuntu/go"
-        export GOROOT="/usr/local/go"
-        export GOCACHE="/opt/go-cache/go-build"
-        export GOTMPDIR="/opt/go-cache/go-tmp"
-        export GOMODCACHE="/opt/go-cache/go-mod"
-        export GOSUMDB="sum.golang.org"
-        export GOPROXY="https://proxy.golang.org,direct"
-        export TMPDIR="/opt/go-cache"
-        
         cd gauth
         INTEGRATION_TESTS=true TEST_DB_HOST=localhost TEST_DB_USER=gauth TEST_DB_PASSWORD=password TEST_DB_NAME=gauth_integration TEST_REDIS_HOST=localhost TEST_REDIS_PORT=6379 TEST_REDIS_PASSWORD="" make test-integration
         
     - name: Run E2E tests
       run: |
-        # Set up Go environment explicitly
-        export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-        export GOPATH="/home/ubuntu/go"
-        export GOROOT="/usr/local/go"
-        export GOCACHE="/opt/go-cache/go-build"
-        export GOTMPDIR="/opt/go-cache/go-tmp"
-        export GOMODCACHE="/opt/go-cache/go-mod"
-        export GOSUMDB="sum.golang.org"
-        export GOPROXY="https://proxy.golang.org,direct"
-        export TMPDIR="/opt/go-cache"
-        
         cd gauth
         make test-e2e
         
     - name: Generate coverage report
       run: |
-        # Set up Go environment explicitly
-        export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-        export GOPATH="/home/ubuntu/go"
-        export GOROOT="/usr/local/go"
-        export GOCACHE="/opt/go-cache/go-build"
-        export GOTMPDIR="/opt/go-cache/go-tmp"
-        export GOMODCACHE="/opt/go-cache/go-mod"
-        export GOSUMDB="sum.golang.org"
-        export GOPROXY="https://proxy.golang.org,direct"
-        export TMPDIR="/opt/go-cache"
-        
         cd gauth
         make test-coverage
         
@@ -376,17 +309,6 @@ jobs:
         
     - name: Build binary
       run: |
-        # Set up Go environment explicitly
-        export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-        export GOPATH="/home/ubuntu/go"
-        export GOROOT="/usr/local/go"
-        export GOCACHE="/opt/go-cache/go-build"
-        export GOTMPDIR="/opt/go-cache/go-tmp"
-        export GOMODCACHE="/opt/go-cache/go-mod"
-        export GOSUMDB="sum.golang.org"
-        export GOPROXY="https://proxy.golang.org,direct"
-        export TMPDIR="/opt/go-cache"
-        
         cd gauth
         make build
         
@@ -401,6 +323,21 @@ jobs:
     name: Docker Build and Test
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: test
+    env:
+      GO_VERSION: "1.23"
+      POSTGRES_VERSION: "15"
+      REDIS_VERSION: "7-alpine"
+      # Enhanced environment variables for our comprehensive toolset
+      PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+      GOCACHE: "/opt/go-cache/go-build"
+      GOPATH: "/home/ubuntu/go"
+      GOROOT: "/usr/local/go"
+      GOTMPDIR: "/opt/go-cache/go-tmp"
+      GOMODCACHE: "/opt/go-cache/go-mod"
+      GOSUMDB: "sum.golang.org"
+      GOPROXY: "https://proxy.golang.org,direct"
+      TMPDIR: "/opt/go-cache"
+      NVM_DIR: "/home/ubuntu/.nvm"
     
     steps:
     - name: Checkout code
@@ -501,6 +438,21 @@ jobs:
   database:
     name: Database Migrations
     runs-on: [self-hosted, ovh, ubuntu-22.04]
+    env:
+      GO_VERSION: "1.23"
+      POSTGRES_VERSION: "15"
+      REDIS_VERSION: "7-alpine"
+      # Enhanced environment variables for our comprehensive toolset
+      PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+      GOCACHE: "/opt/go-cache/go-build"
+      GOPATH: "/home/ubuntu/go"
+      GOROOT: "/usr/local/go"
+      GOTMPDIR: "/opt/go-cache/go-tmp"
+      GOMODCACHE: "/opt/go-cache/go-mod"
+      GOSUMDB: "sum.golang.org"
+      GOPROXY: "https://proxy.golang.org,direct"
+      TMPDIR: "/opt/go-cache"
+      NVM_DIR: "/home/ubuntu/.nvm"
     
     services:
       postgres:
@@ -577,6 +529,21 @@ jobs:
     needs: test
     # Skip enhanced testing if run_tests is false in manual dispatch
     if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_tests == 'true' }}
+    env:
+      GO_VERSION: "1.23"
+      POSTGRES_VERSION: "15"
+      REDIS_VERSION: "7-alpine"
+      # Enhanced environment variables for our comprehensive toolset
+      PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+      GOCACHE: "/opt/go-cache/go-build"
+      GOPATH: "/home/ubuntu/go"
+      GOROOT: "/usr/local/go"
+      GOTMPDIR: "/opt/go-cache/go-tmp"
+      GOMODCACHE: "/opt/go-cache/go-mod"
+      GOSUMDB: "sum.golang.org"
+      GOPROXY: "https://proxy.golang.org,direct"
+      TMPDIR: "/opt/go-cache"
+      NVM_DIR: "/home/ubuntu/.nvm"
     
     steps:
     - name: Checkout code
@@ -669,6 +636,21 @@ jobs:
     needs: [test, docker]
     # Only run deployment on manual dispatch or scheduled runs
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
+    env:
+      GO_VERSION: "1.23"
+      POSTGRES_VERSION: "15"
+      REDIS_VERSION: "7-alpine"
+      # Enhanced environment variables for our comprehensive toolset
+      PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+      GOCACHE: "/opt/go-cache/go-build"
+      GOPATH: "/home/ubuntu/go"
+      GOROOT: "/usr/local/go"
+      GOTMPDIR: "/opt/go-cache/go-tmp"
+      GOMODCACHE: "/opt/go-cache/go-mod"
+      GOSUMDB: "sum.golang.org"
+      GOPROXY: "https://proxy.golang.org,direct"
+      TMPDIR: "/opt/go-cache"
+      NVM_DIR: "/home/ubuntu/.nvm"
     environment: ${{ github.event.inputs.environment || 'dev' }}
     
     steps:
