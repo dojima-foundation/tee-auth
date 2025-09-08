@@ -121,8 +121,24 @@ jobs:
           ${{ runner.os }}-go-
           
     - name: Download dependencies
+      env:
+        PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+        GOCACHE: "/opt/go-cache/go-build"
+        GOPATH: "/home/ubuntu/go"
+        GOROOT: "/usr/local/go"
+        GOTMPDIR: "/opt/go-cache/go-tmp"
+        GOMODCACHE: "/opt/go-cache/go-mod"
+        GOSUMDB: "sum.golang.org"
+        GOPROXY: "https://proxy.golang.org,direct"
+        TMPDIR: "/opt/go-cache"
       run: |
-        # Set up Go environment explicitly (step-level env: failed)
+        cd gauth
+        go mod download
+        go mod verify
+        
+    - name: Install protobuf plugins
+      run: |
+        # Set up Go environment explicitly
         export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
         export GOCACHE="/opt/go-cache/go-build"
         export GOPATH="/home/ubuntu/go"
@@ -133,13 +149,14 @@ jobs:
         export GOPROXY="https://proxy.golang.org,direct"
         export TMPDIR="/opt/go-cache"
         
-        cd gauth
-        go mod download
-        go mod verify
+        echo "Installing protobuf plugins..."
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+        echo "Protobuf plugins installed successfully"
         
     - name: Generate protobuf code
       run: |
-        # Set up Go environment explicitly (step-level env: failed)
+        # Set up Go environment explicitly
         export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
         export GOCACHE="/opt/go-cache/go-build"
         export GOPATH="/home/ubuntu/go"
@@ -331,17 +348,6 @@ jobs:
         
     - name: Build binary
       run: |
-        # Set up Go environment explicitly (step-level env: failed)
-        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
-        export GOCACHE="/opt/go-cache/go-build"
-        export GOPATH="/home/ubuntu/go"
-        export GOROOT="/usr/local/go"
-        export GOTMPDIR="/opt/go-cache/go-tmp"
-        export GOMODCACHE="/opt/go-cache/go-mod"
-        export GOSUMDB="sum.golang.org"
-        export GOPROXY="https://proxy.golang.org,direct"
-        export TMPDIR="/opt/go-cache"
-        
         cd gauth
         make build
         
