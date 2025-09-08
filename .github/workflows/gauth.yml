@@ -109,9 +109,9 @@ jobs:
     - name: Download dependencies
       run: |
         # Set up Go environment explicitly
-        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
         export GOCACHE="/opt/go-cache/go-build"
-        export GOPATH="/home/ubuntu/go"
+        export GOPATH="/home/github-runner/go"
         export GOROOT="/usr/local/go"
         export GOTMPDIR="/opt/go-cache/go-tmp"
         export GOMODCACHE="/opt/go-cache/go-mod"
@@ -126,9 +126,9 @@ jobs:
     - name: Install protobuf plugins
       run: |
         # Set up Go environment explicitly
-        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
         export GOCACHE="/opt/go-cache/go-build"
-        export GOPATH="/home/ubuntu/go"
+        export GOPATH="/home/github-runner/go"
         export GOROOT="/usr/local/go"
         export GOTMPDIR="/opt/go-cache/go-tmp"
         export GOMODCACHE="/opt/go-cache/go-mod"
@@ -144,9 +144,9 @@ jobs:
     - name: Generate protobuf code
       run: |
         # Set up Go environment explicitly
-        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"
+        export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
         export GOCACHE="/opt/go-cache/go-build"
-        export GOPATH="/home/ubuntu/go"
+        export GOPATH="/home/github-runner/go"
         export GOROOT="/usr/local/go"
         export GOTMPDIR="/opt/go-cache/go-tmp"
         export GOMODCACHE="/opt/go-cache/go-mod"
