@@ -163,6 +163,11 @@ jobs:
           mv github.com/dojima-foundation/tee-auth/gauth/api/proto/*.pb.go api/proto/
           rm -rf github.com
         fi
+
+        # Update go.mod after protobuf generation
+        echo "Updating go.mod..."
+        go mod tidy
+
         echo "Protobuf code generated successfully"
         
     - name: Fix protobuf security warnings
@@ -689,14 +694,18 @@ jobs:
     - name: Set up Go environment
       run: |
         # Ensure Go environment is properly configured
-        export PATH="/usr/local/go/bin:$PATH"
-        export GOPATH="$HOME/go"
+        export PATH="/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
+        export GOPATH="/home/github-runner/go"
         export GOROOT="/usr/local/go"
-        export GOCACHE="$HOME/.cache/go-build"
-        export GOTMPDIR="$HOME/.cache/go-tmp"
+        export GOCACHE="/opt/go-cache/go-build"
+        export GOTMPDIR="/opt/go-cache/go-tmp"
+        export GOMODCACHE="/opt/go-cache/go-mod"
+        export GOSUMDB="sum.golang.org"
+        export GOPROXY="https://proxy.golang.org,direct"
+        export TMPDIR="/opt/go-cache"
 
         # Create necessary directories
-        mkdir -p $HOME/.cache/go-build $HOME/.cache/go-tmp
+        mkdir -p /home/github-runner/go /opt/go-cache/go-build /opt/go-cache/go-tmp /opt/go-cache/go-mod
 
     - name: Generate protobuf code for enhanced testing
       run: |
@@ -726,6 +735,10 @@ jobs:
           mv github.com/dojima-foundation/tee-auth/gauth/api/proto/*.pb.go api/proto/
           rm -rf github.com
         fi
+
+        # Update go.mod after protobuf generation
+        echo "Updating go.mod..."
+        go mod tidy
 
         echo "✅ Protobuf code generated successfully"
 
