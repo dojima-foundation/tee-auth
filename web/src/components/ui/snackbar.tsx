@@ -36,6 +36,10 @@ interface SnackbarProviderProps {
 export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({ children }) => {
     const [snackbars, setSnackbars] = useState<SnackbarMessage[]>([]);
 
+    const hideSnackbar = useCallback((id: string) => {
+        setSnackbars(prev => prev.filter(snackbar => snackbar.id !== id));
+    }, []);
+
     const showSnackbar = useCallback((message: Omit<SnackbarMessage, 'id'>) => {
         const id = Math.random().toString(36).substr(2, 9);
         const newSnackbar: SnackbarMessage = {
@@ -53,10 +57,6 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({ children }) 
             }, newSnackbar.duration);
         }
     }, [hideSnackbar]);
-
-    const hideSnackbar = useCallback((id: string) => {
-        setSnackbars(prev => prev.filter(snackbar => snackbar.id !== id));
-    }, []);
 
     return (
         <SnackbarContext.Provider value={{ showSnackbar, hideSnackbar }}>

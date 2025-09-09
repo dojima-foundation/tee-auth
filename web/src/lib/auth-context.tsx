@@ -4,7 +4,7 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode, use
 import { useDispatch } from 'react-redux';
 import { AuthState, AuthSession, LoginCredentials, SessionInfo } from '@/types/auth';
 import { gauthApi } from '@/services/gauthApi';
-import { setAuthSession } from '@/store/authSlice';
+import { setAuthSession, clearAuth } from '@/store/authSlice';
 
 // Type definitions for window object extensions
 interface WindowWithMockAuth extends Window {
@@ -299,7 +299,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                         dispatch({ type: 'AUTH_FAILURE', payload: 'Session validation failed' });
 
                         // Clear Redux store
-                        reduxDispatch(setAuthSession(null));
+                        reduxDispatch(clearAuth());
                         console.log('🔄 [AuthProvider] Cleared Redux store');
                     }
                 } catch (error) {
@@ -309,7 +309,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                     dispatch({ type: 'AUTH_FAILURE', payload: 'Session validation failed' });
 
                     // Clear Redux store
-                    reduxDispatch(setAuthSession(null));
+                    reduxDispatch(clearAuth());
                     console.log('🔄 [AuthProvider] Cleared Redux store due to error');
                 }
             } else {
@@ -317,7 +317,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 dispatch({ type: 'AUTH_FAILURE', payload: '' });
 
                 // Clear Redux store
-                reduxDispatch(setAuthSession(null));
+                reduxDispatch(clearAuth());
                 console.log('🔄 [AuthProvider] Cleared Redux store - no session data');
             }
         };
