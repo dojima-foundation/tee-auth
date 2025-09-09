@@ -97,7 +97,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
       with:
         key: renclave-v2-quick-${{ hashFiles('renclave-v2/Cargo.lock') }}
-        working-directory: renclave-v2
+        workspaces: renclave-v2
         
     - name: Check code formatting
       run: |
@@ -130,7 +130,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
       with:
         key: renclave-v2-unit-${{ hashFiles('renclave-v2/Cargo.lock') }}
-        working-directory: renclave-v2
+        workspaces: renclave-v2
         
     - name: Run unit tests
       run: |
@@ -178,7 +178,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
       with:
         key: renclave-v2-integration-${{ hashFiles('renclave-v2/Cargo.lock') }}
-        working-directory: renclave-v2
+        workspaces: renclave-v2
         
     - name: Build Docker image
       run: |
@@ -262,7 +262,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
       with:
         key: renclave-v2-e2e-${{ hashFiles('renclave-v2/Cargo.lock') }}
-        working-directory: renclave-v2
+        workspaces: renclave-v2
         
     - name: Build Docker image for E2E tests
       run: |
@@ -337,7 +337,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
       with:
         key: renclave-v2-build-${{ hashFiles('renclave-v2/Cargo.lock') }}
-        working-directory: renclave-v2
+        workspaces: renclave-v2
         
     - name: Build release
       run: |
@@ -372,7 +372,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
       with:
         key: renclave-v2-security-${{ hashFiles('renclave-v2/Cargo.lock') }}
-        working-directory: renclave-v2
+        workspaces: renclave-v2
 
     - name: Install security tools
       run: |
@@ -429,7 +429,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
       with:
         key: renclave-v2-coverage-${{ hashFiles('renclave-v2/Cargo.lock') }}
-        working-directory: renclave-v2
+        workspaces: renclave-v2
         
     # Using cargo-llvm-cov and grcov for coverage generation
         
