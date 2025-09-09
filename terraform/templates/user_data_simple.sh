@@ -5,7 +5,7 @@
 
 set -e
 
-# Variables
+# Variables from Terraform
 GITHUB_TOKEN="${github_token}"
 GITHUB_ORG="${github_org}"
 GITHUB_REPO="${github_repo}"
@@ -14,12 +14,6 @@ RUNNER_NAME="${runner_name}"
 DOCKER_REGISTRY_MIRROR="${docker_registry_mirror}"
 
 # Colors for output
-RED='$${RED}'
-GREEN='$${GREEN}'
-YELLOW='$${YELLOW}'
-NC='$${NC}' # No Color
-
-# Set actual color values
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -27,15 +21,15 @@ NC='\033[0m' # No Color
 
 # Logging function
 log() {
-    echo -e "$${GREEN}[$$(date +'%Y-%m-%d %H:%M:%S')] $$1$${NC}"
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
 }
 
 warn() {
-    echo -e "$${YELLOW}[$$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $$1$${NC}"
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"
 }
 
 error() {
-    echo -e "$${RED}[$$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $$1$${NC}"
+    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
 }
 
 # Update system
@@ -98,7 +92,7 @@ cd /home/github-runner
 # Download and install GitHub Actions runner
 log "Downloading GitHub Actions runner..."
 RUNNER_VERSION="v2.328.0"
-wget -O actions-runner-linux-x64-2.328.0.tar.gz https://github.com/actions/runner/releases/download/$${RUNNER_VERSION}/actions-runner-linux-x64-2.328.0.tar.gz
+wget -O actions-runner-linux-x64-2.328.0.tar.gz https://github.com/actions/runner/releases/download/v2.328.0/actions-runner-linux-x64-2.328.0.tar.gz
 
 # Extract runner
 log "Extracting runner..."
@@ -217,6 +211,9 @@ cat > /etc/logrotate.d/github-runner << EOF
 }
 EOF
 
+# Install nginx for status page
+apt-get install -y nginx
+
 # Create a simple status page
 cat > /var/www/html/runner-status.html << EOF
 <!DOCTYPE html>
@@ -250,9 +247,6 @@ cat > /var/www/html/runner-status.html << EOF
 </body>
 </html>
 EOF
-
-# Install nginx for status page
-apt-get install -y nginx
 
 # Configure nginx
 cat > /etc/nginx/sites-available/runner-status << EOF
@@ -365,57 +359,6 @@ ufw --force enable
 ufw allow ssh
 ufw allow 80/tcp
 ufw allow 443/tcp
-
-# Create cleanup script for graceful shutdown
-cat > /home/github-runner/cleanup.sh << 'EOF'
-#!/bin/bash
-
-# Graceful shutdown script for GitHub Actions runner
-log() {
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
-}
-
-log "Starting graceful shutdown..."
-
-# Stop the runner service
-if systemctl is-active --quiet github-runner; then
-    log "Stopping GitHub Actions runner..."
-    cd /home/github-runner
-    systemctl stop github-runner
-    systemctl disable github-runner
-fi
-
-# Remove runner from GitHub
-if [ -f "/home/github-runner/.runner" ]; then
-    log "Removing runner from GitHub..."
-    cd /home/github-runner
-    ./config.sh remove --unattended --token "$GITHUB_TOKEN" || true
-fi
-
-log "Cleanup completed"
-EOF
-
-chmod +x /home/github-runner/cleanup.sh
-
-# Set up systemd service for graceful shutdown
-cat > /etc/systemd/system/github-runner-cleanup.service << EOF
-[Unit]
-Description=Cleanup GitHub Actions Runner on shutdown
-DefaultDependencies=no
-Before=shutdown.target reboot.target halt.target
-
-[Service]
-Type=oneshot
-ExecStart=/home/github-runner/cleanup.sh
-User=github-runner
-Environment=GITHUB_TOKEN=$GITHUB_TOKEN
-TimeoutStartSec=0
-
-[Install]
-WantedBy=shutdown.target
-EOF
-
-systemctl enable github-runner-cleanup.service
 
 # Final setup
 log "Setting up final configurations..."

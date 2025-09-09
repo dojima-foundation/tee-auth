@@ -1,23 +1,25 @@
-name: Generate Status Badges (DISABLED)
+name: Generate Status Badges
 
-# DISABLED: Only renclave-v2.yml workflow is enabled
-# This workflow is disabled to prevent conflicts with the main renclave workflow
+# Generate and update CI/CD status badges in README
+# Triggers on workflow completion to update badges
 
 on:
-  # Disabled - will never trigger
+  workflow_run:
+    workflows: ["Renclave-v2 CI/CD", "Gauth CI/CD", "Web CI/CD"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       force_run:
-        description: 'Force run this workflow (DISABLED)'
-        required: true
-        default: false
+        description: 'Force run this workflow'
+        required: false
+        default: true
         type: boolean
 
 jobs:
   update-badges:
     name: Update Status Badges
-    runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion != 'skipped'
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
+    if: github.event.workflow_run.conclusion != 'skipped' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
     
@@ -35,14 +37,14 @@ jobs:
         ## CI/CD Status
         
         ### Component Workflows
-        - **Renclave-v2**: ![Renclave-v2 CI/CD](https://github.com/${{ github.repository }}/workflows/Renclave-v2%20CI%20CD/badge.svg)
-        - **Gauth**: ![Gauth CI/CD](https://github.com/${{ github.repository }}/workflows/Gauth%20CI%20CD/badge.svg)
-        - **Web**: ![Web CI/CD](https://github.com/${{ github.repository }}/workflows/Web%20CI%20CD/badge.svg)
+        - **Renclave-v2**: ![Renclave-v2 CI/CD](https://github.com/${{ github.repository }}/actions/workflows/renclave-v2.yml/badge.svg)
+        - **Gauth**: ![Gauth CI/CD](https://github.com/${{ github.repository }}/actions/workflows/gauth.yml/badge.svg)
+        - **Web**: ![Web CI/CD](https://github.com/${{ github.repository }}/actions/workflows/web.yml/badge.svg)
         
-        ### Integration Workflow
-        - **Full Project**: ![Full Project CI/CD](https://github.com/${{ github.repository }}/workflows/Full%20Project%20CI%20CD/badge.svg)
+        ### Badge Generation
+        - **Status Badges**: ![Generate Status Badges](https://github.com/${{ github.repository }}/actions/workflows/badges.yml/badge.svg)
         
-        *Last updated: ${{ github.event.workflow_run.updated_at }}*
+        *Last updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")*
         
         EOF
         

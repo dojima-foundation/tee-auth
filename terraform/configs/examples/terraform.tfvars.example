@@ -1,0 +1,136 @@
+# GitHub Actions Runners on OVH Cloud - Configuration Example
+# Copy this file to environments/<env>/terraform.tfvars and customize for your needs
+
+# =============================================================================
+# OVH CLOUD CONFIGURATION
+# =============================================================================
+# Get these credentials from: https://ca.ovh.com/auth/api/createToken
+# Required permissions:
+# - GET /cloud/project
+# - GET /cloud/project/*
+# - POST /cloud/project/*
+# - PUT /cloud/project/*
+# - DELETE /cloud/project/*
+
+ovh_endpoint = "ovh-ca"  # ovh-ca (Singapore), ovh-eu (Europe), ovh-us (US)
+ovh_application_key = "your_application_key_here"
+ovh_application_secret = "your_application_secret_here"
+ovh_consumer_key = "your_consumer_key_here"
+
+# =============================================================================
+# PROJECT CONFIGURATION
+# =============================================================================
+# Your OVH Cloud project ID (found in OVH Cloud Console)
+project_id = "your_project_id_here"
+
+# OVH Cloud region (choose based on your location and requirements)
+region = "SGP1"  # Available: GRA11, SBG5, BHS5, WAW1, UK1, DE1, US-EAST-VA-1, US-WEST-OR-1, CA-ON-1, AU-SYD-1, SGP1
+
+# =============================================================================
+# GITHUB CONFIGURATION
+# =============================================================================
+# Create a Personal Access Token at: https://github.com/settings/tokens
+# Required permissions:
+# - repo (Full control of private repositories)
+# - admin:org (Full control of organizations and teams) - for org runners
+# - workflow (Update GitHub Action workflows)
+
+github_token = "ghp_your_github_token_here"
+
+# Choose one: Organization-level runners OR Repository-level runners
+# For organization-level runners (recommended for multiple repos):
+github_org = "your-organization-name"
+# github_repo = ""  # Leave empty for org runners
+
+# For repository-level runners:
+# github_org = ""  # Leave empty for repo runners
+# github_repo = "owner/repository-name"
+
+# =============================================================================
+# RUNNER CONFIGURATION
+# =============================================================================
+# Number of runners to create (adjust based on your workload)
+runner_count = 2
+
+# Labels to identify your runners (used in workflow runs-on)
+runner_labels = ["ovh", "self-hosted", "ubuntu-22.04"]
+
+# OVH Cloud image for runner instances
+runner_image_id = "Ubuntu 22.04"
+
+# OVH Cloud flavor (instance size) - adjust based on your needs
+runner_flavor_id = "b2-7"  # Available: b2-7, b2-15, b2-30, c2-7, c2-15, c2-30, r2-15, r2-30, r2-60
+
+# =============================================================================
+# NETWORK CONFIGURATION (OPTIONAL)
+# =============================================================================
+# Leave these as default unless you need custom networking
+vlan_id = null  # Set to a VLAN ID if you want to use private networking
+subnet_network = "10.0.0.0/24"
+subnet_start = "10.0.0.10"
+subnet_end = "10.0.0.100"
+
+# =============================================================================
+# OPTIONAL CONFIGURATION
+# =============================================================================
+# Whether to create a load balancer (useful for high availability)
+create_load_balancer = false
+
+# Docker registry mirror (optional, for faster Docker pulls)
+docker_registry_mirror = ""  # Example: "https://registry-1.docker.io"
+
+# =============================================================================
+# MONITORING CONFIGURATION
+# =============================================================================
+# Enable status pages for runners
+enable_status_pages = true
+
+# Enable health checks for runners
+enable_health_checks = true
+
+# Advanced monitoring (optional)
+enable_grafana = false      # Enable Grafana dashboard
+enable_prometheus = false   # Enable Prometheus monitoring
+enable_alerting = false     # Enable alerting rules
+
+# =============================================================================
+# TAGS
+# =============================================================================
+# Tags to apply to all resources (useful for cost tracking and organization)
+tags = {
+  Environment = "production"  # Change to "development" or "staging" as needed
+  Purpose     = "github-actions-runner"
+  ManagedBy   = "terraform"
+  Project     = "your-project-name"
+  Owner       = "your-team-name"
+  CostCenter  = "engineering"
+}
+
+# =============================================================================
+# ENVIRONMENT-SPECIFIC EXAMPLES
+# =============================================================================
+
+# Development Environment Example:
+# runner_count = 1
+# runner_flavor_id = "b2-7"
+# create_load_balancer = false
+# enable_grafana = false
+# enable_prometheus = false
+# tags = { Environment = "development" }
+
+# Staging Environment Example:
+# runner_count = 2
+# runner_flavor_id = "b2-7"
+# create_load_balancer = false
+# enable_grafana = false
+# enable_prometheus = false
+# tags = { Environment = "staging" }
+
+# Production Environment Example:
+# runner_count = 3
+# runner_flavor_id = "b2-15"
+# create_load_balancer = true
+# enable_grafana = true
+# enable_prometheus = true
+# enable_alerting = true
+# tags = { Environment = "production" }

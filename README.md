@@ -5,12 +5,12 @@ TEE-Auth is a secure authentication and key management system leveraging trusted
 ## CI/CD Status
 
 ### Component Workflows
-- **Renclave-v2**: ![Renclave-v2 CI/CD](https://github.com/dojima-foundation/tee-auth/workflows/Renclave-v2%20CI%20CD/badge.svg)
-- **Gauth**: ![Gauth CI/CD](https://github.com/dojima-foundation/tee-auth/workflows/Gauth%20CI%20CD/badge.svg)
-- **Web**: ![Web CI/CD](https://github.com/dojima-foundation/tee-auth/workflows/Web%20CI%20CD/badge.svg)
+- **Renclave-v2**: ![Renclave-v2 CI/CD](https://github.com/dojima-foundation/tee-auth/actions/workflows/renclave-v2.yml/badge.svg)
+- **Gauth**: ![Gauth CI/CD](https://github.com/dojima-foundation/tee-auth/actions/workflows/gauth.yml/badge.svg)
+- **Web**: ![Web CI/CD](https://github.com/dojima-foundation/tee-auth/actions/workflows/web.yml/badge.svg)
 
-### Integration Workflow
-- **Full Project**: ![Full Project CI/CD](https://github.com/dojima-foundation/tee-auth/workflows/Full%20Project%20CI%20CD/badge.svg)
+### Badge Generation
+- **Status Badges**: ![Generate Status Badges](https://github.com/dojima-foundation/tee-auth/actions/workflows/badges.yml/badge.svg)
 
 ## Project Structure
 

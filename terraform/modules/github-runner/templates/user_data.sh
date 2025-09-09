@@ -824,7 +824,7 @@ echo 'source /home/ubuntu/.cargo/env 2>/dev/null || true' >> /home/ubuntu/.bashr
 # Install Rust security and development tools
 cargo install cargo-audit
 cargo install cargo-deny
-cargo install cargo-tarpaulin --version 0.26.0
+cargo install cargo-tarpaulin --version 0.27.0 --locked
 
 # Install Node.js and Playwright dependencies
 log "Installing Node.js and Playwright dependencies..."
