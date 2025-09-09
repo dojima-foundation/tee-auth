@@ -41,6 +41,11 @@ jobs:
         cache: 'npm'
         cache-dependency-path: web/package-lock.json
         
+    - name: Fix system permissions
+      run: |
+        # Fix temporary file permissions for apt operations
+        sudo chmod 1777 /tmp
+        
     - name: Install dependencies
       run: |
         cd web
@@ -91,12 +96,48 @@ jobs:
         cache: 'npm'
         cache-dependency-path: web/package-lock.json
         
+    - name: Fix system permissions
+      run: |
+        # Fix temporary file permissions for apt operations
+        sudo chmod 1777 /tmp
+        
     - name: Install dependencies
       run: |
         cd web
         npm ci
         
-    # Playwright browsers are now pre-installed on the runner
+        
+    - name: Clear Playwright cache
+      run: |
+        # Clear any corrupted Playwright cache
+        rm -rf ~/.cache/ms-playwright/ || true
+        
+    - name: Install Playwright browsers (without deps)
+      run: |
+        cd web
+        npx playwright install
+        
+    - name: Install Playwright system dependencies manually
+      run: |
+        # Install system dependencies manually to avoid apt-key issues
+        sudo apt-get update || true
+        sudo apt-get install -y \
+          libnss3 \
+          libatk-bridge2.0-0 \
+          libdrm2 \
+          libxkbcommon0 \
+          libgtk-3-0 \
+          libgbm1 \
+          libasound2 \
+          libxss1 \
+          libgconf-2-4 \
+          libxrandr2 \
+          libasound2 \
+          libpangocairo-1.0-0 \
+          libatk1.0-0 \
+          libcairo-gobject2 \
+          libgtk-3-0 \
+          libgdk-pixbuf2.0-0
         
     - name: Run E2E tests
       run: |
@@ -127,10 +168,26 @@ jobs:
         cache: 'npm'
         cache-dependency-path: web/package-lock.json
         
+    - name: Fix system permissions
+      run: |
+        # Fix temporary file permissions for apt operations
+        sudo chmod 1777 /tmp
+        
     - name: Install dependencies
       run: |
         cd web
         npm ci
+        
+    - name: Install Chrome for Lighthouse
+      run: |
+        # Install Google Chrome
+        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
+        
+        # Verify Chrome installation
+        google-chrome --version
         
     - name: Build application
       run: |
@@ -153,7 +210,7 @@ jobs:
       if: always()
       with:
         name: lighthouse-report
-        path: web/lighthouse-report.html
+        path: web/lighthouse-reports/
         retention-days: 7
 
   accessibility:
@@ -172,21 +229,67 @@ jobs:
         cache: 'npm'
         cache-dependency-path: web/package-lock.json
         
+    - name: Fix system permissions
+      run: |
+        # Fix temporary file permissions for apt operations
+        sudo chmod 1777 /tmp
+        
     - name: Install dependencies
       run: |
         cd web
         npm ci
         
-    - name: Install Playwright browsers
+        
+    - name: Clear Playwright cache
+      run: |
+        # Clear any corrupted Playwright cache
+        rm -rf ~/.cache/ms-playwright/ || true
+        
+    - name: Install Playwright browsers (without deps)
       run: |
         cd web
-        npx playwright install --with-deps
+        npx playwright install
+        
+    - name: Install Playwright system dependencies manually
+      run: |
+        # Install system dependencies manually to avoid apt-key issues
+        sudo apt-get update || true
+        sudo apt-get install -y \
+          libnss3 \
+          libatk-bridge2.0-0 \
+          libdrm2 \
+          libxkbcommon0 \
+          libgtk-3-0 \
+          libgbm1 \
+          libasound2 \
+          libxss1 \
+          libgconf-2-4 \
+          libxrandr2 \
+          libasound2 \
+          libpangocairo-1.0-0 \
+          libatk1.0-0 \
+          libcairo-gobject2 \
+          libgtk-3-0 \
+          libgdk-pixbuf2.0-0
         
     - name: Verify Playwright installation
       run: |
         cd web
         npx playwright --version
         npx playwright install --dry-run
+        
+    - name: Verify browser executables
+      run: |
+        cd web
+        # Check if browser executables exist
+        ls -la ~/.cache/ms-playwright/ || echo "Playwright cache directory not found"
+        find ~/.cache/ms-playwright/ -name "pw_run.sh" 2>/dev/null || echo "No pw_run.sh found"
+        
+        # List installed browsers
+        npx playwright install --dry-run | grep -E "(chromium|firefox|webkit)" || echo "Browser check completed"
+        
+        # Test WebKit specifically
+        npx playwright test --project=webkit --grep="should display home page" --reporter=line || echo "WebKit test failed"
         
     - name: Run accessibility tests
       run: |
@@ -218,12 +321,48 @@ jobs:
         cache: 'npm'
         cache-dependency-path: web/package-lock.json
         
+    - name: Fix system permissions
+      run: |
+        # Fix temporary file permissions for apt operations
+        sudo chmod 1777 /tmp
+        
     - name: Install dependencies
       run: |
         cd web
         npm ci
         
-    # Playwright browsers are now pre-installed on the runner
+        
+    - name: Clear Playwright cache
+      run: |
+        # Clear any corrupted Playwright cache
+        rm -rf ~/.cache/ms-playwright/ || true
+        
+    - name: Install Playwright browsers (without deps)
+      run: |
+        cd web
+        npx playwright install
+        
+    - name: Install Playwright system dependencies manually
+      run: |
+        # Install system dependencies manually to avoid apt-key issues
+        sudo apt-get update || true
+        sudo apt-get install -y \
+          libnss3 \
+          libatk-bridge2.0-0 \
+          libdrm2 \
+          libxkbcommon0 \
+          libgtk-3-0 \
+          libgbm1 \
+          libasound2 \
+          libxss1 \
+          libgconf-2-4 \
+          libxrandr2 \
+          libasound2 \
+          libpangocairo-1.0-0 \
+          libatk1.0-0 \
+          libcairo-gobject2 \
+          libgtk-3-0 \
+          libgdk-pixbuf2.0-0
         
     - name: Run mobile tests
       run: |

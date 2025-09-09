@@ -18,7 +18,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:visual": "percy exec -- playwright test --grep @visual",
     "test:performance": "lhci autorun",
-    "test:performance:manual": "lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html",
+    "test:performance:manual": "lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html --chrome-flags='--headless --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu'",
     "test:accessibility": "playwright test --grep accessibility --config=playwright.accessibility.config.ts",
     "test:accessibility:ci": "playwright test --grep accessibility --config=playwright.accessibility.config.ts --reporter=github",
     "test:mobile": "playwright test --project='Mobile Chrome' --project='Mobile Safari'",
