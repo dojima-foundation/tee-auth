@@ -15,8 +15,8 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
 
     // Check if we're in test mode with mock authentication enabled
     const isTestMode = process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_TEST_MODE === 'true';
-    const mockAuthEnabled = process.env.NEXT_PUBLIC_MOCK_AUTH === 'true' || 
-        (typeof window !== 'undefined' && (window as any).__MOCK_AUTH__);
+    const mockAuthEnabled = process.env.NEXT_PUBLIC_MOCK_AUTH === 'true' ||
+        (typeof window !== 'undefined' && (window as { __MOCK_AUTH__?: boolean }).__MOCK_AUTH__);
 
     useEffect(() => {
         // In test mode with mock auth, don't redirect

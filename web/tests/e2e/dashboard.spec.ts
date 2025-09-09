@@ -4,16 +4,16 @@ test.describe('Dashboard', () => {
     test.beforeEach(async ({ page }) => {
         // Set mock authentication for dashboard tests
         await page.addInitScript(() => {
-            // @ts-ignore
+            // @ts-expect-error - Mock authentication for testing
             window.__MOCK_AUTH__ = true;
         });
-        
+
         // Navigate to home page first
         await page.goto('/')
-        
+
         // Click the dashboard link to authenticate and navigate to dashboard
         await page.getByRole('link', { name: /go to dashboard/i }).click()
-        
+
         // Wait for navigation to complete
         await page.waitForURL(/.*\/dashboard/)
     })
@@ -26,7 +26,7 @@ test.describe('Dashboard', () => {
         // await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible()
     })
 
-    test('should have navigation menu', async ({ page }) => {
+    test('should have navigation menu', async () => {
         // Check for navigation elements (these would depend on your actual navigation)
         // await expect(page.getByRole('navigation')).toBeVisible()
         // await expect(page.getByRole('link', { name: /users/i })).toBeVisible()
@@ -83,16 +83,16 @@ test.describe('Dashboard Functionality', () => {
     test.beforeEach(async ({ page }) => {
         // Set mock authentication for dashboard tests
         await page.addInitScript(() => {
-            // @ts-ignore
+            // @ts-expect-error - Mock authentication for testing
             window.__MOCK_AUTH__ = true;
         });
-        
+
         // Navigate to home page first
         await page.goto('/')
-        
+
         // Click the dashboard link to authenticate and navigate to dashboard
         await page.getByRole('link', { name: /go to dashboard/i }).click()
-        
+
         // Wait for navigation to complete
         await page.waitForURL(/.*\/dashboard/)
     })
@@ -163,16 +163,16 @@ test.describe('Dashboard Error Handling', () => {
     test.beforeEach(async ({ page }) => {
         // Set mock authentication for dashboard tests
         await page.addInitScript(() => {
-            // @ts-ignore
+            // @ts-expect-error - Mock authentication for testing
             window.__MOCK_AUTH__ = true;
         });
-        
+
         // Navigate to home page first
         await page.goto('/')
-        
+
         // Click the dashboard link to authenticate and navigate to dashboard
         await page.getByRole('link', { name: /go to dashboard/i }).click()
-        
+
         // Wait for navigation to complete
         await page.waitForURL(/.*\/dashboard/)
     })

@@ -26,7 +26,7 @@ global.testUtils = {
     waitFor: (ms: number) => new Promise(resolve => setTimeout(resolve, ms)),
 
     // Helper to create mock user data
-    createMockUser: (overrides = {}) => ({
+    createMockUser: (overrides: Partial<MockUser> = {}): MockUser => ({
         id: '1',
         email: 'test@example.com',
         name: 'Test User',
@@ -39,7 +39,7 @@ global.testUtils = {
     }),
 
     // Helper to create mock wallet data
-    createMockWallet: (overrides = {}) => ({
+    createMockWallet: (overrides: Partial<MockWallet> = {}): MockWallet => ({
         id: '1',
         name: 'Test Wallet',
         address: '0x1234567890abcdef',
@@ -51,7 +51,7 @@ global.testUtils = {
     }),
 
     // Helper to create mock private key data
-    createMockPrivateKey: (overrides = {}) => ({
+    createMockPrivateKey: (overrides: Partial<MockPrivateKey> = {}): MockPrivateKey => ({
         id: '1',
         name: 'Test Private Key',
         publicKey: '0xpublickey123',
@@ -63,21 +63,54 @@ global.testUtils = {
     }),
 }
 
-// Extend Jest matchers
-declare global {
-    namespace jest {
-        interface Matchers<R> {
-            toHaveFocus(): R
-            toBeInTheDocument(): R
-            toHaveClass(...classNames: string[]): R
-            toHaveAttribute(attr: string, value?: string): R
-        }
-    }
+// Type definitions for mock data
+interface MockUser {
+    id: string;
+    email: string;
+    name: string;
+    organization_id: string;
+    username: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
 
-    var testUtils: {
-        waitFor: (ms: number) => Promise<void>
-        createMockUser: (overrides?: any) => any
-        createMockWallet: (overrides?: any) => any
-        createMockPrivateKey: (overrides?: any) => any
+interface MockWallet {
+    id: string;
+    name: string;
+    address: string;
+    balance: string;
+    currency: string;
+    isActive: boolean;
+    createdAt: string;
+}
+
+interface MockPrivateKey {
+    id: string;
+    name: string;
+    publicKey: string;
+    encryptedPrivateKey: string;
+    walletId: string;
+    isActive: boolean;
+    createdAt: string;
+}
+
+// Extend Jest matchers using module augmentation
+declare module '@jest/expect' {
+    interface Matchers<R> {
+        toHaveFocus(): R;
+        toBeInTheDocument(): R;
+        toHaveClass(...classNames: string[]): R;
+        toHaveAttribute(attr: string, value?: string): R;
     }
+}
+
+// Global test utilities interface
+declare global {
+    var testUtils: {
+        waitFor: (ms: number) => Promise<void>;
+        createMockUser: (overrides?: Partial<MockUser>) => MockUser;
+        createMockWallet: (overrides?: Partial<MockWallet>) => MockWallet;
+        createMockPrivateKey: (overrides?: Partial<MockPrivateKey>) => MockPrivateKey;
+    };
 }

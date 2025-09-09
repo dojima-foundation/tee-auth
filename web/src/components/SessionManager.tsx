@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSessionManagement } from '@/lib/session-middleware';
 import { SessionInfo } from '@/types/auth';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ export function SessionManager() {
     const { showSnackbar } = useSnackbar();
 
     // Load current session info
-    const loadCurrentSession = async () => {
+    const loadCurrentSession = useCallback(async () => {
         if (!isAuthenticated) return;
 
         try {
@@ -38,10 +38,10 @@ export function SessionManager() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [isAuthenticated, getSessionInfo, showSnackbar]);
 
     // Load all sessions
-    const loadAllSessions = async () => {
+    const loadAllSessions = useCallback(async () => {
         if (!isAuthenticated) return;
 
         try {
@@ -54,7 +54,7 @@ export function SessionManager() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [isAuthenticated, listSessions, showSnackbar]);
 
     // Refresh current session
     const handleRefreshSession = async () => {
@@ -89,7 +89,7 @@ export function SessionManager() {
             loadCurrentSession();
             loadAllSessions();
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, loadCurrentSession, loadAllSessions]);
 
     if (!isAuthenticated) {
         return null;

@@ -24,8 +24,8 @@ export default function PrivateKeys() {
     // Get private keys data from Redux store
     const privateKeys = useAppSelector(selectPrivateKeys);
     const loading = useAppSelector(selectPrivateKeysLoading);
-    const error = useAppSelector(selectPrivateKeysError);
-    const pagination = useAppSelector(selectPrivateKeysPagination);
+    // const error = useAppSelector(selectPrivateKeysError);
+    // const pagination = useAppSelector(selectPrivateKeysPagination);
 
     // Get organization ID from auth store
     const organizationId = useAppSelector(selectOrganizationId);

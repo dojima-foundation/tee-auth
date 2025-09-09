@@ -68,7 +68,7 @@ const api = {
         }
     },
 
-    deleteUser: async (userId: string): Promise<void> => {
+    deleteUser: async (_userId: string): Promise<void> => {
         await delay(300)
         // Simulate successful deletion
     },

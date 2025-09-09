@@ -1,7 +1,7 @@
-import { render, renderWithProviders, screen, fireEvent, waitFor, mockPrivateKeys } from '../utils/test-utils.helper';
+import { renderWithProviders, screen, fireEvent, waitFor, mockPrivateKeys } from '../utils/test-utils.helper';
 import PrivateKeys from '@/components/PrivateKeys';
 import { useAuth } from '@/lib/auth-context';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useAppDispatch } from '@/store/hooks';
 import { useSnackbar } from '@/components/ui/snackbar';
 
 // Mock dependencies
@@ -15,22 +15,31 @@ jest.mock('@/store/hooks', () => {
     };
 });
 jest.mock('@/components/ui/snackbar');
+interface MockCreatePrivateKeyDialogProps {
+    onPrivateKeyCreated: (data: unknown) => void;
+    disabled?: boolean;
+}
+
+const MockCreatePrivateKeyDialog = ({ onPrivateKeyCreated, disabled }: MockCreatePrivateKeyDialogProps) => (
+    <button
+        data-testid="create-private-key-dialog"
+        onClick={() => onPrivateKeyCreated({
+            wallet_id: 'wallet-123',
+            name: 'Test Private Key',
+            curve: 'secp256k1',
+            tags: ['main']
+        })}
+        disabled={disabled}
+    >
+        Create Private Key
+    </button>
+);
+
+MockCreatePrivateKeyDialog.displayName = 'MockCreatePrivateKeyDialog';
+
 jest.mock('@/components/CreatePrivateKeyDialog', () => ({
     __esModule: true,
-    default: ({ onPrivateKeyCreated, disabled }: any) => (
-        <button
-            data-testid="create-private-key-dialog"
-            onClick={() => onPrivateKeyCreated({
-                wallet_id: 'wallet-123',
-                name: 'Test Private Key',
-                curve: 'secp256k1',
-                tags: ['main']
-            })}
-            disabled={disabled}
-        >
-            Create Private Key
-        </button>
-    ),
+    default: MockCreatePrivateKeyDialog
 }));
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;

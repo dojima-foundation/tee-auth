@@ -23,8 +23,8 @@ export default function Wallets() {
     // Get wallets data from Redux store
     const wallets = useAppSelector(selectWallets);
     const loading = useAppSelector(selectWalletsLoading);
-    const error = useAppSelector(selectWalletsError);
-    const pagination = useAppSelector(selectWalletsPagination);
+    // const error = useAppSelector(selectWalletsError);
+    // const pagination = useAppSelector(selectWalletsPagination);
 
     // Get organization ID from auth store
     const organizationId = useAppSelector(selectOrganizationId);

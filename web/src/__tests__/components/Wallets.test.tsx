@@ -1,7 +1,7 @@
-import { render, renderWithProviders, screen, fireEvent, waitFor, mockWallets } from '../utils/test-utils.helper';
+import { renderWithProviders, screen, fireEvent, waitFor, mockWallets } from '../utils/test-utils.helper';
 import Wallets from '@/components/Wallets';
 import { useAuth } from '@/lib/auth-context';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useAppDispatch } from '@/store/hooks';
 import { useSnackbar } from '@/components/ui/snackbar';
 
 // Mock dependencies
@@ -15,17 +15,26 @@ jest.mock('@/store/hooks', () => {
     };
 });
 jest.mock('@/components/ui/snackbar');
+interface MockCreateWalletDialogProps {
+    onWalletCreated: (data: unknown) => void;
+    disabled?: boolean;
+}
+
+const MockCreateWalletDialog = ({ onWalletCreated, disabled }: MockCreateWalletDialogProps) => (
+    <button
+        data-testid="create-wallet-dialog"
+        onClick={() => onWalletCreated({ name: 'Test Wallet' })}
+        disabled={disabled}
+    >
+        Create Wallet
+    </button>
+);
+
+MockCreateWalletDialog.displayName = 'MockCreateWalletDialog';
+
 jest.mock('@/components/CreateWalletDialog', () => ({
     __esModule: true,
-    default: ({ onWalletCreated, disabled }: any) => (
-        <button
-            data-testid="create-wallet-dialog"
-            onClick={() => onWalletCreated({ name: 'Test Wallet' })}
-            disabled={disabled}
-        >
-            Create Wallet
-        </button>
-    ),
+    default: MockCreateWalletDialog
 }));
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;

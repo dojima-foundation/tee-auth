@@ -226,7 +226,7 @@ export const mockStoreScenarios = {
 };
 
 // Helper to get store state for assertions
-export const getStoreState = (store: any) => store.getState();
+export const getStoreState = (store: { getState: () => unknown }) => store.getState();
 
 // Helper to dispatch actions in tests
-export const dispatchAction = (store: any, action: any) => store.dispatch(action);
+export const dispatchAction = (store: { dispatch: (action: unknown) => unknown }, action: unknown) => store.dispatch(action);

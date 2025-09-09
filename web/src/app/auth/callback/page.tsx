@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, Suspense } from 'react';
+import React, { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useDispatch } from 'react-redux';
@@ -16,161 +16,59 @@ function OAuthCallbackContent() {
     const [processing, setProcessing] = useState(false);
     const hasProcessed = useRef(false);
 
-    useEffect(() => {
+    const processCallback = useCallback(async () => {
         // Prevent multiple executions
         if (hasProcessed.current) {
             return;
         }
+        // Debug: Log the current URL and search parameters
+        console.log('Current URL:', window.location.href);
+        console.log('Search params:', searchParams.toString());
+        console.log('All search parameters:', Object.fromEntries(searchParams.entries()));
 
-        const processCallback = async () => {
-            // Debug: Log the current URL and search parameters
-            console.log('Current URL:', window.location.href);
-            console.log('Search params:', searchParams.toString());
-            console.log('All search parameters:', Object.fromEntries(searchParams.entries()));
+        // Check for session parameters (successful OAuth flow)
+        const sessionToken = searchParams.get('session_token') || searchParams.get('session_id');
+        const expiresAt = searchParams.get('expires_at');
+        const userId = searchParams.get('user_id');
+        const email = searchParams.get('email');
+        const organizationId = searchParams.get('organization_id');
 
-            // Check for session parameters (successful OAuth flow)
-            const sessionToken = searchParams.get('session_token') || searchParams.get('session_id');
-            const expiresAt = searchParams.get('expires_at');
-            const userId = searchParams.get('user_id');
-            const email = searchParams.get('email');
-            const organizationId = searchParams.get('organization_id');
+        // Check for OAuth parameters (if backend redirects with code/state)
+        const code = searchParams.get('code') || searchParams.get('authorization_code');
+        const state = searchParams.get('state') || searchParams.get('oauth_state');
+        const error = searchParams.get('error') || searchParams.get('oauth_error');
 
-            // Check for OAuth parameters (if backend redirects with code/state)
-            const code = searchParams.get('code') || searchParams.get('authorization_code');
-            const state = searchParams.get('state') || searchParams.get('oauth_state');
-            const error = searchParams.get('error') || searchParams.get('oauth_error');
+        console.log('Parsed parameters:', {
+            sessionToken, expiresAt, userId, email, organizationId,
+            code, state, error
+        });
 
-            console.log('Parsed parameters:', {
-                sessionToken, expiresAt, userId, email, organizationId,
-                code, state, error
-            });
+        // Log all available parameters for debugging
+        console.log('All URL parameters:', {
+            session_token: searchParams.get('session_token'),
+            session_id: searchParams.get('session_id'),
+            expires_at: searchParams.get('expires_at'),
+            user_id: searchParams.get('user_id'),
+            email: searchParams.get('email'),
+            organization_id: searchParams.get('organization_id'),
+            code: searchParams.get('code'),
+            state: searchParams.get('state'),
+            error: searchParams.get('error')
+        });
 
-            // Log all available parameters for debugging
-            console.log('All URL parameters:', {
-                session_token: searchParams.get('session_token'),
-                session_id: searchParams.get('session_id'),
-                expires_at: searchParams.get('expires_at'),
-                user_id: searchParams.get('user_id'),
-                email: searchParams.get('email'),
-                organization_id: searchParams.get('organization_id'),
-                code: searchParams.get('code'),
-                state: searchParams.get('state'),
-                error: searchParams.get('error')
-            });
+        if (error) {
+            console.error('OAuth error:', error);
+            router.push('/auth/error?error=' + encodeURIComponent(error));
+            return;
+        }
 
-            if (error) {
-                console.error('OAuth error:', error);
-                router.push('/auth/error?error=' + encodeURIComponent(error));
-                return;
-            }
-
-            // If we have session data, handle successful login
-            if (sessionToken && userId && email && organizationId && organizationId.trim() !== '') {
-                console.log('Processing successful OAuth login');
-                console.log('Organization ID from URL:', organizationId);
-                try {
-                    setProcessing(true);
-                    hasProcessed.current = true;
-
-                    // If expires_at is not provided, set a default expiration (24 hours from now)
-                    let sessionExpiresAt = expiresAt;
-                    if (!sessionExpiresAt) {
-                        const defaultExpiry = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
-                        sessionExpiresAt = defaultExpiry.toString();
-                    }
-
-                    // Ensure expires_at is a valid timestamp string
-                    let expiresAtTimestamp: string;
-                    if (typeof sessionExpiresAt === 'string' && /^\d+$/.test(sessionExpiresAt)) {
-                        // Already a timestamp string
-                        expiresAtTimestamp = sessionExpiresAt;
-                    } else {
-                        // Try to parse as date and convert to timestamp
-                        const date = new Date(sessionExpiresAt);
-                        if (isNaN(date.getTime())) {
-                            // If parsing fails, use default
-                            expiresAtTimestamp = (Date.now() + (24 * 60 * 60 * 1000)).toString();
-                        } else {
-                            expiresAtTimestamp = date.getTime().toString();
-                        }
-                    }
-
-                    // Store session data in the format expected by auth context
-                    const sessionData = {
-                        session_token: sessionToken,
-                        expires_at: expiresAtTimestamp,
-                        user: {
-                            id: userId,
-                            email: email,
-                            username: email.split('@')[0], // Use email prefix as username
-                            organization_id: organizationId,
-                            is_active: true,
-                            created_at: Date.now().toString(),
-                            updated_at: Date.now().toString()
-                        },
-                        auth_method: {
-                            id: 'google-oauth',
-                            type: 'google_oauth',
-                            name: 'Google OAuth'
-                        }
-                    };
-
-                    // Update auth context state using setSession
-                    setSession(sessionData);
-
-                    // Store in Redux store for global access
-                    dispatch(setAuthSession(sessionData));
-
-                    // Try to fetch actual session info from backend to get correct expiration
-                    try {
-                        const sessionInfo = await gauthApi.getSessionInfo();
-                        if (sessionInfo.success) {
-                            // Update session with actual backend data
-                            const updatedSessionData = {
-                                ...sessionData,
-                                expires_at: new Date(sessionInfo.data.expires_at).getTime().toString(),
-                            };
-                            setSession(updatedSessionData);
-                            dispatch(setAuthSession(updatedSessionData));
-                        }
-                    } catch (error) {
-                        console.warn('Failed to fetch session info from backend, using default expiration:', error);
-                        // Continue with default expiration
-                    }
-
-                    // Redirect to dashboard
-                    router.push('/dashboard');
-                    return;
-                } catch (err) {
-                    console.error('Error processing session data:', err);
-                    router.push('/auth/error?error=' + encodeURIComponent('Failed to process session'));
-                    return;
-                } finally {
-                    setProcessing(false);
-                }
-            }
-
-            // If we have code and state, handle OAuth callback
-            if (code && state) {
-                console.log('Processing OAuth callback with code and state');
-                try {
-                    setProcessing(true);
-                    hasProcessed.current = true;
-
-                    await handleOAuthCallback(code, state);
-                    return;
-                } catch (err) {
-                    console.error('Error processing OAuth callback:', err);
-                    router.push('/auth/error?error=' + encodeURIComponent('Failed to process OAuth callback'));
-                    return;
-                } finally {
-                    setProcessing(false);
-                }
-            }
-
-            // Check if we have session data but missing organization ID
-            if (sessionToken && userId && email && (!organizationId || organizationId.trim() === '')) {
-                console.warn('Session data found but organization ID is missing, proceeding with empty organization ID');
+        // If we have session data, handle successful login
+        if (sessionToken && userId && email && organizationId && organizationId.trim() !== '') {
+            console.log('Processing successful OAuth login');
+            console.log('Organization ID from URL:', organizationId);
+            try {
+                setProcessing(true);
+                hasProcessed.current = true;
 
                 // If expires_at is not provided, set a default expiration (24 hours from now)
                 let sessionExpiresAt = expiresAt;
@@ -195,15 +93,15 @@ function OAuthCallbackContent() {
                     }
                 }
 
-                // Proceed with empty organization ID
+                // Store session data in the format expected by auth context
                 const sessionData = {
                     session_token: sessionToken,
                     expires_at: expiresAtTimestamp,
                     user: {
                         id: userId,
                         email: email,
-                        username: email.split('@')[0],
-                        organization_id: '', // Empty organization ID
+                        username: email.split('@')[0], // Use email prefix as username
+                        organization_id: organizationId,
                         is_active: true,
                         created_at: Date.now().toString(),
                         updated_at: Date.now().toString()
@@ -215,7 +113,10 @@ function OAuthCallbackContent() {
                     }
                 };
 
+                // Update auth context state using setSession
                 setSession(sessionData);
+
+                // Store in Redux store for global access
                 dispatch(setAuthSession(sessionData));
 
                 // Try to fetch actual session info from backend to get correct expiration
@@ -235,19 +136,117 @@ function OAuthCallbackContent() {
                     // Continue with default expiration
                 }
 
+                // Redirect to dashboard
                 router.push('/dashboard');
                 return;
+            } catch (err) {
+                console.error('Error processing session data:', err);
+                router.push('/auth/error?error=' + encodeURIComponent('Failed to process session'));
+                return;
+            } finally {
+                setProcessing(false);
+            }
+        }
+
+        // If we have code and state, handle OAuth callback
+        if (code && state) {
+            console.log('Processing OAuth callback with code and state');
+            try {
+                setProcessing(true);
+                hasProcessed.current = true;
+
+                await handleOAuthCallback(code, state);
+                return;
+            } catch (err) {
+                console.error('Error processing OAuth callback:', err);
+                router.push('/auth/error?error=' + encodeURIComponent('Failed to process OAuth callback'));
+                return;
+            } finally {
+                setProcessing(false);
+            }
+        }
+
+        // Check if we have session data but missing organization ID
+        if (sessionToken && userId && email && (!organizationId || organizationId.trim() === '')) {
+            console.warn('Session data found but organization ID is missing, proceeding with empty organization ID');
+
+            // If expires_at is not provided, set a default expiration (24 hours from now)
+            let sessionExpiresAt = expiresAt;
+            if (!sessionExpiresAt) {
+                const defaultExpiry = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+                sessionExpiresAt = defaultExpiry.toString();
             }
 
-            // No valid parameters found
-            console.error('Missing OAuth parameters');
-            console.log('Available parameters:', Array.from(searchParams.keys()));
-            router.push('/auth/error?error=' + encodeURIComponent('Missing OAuth parameters'));
-            return;
-        };
+            // Ensure expires_at is a valid timestamp string
+            let expiresAtTimestamp: string;
+            if (typeof sessionExpiresAt === 'string' && /^\d+$/.test(sessionExpiresAt)) {
+                // Already a timestamp string
+                expiresAtTimestamp = sessionExpiresAt;
+            } else {
+                // Try to parse as date and convert to timestamp
+                const date = new Date(sessionExpiresAt);
+                if (isNaN(date.getTime())) {
+                    // If parsing fails, use default
+                    expiresAtTimestamp = (Date.now() + (24 * 60 * 60 * 1000)).toString();
+                } else {
+                    expiresAtTimestamp = date.getTime().toString();
+                }
+            }
 
+            // Proceed with empty organization ID
+            const sessionData = {
+                session_token: sessionToken,
+                expires_at: expiresAtTimestamp,
+                user: {
+                    id: userId,
+                    email: email,
+                    username: email.split('@')[0],
+                    organization_id: '', // Empty organization ID
+                    is_active: true,
+                    created_at: Date.now().toString(),
+                    updated_at: Date.now().toString()
+                },
+                auth_method: {
+                    id: 'google-oauth',
+                    type: 'google_oauth',
+                    name: 'Google OAuth'
+                }
+            };
+
+            setSession(sessionData);
+            dispatch(setAuthSession(sessionData));
+
+            // Try to fetch actual session info from backend to get correct expiration
+            try {
+                const sessionInfo = await gauthApi.getSessionInfo();
+                if (sessionInfo.success) {
+                    // Update session with actual backend data
+                    const updatedSessionData = {
+                        ...sessionData,
+                        expires_at: new Date(sessionInfo.data.expires_at).getTime().toString(),
+                    };
+                    setSession(updatedSessionData);
+                    dispatch(setAuthSession(updatedSessionData));
+                }
+            } catch (error) {
+                console.warn('Failed to fetch session info from backend, using default expiration:', error);
+                // Continue with default expiration
+            }
+
+            router.push('/dashboard');
+            return;
+        }
+
+        // No valid parameters found
+        console.error('Missing OAuth parameters');
+        console.log('Available parameters:', Array.from(searchParams.keys()));
+        router.push('/auth/error?error=' + encodeURIComponent('Missing OAuth parameters'));
+        return;
+    }, [searchParams, handleOAuthCallback, router, setSession, dispatch]);
+
+    useEffect(() => {
         processCallback();
-    }, [searchParams, handleOAuthCallback, router]);
+    }, [processCallback]);
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">

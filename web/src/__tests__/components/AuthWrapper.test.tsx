@@ -1,7 +1,6 @@
-import { render, screen, waitFor } from '../utils/test-utils.helper';
+import { render, screen } from '../utils/test-utils.helper';
 import { AuthWrapper } from '@/components/AuthWrapper';
 import { useAuth } from '@/lib/auth-context';
-import { SessionLoading } from '@/components/SessionLoading';
 
 // Mock the auth context
 jest.mock('@/lib/auth-context');

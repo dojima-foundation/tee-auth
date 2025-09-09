@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSessionManagement } from '@/lib/session-middleware';
 import { SessionInfo } from '@/types/auth';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ export default function SessionTestPage() {
     const [loading, setLoading] = useState(false);
     const { showSnackbar } = useSnackbar();
 
-    const loadSessionInfo = async () => {
+    const loadSessionInfo = useCallback(async () => {
         if (!isAuthenticated) return;
 
         try {
@@ -37,9 +37,9 @@ export default function SessionTestPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [isAuthenticated, getSessionInfo, showSnackbar]);
 
-    const loadAllSessions = async () => {
+    const loadAllSessions = useCallback(async () => {
         if (!isAuthenticated) return;
 
         try {
@@ -53,7 +53,7 @@ export default function SessionTestPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [isAuthenticated, listSessions, showSnackbar]);
 
     const handleRefreshSession = async () => {
         try {
@@ -92,7 +92,7 @@ export default function SessionTestPage() {
             loadSessionInfo();
             loadAllSessions();
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, loadSessionInfo, loadAllSessions]);
 
     if (!isAuthenticated) {
         return (

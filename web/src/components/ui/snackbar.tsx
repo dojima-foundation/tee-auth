@@ -52,7 +52,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({ children }) 
                 hideSnackbar(id);
             }, newSnackbar.duration);
         }
-    }, []);
+    }, [hideSnackbar]);
 
     const hideSnackbar = useCallback((id: string) => {
         setSnackbars(prev => prev.filter(snackbar => snackbar.id !== id));

@@ -1,7 +1,7 @@
-import { render, renderWithProviders, screen, fireEvent, waitFor, mockUsers } from '../utils/test-utils.helper';
+import { renderWithProviders, screen, fireEvent, waitFor, mockUsers } from '../utils/test-utils.helper';
 import Users from '@/components/Users';
 import { useAuth } from '@/lib/auth-context';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useAppDispatch } from '@/store/hooks';
 import { gauthApi } from '@/services/gauthApi';
 import { useSnackbar } from '@/components/ui/snackbar';
 
@@ -17,17 +17,26 @@ jest.mock('@/store/hooks', () => {
 });
 jest.mock('@/services/gauthApi');
 jest.mock('@/components/ui/snackbar');
+interface MockCreateUserDialogProps {
+    onUserCreated: (data: unknown) => void;
+    loading?: boolean;
+}
+
+const MockCreateUserDialog = ({ onUserCreated, loading }: MockCreateUserDialogProps) => (
+    <button
+        data-testid="create-user-dialog"
+        onClick={() => onUserCreated({ name: 'Test User', email: 'test@example.com', role: 'user' })}
+        disabled={loading}
+    >
+        Create User
+    </button>
+);
+
+MockCreateUserDialog.displayName = 'MockCreateUserDialog';
+
 jest.mock('@/components/CreateUserDialog', () => ({
     __esModule: true,
-    default: ({ onUserCreated, loading }: any) => (
-        <button
-            data-testid="create-user-dialog"
-            onClick={() => onUserCreated({ name: 'Test User', email: 'test@example.com', role: 'user' })}
-            disabled={loading}
-        >
-            Create User
-        </button>
-    ),
+    default: MockCreateUserDialog
 }));
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
@@ -39,17 +48,17 @@ describe('Users', () => {
     const mockDispatch = jest.fn();
     const mockShowSnackbar = jest.fn();
 
-    const mockUser = {
-        id: 'user-123',
-        organization_id: 'org-456',
-        username: 'testuser',
-        email: 'test@example.com',
-        public_key: '0x1234567890abcdef',
-        tags: ['admin'],
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-    };
+    // const mockUser = {
+    //     id: 'user-123',
+    //     organization_id: 'org-456',
+    //     username: 'testuser',
+    //     email: 'test@example.com',
+    //     public_key: '0x1234567890abcdef',
+    //     tags: ['admin'],
+    //     is_active: true,
+    //     created_at: new Date().toISOString(),
+    //     updated_at: new Date().toISOString(),
+    // };
 
     const mockAuthUser = {
         id: 'user-123',

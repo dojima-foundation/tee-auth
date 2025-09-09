@@ -69,7 +69,7 @@ const api = {
         }
     },
 
-    deleteWallet: async (walletId: string): Promise<void> => {
+    deleteWallet: async (_walletId: string): Promise<void> => {
         await delay(300)
         // Simulate successful deletion
     },
@@ -124,7 +124,7 @@ const api = {
         }
     },
 
-    deletePrivateKey: async (keyId: string): Promise<void> => {
+    deletePrivateKey: async (_keyId: string): Promise<void> => {
         await delay(300)
         // Simulate successful deletion
     },

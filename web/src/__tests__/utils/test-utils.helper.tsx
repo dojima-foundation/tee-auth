@@ -7,7 +7,7 @@ import { createMockStore, MockStoreConfig } from './mock-store-factory'
 // Custom render function that includes providers
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
     storeConfig?: MockStoreConfig
-    store?: any
+    store?: { dispatch: (action: unknown) => unknown; getState: () => unknown }
 }
 
 export const renderWithProviders = (
@@ -56,7 +56,7 @@ export {
 } from './mock-store-factory'
 
 // Mock fetch for API calls
-export const mockFetch = (data: any, status = 200) => {
+export const mockFetch = (data: unknown, status = 200) => {
     global.fetch = jest.fn(() =>
         Promise.resolve({
             ok: status >= 200 && status < 300,

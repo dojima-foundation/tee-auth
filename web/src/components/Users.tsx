@@ -3,7 +3,7 @@
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { User as UserIcon, Building, Plus, Edit, Trash2 } from 'lucide-react';
+import { User as UserIcon, Building, Edit, Trash2 } from 'lucide-react';
 import { useSnackbar } from '@/components/ui/snackbar';
 import { gauthApi, CreateOrganizationRequest } from '@/services/gauthApi';
 import { useAuth } from '@/lib/auth-context';
@@ -26,7 +26,7 @@ export default function Users() {
     // Get users data from Redux store
     const users = useAppSelector(selectUsers);
     const loading = useAppSelector(selectUsersLoading);
-    const error = useAppSelector(selectUsersError);
+    // const error = useAppSelector(selectUsersError);
     const pagination = useAppSelector(selectUsersPagination);
 
     // Get organization ID from auth store
@@ -39,7 +39,7 @@ export default function Users() {
         currentUser,
         authSession,
         userOrganizationId: currentUser?.organization_id,
-        sessionOrganizationId: (authSession as any)?.organization_id
+        sessionOrganizationId: (authSession as { organization_id?: string })?.organization_id
     });
 
     const [isCreatingOrg, setIsCreatingOrg] = useState(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSessionManagement } from '@/lib/session-middleware';
 import { SessionInfo } from '@/types/auth';
 import { Badge } from '@/components/ui/badge';
@@ -20,24 +20,21 @@ export function SessionStatus({ showDetails = false, className = '' }: SessionSt
     } = useSessionManagement();
 
     const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
-    const [loading, setLoading] = useState(false);
+    // const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const { showSnackbar } = useSnackbar();
 
     // Load session info
-    const loadSessionInfo = async () => {
+    const loadSessionInfo = useCallback(async () => {
         if (!isAuthenticated) return;
 
         try {
-            setLoading(true);
             const info = await getSessionInfo();
             setSessionInfo(info);
         } catch (error) {
             console.error('Failed to load session info:', error);
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [isAuthenticated, getSessionInfo]);
 
     // Refresh session
     const handleRefresh = async () => {
@@ -61,7 +58,7 @@ export function SessionStatus({ showDetails = false, className = '' }: SessionSt
         } else {
             setSessionInfo(null);
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, loadSessionInfo]);
 
     // Auto-refresh session info every minute
     useEffect(() => {
@@ -69,7 +66,7 @@ export function SessionStatus({ showDetails = false, className = '' }: SessionSt
 
         const interval = setInterval(loadSessionInfo, 60000); // 1 minute
         return () => clearInterval(interval);
-    }, [isAuthenticated]);
+    }, [isAuthenticated, loadSessionInfo]);
 
     if (!isAuthenticated || !sessionInfo) {
         return null;

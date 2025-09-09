@@ -1,4 +1,4 @@
-import { renderWithProviders, screen, fireEvent, waitFor } from '../utils/test-utils.helper';
+import { renderWithProviders, screen, waitFor } from '../utils/test-utils.helper';
 import CreatePrivateKeyDialog from '@/components/CreatePrivateKeyDialog';
 import { useAppSelector } from '@/store/hooks';
 import userEvent from '@testing-library/user-event';

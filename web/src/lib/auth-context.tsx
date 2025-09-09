@@ -6,6 +6,16 @@ import { AuthState, AuthSession, LoginCredentials, SessionInfo } from '@/types/a
 import { gauthApi } from '@/services/gauthApi';
 import { setAuthSession } from '@/store/authSlice';
 
+// Type definitions for window object extensions
+interface WindowWithMockAuth extends Window {
+    __MOCK_AUTH__?: boolean;
+}
+
+// Type definitions for session with organization
+interface SessionWithOrganization {
+    organization_id?: string;
+}
+
 // Auth Action Types
 type AuthAction =
     | { type: 'AUTH_START' }
@@ -146,9 +156,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
             // Check if we're in test mode with mock authentication enabled
             const isTestMode = process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_TEST_MODE === 'true';
-            const mockAuthEnabled = process.env.NEXT_PUBLIC_MOCK_AUTH === 'true' || 
-                (typeof window !== 'undefined' && (window as any).__MOCK_AUTH__);
-            
+            const mockAuthEnabled = process.env.NEXT_PUBLIC_MOCK_AUTH === 'true' ||
+                (typeof window !== 'undefined' && (window as WindowWithMockAuth).__MOCK_AUTH__);
+
             if (isTestMode && mockAuthEnabled) {
                 console.log('🧪 [AuthProvider] Test mode detected for dashboard route, using mock authentication');
                 // Create mock session data for testing
@@ -171,7 +181,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                         name: 'Mock Authentication'
                     }
                 };
-                
+
                 dispatch({ type: 'AUTH_SUCCESS', payload: mockSession });
                 reduxDispatch(setAuthSession(mockSession));
                 return;
@@ -237,7 +247,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                         session: session,
                         user: session.user,
                         userOrganizationId: session.user?.organization_id,
-                        sessionOrganizationId: (session as any).organization_id
+                        sessionOrganizationId: (session as SessionWithOrganization).organization_id
                     });
 
                     // Check if session is expired locally first
@@ -289,7 +299,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                         dispatch({ type: 'AUTH_FAILURE', payload: 'Session validation failed' });
 
                         // Clear Redux store
-                        reduxDispatch(setAuthSession(null as any));
+                        reduxDispatch(setAuthSession(null));
                         console.log('🔄 [AuthProvider] Cleared Redux store');
                     }
                 } catch (error) {
@@ -299,7 +309,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                     dispatch({ type: 'AUTH_FAILURE', payload: 'Session validation failed' });
 
                     // Clear Redux store
-                    reduxDispatch(setAuthSession(null as any));
+                    reduxDispatch(setAuthSession(null));
                     console.log('🔄 [AuthProvider] Cleared Redux store due to error');
                 }
             } else {
@@ -307,13 +317,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 dispatch({ type: 'AUTH_FAILURE', payload: '' });
 
                 // Clear Redux store
-                reduxDispatch(setAuthSession(null as any));
+                reduxDispatch(setAuthSession(null));
                 console.log('🔄 [AuthProvider] Cleared Redux store - no session data');
             }
         };
 
         initializeSession();
-    }, []);
+    }, [reduxDispatch]);
 
     const loginWithGoogle = async (credentials: LoginCredentials) => {
         try {
@@ -412,7 +422,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // If refresh fails, logout the user
             logout();
         }
-    }, []);
+    }, [logout]);
 
     const validateSession = useCallback(async (): Promise<boolean> => {
         try {
