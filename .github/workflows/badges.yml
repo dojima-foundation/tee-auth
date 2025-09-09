@@ -52,7 +52,7 @@ jobs:
         if grep -q "## CI/CD Status" README.md; then
           # Replace existing badges section
           awk '
-            /^## CI/CD Status/ { 
+            /^## CI\/CD Status/ { 
               skip = 1; 
               while ((getline line < "badges_section.md") > 0) print line; 
               close("badges_section.md");
