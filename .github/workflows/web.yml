@@ -177,12 +177,22 @@ jobs:
         cd web
         npm ci
         
-    # Playwright browsers are now pre-installed on the runner
+    - name: Install Playwright browsers
+      run: |
+        cd web
+        npx playwright install --with-deps
+        
+    - name: Verify Playwright installation
+      run: |
+        cd web
+        npx playwright --version
+        npx playwright install --dry-run
         
     - name: Run accessibility tests
       run: |
         cd web
-        npm run test:accessibility
+        npm run test:accessibility:ci
+      timeout-minutes: 15
         
     - name: Upload accessibility report
       uses: actions/upload-artifact@v4
