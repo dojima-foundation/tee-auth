@@ -1,22 +1,10 @@
-name: Renclave-v2 CI/CD
+name: Renclave-v2 CI/CD (DISABLED)
 
-# FIXED: Docker Buildx issues resolved - uses traditional docker build
-# FIXED: Image pull policy set to 'never' to prevent registry attempts
-# FIXED: Workflow updated to match local Docker fixes
-# UPDATED: All tests now enabled by default for push events
-#
-# Default: ALL tests are enabled by default for push events (unit, integration, e2e, build, security, coverage)
-# Manual workflow_dispatch allows fine-grained control over which jobs run
-# This workflow handles Rust-based TEE enclave service testing and building
+# DISABLED: Only web.yml workflow is enabled
+# This workflow is disabled to prevent conflicts with the web workflow
 
 on:
-  # Default workflow - runs on any push to main/develop
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'renclave-v2/**'
-      - '.github/workflows/renclave-v2.yml'
-  # Manual trigger - can be run from GitHub Actions UI
+  # Disabled - will never trigger
   workflow_dispatch:
     inputs:
       run_tests:

@@ -1,16 +1,10 @@
-name: Gauth CI/CD
+name: Gauth CI/CD (DISABLED)
 
-# ENABLED: Gauth workflow now enabled for testing
-# This workflow handles Go-based authentication service testing and building
+# DISABLED: Only web.yml workflow is enabled
+# This workflow is disabled to prevent conflicts with the web workflow
 
 on:
-  # Default workflow - runs on any push to main/develop
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'gauth/**'
-      - '.github/workflows/gauth.yml'
-  # Manual trigger - can be run from GitHub Actions UI
+  # Disabled - will never trigger
   workflow_dispatch:
     inputs:
       environment:

@@ -1,15 +1,24 @@
-name: Web CI/CD (DISABLED)
+name: Web CI/CD
 
-# DISABLED: Only renclave-v2.yml workflow is enabled
-# This workflow is disabled to prevent conflicts with the main renclave workflow
+# Web application CI/CD workflow for Next.js frontend
+# Triggers on changes to web directory or manual dispatch
 
 on:
-  # Disabled - will never trigger
+  push:
+    branches: [main, develop]
+    paths:
+      - 'web/**'
+      - '.github/workflows/web.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'web/**'
+      - '.github/workflows/web.yml'
   workflow_dispatch:
     inputs:
       force_run:
-        description: 'Force run this workflow (DISABLED)'
-        required: true
+        description: 'Force run this workflow'
+        required: false
         default: false
         type: boolean
 
