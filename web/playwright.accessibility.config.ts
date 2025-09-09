@@ -94,6 +94,7 @@ export default defineConfig({
             NEXT_PUBLIC_GAUTH_API_URL: process.env.NEXT_PUBLIC_GAUTH_API_URL || 'http://localhost:8080',
             NEXT_PUBLIC_GRPC_URL: process.env.NEXT_PUBLIC_GRPC_URL || 'localhost:9090',
             NEXT_PUBLIC_TEST_MODE: 'true',
+            NEXT_PUBLIC_MOCK_AUTH: 'true',
         },
     },
 })

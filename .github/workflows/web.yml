@@ -137,7 +137,9 @@ jobs:
           libatk1.0-0 \
           libcairo-gobject2 \
           libgtk-3-0 \
-          libgdk-pixbuf2.0-0
+          libgdk-pixbuf2.0-0 \
+          libgstgl-1.0-0 \
+          libgstcodecparsers-1.0-0
         
     - name: Run E2E tests
       run: |
@@ -270,7 +272,9 @@ jobs:
           libatk1.0-0 \
           libcairo-gobject2 \
           libgtk-3-0 \
-          libgdk-pixbuf2.0-0
+          libgdk-pixbuf2.0-0 \
+          libgstgl-1.0-0 \
+          libgstcodecparsers-1.0-0
         
     - name: Verify Playwright installation
       run: |
@@ -362,7 +366,9 @@ jobs:
           libatk1.0-0 \
           libcairo-gobject2 \
           libgtk-3-0 \
-          libgdk-pixbuf2.0-0
+          libgdk-pixbuf2.0-0 \
+          libgstgl-1.0-0 \
+          libgstcodecparsers-1.0-0
         
     - name: Run mobile tests
       run: |

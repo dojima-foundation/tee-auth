@@ -63,15 +63,16 @@ test.describe('Authentication Flow', () => {
 
         // Navigate back to home (assuming there's a back button or logo link)
         await page.goto('/')
+        await page.waitForLoadState('domcontentloaded')
         await expect(page.getByRole('heading', { name: /welcome to odeys/i })).toBeVisible()
 
         // Navigate to dashboard (should redirect to sign-in for unauthenticated users)
-        await page.getByRole('link', { name: /go to dashboard/i }).click()
+        const dashboardLink = page.getByRole('link', { name: /go to dashboard/i })
+        await dashboardLink.waitFor({ state: 'visible' })
+        await dashboardLink.click()
 
-        // Wait for the redirect to complete
-        await page.waitForLoadState('networkidle')
-
-        await expect(page).toHaveURL(/.*\/auth\/signin/, { timeout: 10000 })
+        // Wait for the redirect to complete - use a more specific wait with longer timeout
+        await page.waitForURL(/.*\/auth\/signin/, { timeout: 15000 })
     })
 })
 

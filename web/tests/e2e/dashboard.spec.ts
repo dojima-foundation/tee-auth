@@ -6,16 +6,25 @@ test.describe('Dashboard', () => {
         await page.addInitScript(() => {
             // @ts-expect-error - Mock authentication for testing
             window.__MOCK_AUTH__ = true;
+            // Also set environment variables for the auth context
+            // @ts-expect-error - Mock environment variables
+            window.process = window.process || {};
+            // @ts-expect-error - Mock environment variables
+            window.process.env = window.process.env || {};
+            // @ts-expect-error - Mock environment variables
+            window.process.env.NEXT_PUBLIC_TEST_MODE = 'true';
+            // @ts-expect-error - Mock environment variables
+            window.process.env.NEXT_PUBLIC_MOCK_AUTH = 'true';
         });
 
-        // Navigate to home page first
-        await page.goto('/')
+        // Navigate directly to dashboard with mock auth
+        await page.goto('/dashboard')
 
-        // Click the dashboard link to authenticate and navigate to dashboard
-        await page.getByRole('link', { name: /go to dashboard/i }).click()
+        // Wait for the page to load and ensure we're authenticated
+        await page.waitForLoadState('networkidle')
 
-        // Wait for navigation to complete
-        await page.waitForURL(/.*\/dashboard/)
+        // Verify we're on the dashboard page
+        await expect(page).toHaveURL(/.*\/dashboard/)
     })
 
     test('should display dashboard page', async ({ page }) => {
@@ -37,6 +46,7 @@ test.describe('Dashboard', () => {
     test('should navigate to users page', async ({ page }) => {
         // Navigate to users page
         await page.goto('/dashboard/users')
+        await page.waitForLoadState('networkidle')
 
         // Check that we're on the users page
         await expect(page).toHaveURL(/.*\/dashboard\/users/)
@@ -48,6 +58,7 @@ test.describe('Dashboard', () => {
     test('should navigate to wallets page', async ({ page }) => {
         // Navigate to wallets page
         await page.goto('/dashboard/wallets')
+        await page.waitForLoadState('networkidle')
 
         // Check that we're on the wallets page
         await expect(page).toHaveURL(/.*\/dashboard\/wallets/)
@@ -59,6 +70,7 @@ test.describe('Dashboard', () => {
     test('should navigate to private keys page', async ({ page }) => {
         // Navigate to private keys page
         await page.goto('/dashboard/pkeys')
+        await page.waitForLoadState('networkidle')
 
         // Check that we're on the private keys page
         await expect(page).toHaveURL(/.*\/dashboard\/pkeys/)
@@ -70,6 +82,7 @@ test.describe('Dashboard', () => {
     test('should navigate to sessions page', async ({ page }) => {
         // Navigate to sessions page
         await page.goto('/dashboard/sessions')
+        await page.waitForLoadState('networkidle')
 
         // Check that we're on the sessions page
         await expect(page).toHaveURL(/.*\/dashboard\/sessions/)
@@ -85,21 +98,31 @@ test.describe('Dashboard Functionality', () => {
         await page.addInitScript(() => {
             // @ts-expect-error - Mock authentication for testing
             window.__MOCK_AUTH__ = true;
+            // Also set environment variables for the auth context
+            // @ts-expect-error - Mock environment variables
+            window.process = window.process || {};
+            // @ts-expect-error - Mock environment variables
+            window.process.env = window.process.env || {};
+            // @ts-expect-error - Mock environment variables
+            window.process.env.NEXT_PUBLIC_TEST_MODE = 'true';
+            // @ts-expect-error - Mock environment variables
+            window.process.env.NEXT_PUBLIC_MOCK_AUTH = 'true';
         });
 
-        // Navigate to home page first
-        await page.goto('/')
+        // Navigate directly to dashboard with mock auth
+        await page.goto('/dashboard')
 
-        // Click the dashboard link to authenticate and navigate to dashboard
-        await page.getByRole('link', { name: /go to dashboard/i }).click()
+        // Wait for the page to load and ensure we're authenticated
+        await page.waitForLoadState('networkidle')
 
-        // Wait for navigation to complete
-        await page.waitForURL(/.*\/dashboard/)
+        // Verify we're on the dashboard page
+        await expect(page).toHaveURL(/.*\/dashboard/)
     })
 
     test('should create a new user', async ({ page }) => {
         // Navigate to users page
         await page.goto('/dashboard/users')
+        await page.waitForLoadState('networkidle')
 
         // Click create user button (if it exists)
         // const createButton = page.getByRole('button', { name: /create user/i })
@@ -121,6 +144,7 @@ test.describe('Dashboard Functionality', () => {
     test('should create a new wallet', async ({ page }) => {
         // Navigate to wallets page
         await page.goto('/dashboard/wallets')
+        await page.waitForLoadState('networkidle')
 
         // Click create wallet button (if it exists)
         // const createButton = page.getByRole('button', { name: /create wallet/i })
@@ -141,6 +165,7 @@ test.describe('Dashboard Functionality', () => {
     test('should create a new private key', async ({ page }) => {
         // Navigate to private keys page
         await page.goto('/dashboard/pkeys')
+        await page.waitForLoadState('networkidle')
 
         // Click create private key button (if it exists)
         // const createButton = page.getByRole('button', { name: /create private key/i })
@@ -165,16 +190,25 @@ test.describe('Dashboard Error Handling', () => {
         await page.addInitScript(() => {
             // @ts-expect-error - Mock authentication for testing
             window.__MOCK_AUTH__ = true;
+            // Also set environment variables for the auth context
+            // @ts-expect-error - Mock environment variables
+            window.process = window.process || {};
+            // @ts-expect-error - Mock environment variables
+            window.process.env = window.process.env || {};
+            // @ts-expect-error - Mock environment variables
+            window.process.env.NEXT_PUBLIC_TEST_MODE = 'true';
+            // @ts-expect-error - Mock environment variables
+            window.process.env.NEXT_PUBLIC_MOCK_AUTH = 'true';
         });
 
-        // Navigate to home page first
-        await page.goto('/')
+        // Navigate directly to dashboard with mock auth
+        await page.goto('/dashboard')
 
-        // Click the dashboard link to authenticate and navigate to dashboard
-        await page.getByRole('link', { name: /go to dashboard/i }).click()
+        // Wait for the page to load and ensure we're authenticated
+        await page.waitForLoadState('networkidle')
 
-        // Wait for navigation to complete
-        await page.waitForURL(/.*\/dashboard/)
+        // Verify we're on the dashboard page
+        await expect(page).toHaveURL(/.*\/dashboard/)
     })
 
     test('should handle network errors gracefully', async ({ page }) => {
@@ -182,6 +216,7 @@ test.describe('Dashboard Error Handling', () => {
         await page.route('**/api/**', route => route.abort())
 
         await page.goto('/dashboard')
+        await page.waitForLoadState('networkidle')
 
         // Check that error is handled gracefully
         // await expect(page.getByText(/error loading/i)).toBeVisible()
@@ -190,6 +225,7 @@ test.describe('Dashboard Error Handling', () => {
     test('should handle 404 errors', async ({ page }) => {
         // Navigate to non-existent page
         await page.goto('/dashboard/nonexistent')
+        await page.waitForLoadState('networkidle')
 
         // Check that 404 is handled
         // await expect(page.getByText(/page not found/i)).toBeVisible()
