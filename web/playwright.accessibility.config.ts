@@ -61,8 +61,9 @@ export default defineConfig({
             name: 'webkit',
             use: {
                 ...devices['Desktop Safari'],
+                // WebKit doesn't support --no-sandbox flag
                 launchOptions: {
-                    args: process.env.CI ? ['--no-sandbox'] : []
+                    args: process.env.CI ? [] : []
                 }
             },
         },
