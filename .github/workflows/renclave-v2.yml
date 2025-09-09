@@ -184,6 +184,14 @@ jobs:
       run: |
         # Build the image using traditional docker build (avoids Buildx issues)
         # Use full path from repo root to avoid path resolution issues
+        echo "Current working directory: $(pwd)"
+        echo "Listing renclave-v2 directory:"
+        ls -la renclave-v2/
+        echo "Listing renclave-v2/docker directory:"
+        ls -la renclave-v2/docker/
+        echo "Checking if Dockerfile.test exists:"
+        ls -la renclave-v2/docker/Dockerfile.test || echo "Dockerfile.test not found"
+        
         if ! docker build -f renclave-v2/docker/Dockerfile.test -t renclave-test-runner:latest renclave-v2/; then
           echo "Docker build failed"
           exit 1
@@ -269,6 +277,9 @@ jobs:
         # Ensure the image exists for E2E tests
         if ! docker images | grep -q renclave-test-runner; then
           echo "Building Docker image for E2E tests..."
+          echo "Current working directory: $(pwd)"
+          echo "Checking if Dockerfile.test exists:"
+          ls -la renclave-v2/docker/Dockerfile.test || echo "Dockerfile.test not found"
           # Use full path from repo root to avoid path resolution issues
           docker build -f renclave-v2/docker/Dockerfile.test -t renclave-test-runner:latest renclave-v2/
         else
