@@ -15,27 +15,26 @@ jest.mock('@/store/hooks', () => {
     };
 });
 jest.mock('@/components/ui/snackbar');
-interface MockCreateWalletDialogProps {
-    onWalletCreated: (data: unknown) => void;
-    disabled?: boolean;
-}
 
-const MockCreateWalletDialog = ({ onWalletCreated, disabled }: MockCreateWalletDialogProps) => (
-    <button
-        data-testid="create-wallet-dialog"
-        onClick={() => onWalletCreated({ name: 'Test Wallet' })}
-        disabled={disabled}
-    >
-        Create Wallet
-    </button>
-);
+// Mock CreateWalletDialog component
+jest.mock('@/components/CreateWalletDialog', () => {
+    const MockCreateWalletDialog = ({ onWalletCreated, disabled }: any) => (
+        <button
+            data-testid="create-wallet-dialog"
+            onClick={() => onWalletCreated({ name: 'Test Wallet' })}
+            disabled={disabled}
+        >
+            Create Wallet
+        </button>
+    );
 
-MockCreateWalletDialog.displayName = 'MockCreateWalletDialog';
+    MockCreateWalletDialog.displayName = 'MockCreateWalletDialog';
 
-jest.mock('@/components/CreateWalletDialog', () => ({
-    __esModule: true,
-    default: MockCreateWalletDialog
-}));
+    return {
+        __esModule: true,
+        default: MockCreateWalletDialog
+    };
+});
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockUseAppDispatch = useAppDispatch as jest.MockedFunction<typeof useAppDispatch>;

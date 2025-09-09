@@ -2,20 +2,15 @@ import { render, screen } from '@testing-library/react'
 import Home from '@/app/page'
 
 // Mock Next.js Link component
-interface MockLinkProps {
-    children: React.ReactNode;
-    href: string;
-    [key: string]: unknown;
-}
-
-const MockLink = ({ children, href, ...props }: MockLinkProps) => (
-    <a href={href} {...props}>
-        {children}
-    </a>
-);
-MockLink.displayName = 'MockLink';
-
-jest.mock('next/link', () => MockLink)
+jest.mock('next/link', () => {
+    const MockLink = ({ children, href, ...props }: any) => (
+        <a href={href} {...props}>
+            {children}
+        </a>
+    );
+    MockLink.displayName = 'MockLink';
+    return MockLink;
+});
 
 describe('Home Page', () => {
     it('renders the main heading', () => {

@@ -17,27 +17,26 @@ jest.mock('@/store/hooks', () => {
 });
 jest.mock('@/services/gauthApi');
 jest.mock('@/components/ui/snackbar');
-interface MockCreateUserDialogProps {
-    onUserCreated: (data: unknown) => void;
-    loading?: boolean;
-}
 
-const MockCreateUserDialog = ({ onUserCreated, loading }: MockCreateUserDialogProps) => (
-    <button
-        data-testid="create-user-dialog"
-        onClick={() => onUserCreated({ name: 'Test User', email: 'test@example.com', role: 'user' })}
-        disabled={loading}
-    >
-        Create User
-    </button>
-);
+// Mock CreateUserDialog component
+jest.mock('@/components/CreateUserDialog', () => {
+    const MockCreateUserDialog = ({ onUserCreated, loading }: any) => (
+        <button
+            data-testid="create-user-dialog"
+            onClick={() => onUserCreated({ name: 'Test User', email: 'test@example.com', role: 'user' })}
+            disabled={loading}
+        >
+            Create User
+        </button>
+    );
 
-MockCreateUserDialog.displayName = 'MockCreateUserDialog';
+    MockCreateUserDialog.displayName = 'MockCreateUserDialog';
 
-jest.mock('@/components/CreateUserDialog', () => ({
-    __esModule: true,
-    default: MockCreateUserDialog
-}));
+    return {
+        __esModule: true,
+        default: MockCreateUserDialog
+    };
+});
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockUseAppDispatch = useAppDispatch as jest.MockedFunction<typeof useAppDispatch>;
