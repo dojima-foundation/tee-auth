@@ -1,4 +1,4 @@
-import { render, renderWithProviders, screen, fireEvent, waitFor } from '../utils/test-utils.helper';
+import { renderWithProviders, screen, fireEvent } from '../utils/test-utils.helper';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';

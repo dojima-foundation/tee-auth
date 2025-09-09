@@ -3,7 +3,7 @@ import Home from '@/app/page'
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
-    const MockLink = ({ children, href, ...props }: any) => (
+    const MockLink = ({ children, href, ...props }: { children: React.ReactNode; href: string;[key: string]: unknown }) => (
         <a href={href} {...props}>
             {children}
         </a>

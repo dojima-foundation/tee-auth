@@ -18,7 +18,7 @@ jest.mock('@/components/ui/snackbar');
 
 // Mock CreateWalletDialog component
 jest.mock('@/components/CreateWalletDialog', () => {
-    const MockCreateWalletDialog = ({ onWalletCreated, disabled }: any) => (
+    const MockCreateWalletDialog = ({ onWalletCreated, disabled }: { onWalletCreated: (data: unknown) => void; disabled?: boolean }) => (
         <button
             data-testid="create-wallet-dialog"
             onClick={() => onWalletCreated({ name: 'Test Wallet' })}

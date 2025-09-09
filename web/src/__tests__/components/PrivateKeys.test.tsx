@@ -18,7 +18,7 @@ jest.mock('@/components/ui/snackbar');
 
 // Mock CreatePrivateKeyDialog component
 jest.mock('@/components/CreatePrivateKeyDialog', () => {
-    const MockCreatePrivateKeyDialog = ({ onPrivateKeyCreated, disabled }: any) => (
+    const MockCreatePrivateKeyDialog = ({ onPrivateKeyCreated, disabled }: { onPrivateKeyCreated: (data: unknown) => void; disabled?: boolean }) => (
         <button
             data-testid="create-private-key-dialog"
             onClick={() => onPrivateKeyCreated({

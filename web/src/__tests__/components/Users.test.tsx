@@ -20,7 +20,7 @@ jest.mock('@/components/ui/snackbar');
 
 // Mock CreateUserDialog component
 jest.mock('@/components/CreateUserDialog', () => {
-    const MockCreateUserDialog = ({ onUserCreated, loading }: any) => (
+    const MockCreateUserDialog = ({ onUserCreated, loading }: { onUserCreated: (data: unknown) => void; loading?: boolean }) => (
         <button
             data-testid="create-user-dialog"
             onClick={() => onUserCreated({ name: 'Test User', email: 'test@example.com', role: 'user' })}

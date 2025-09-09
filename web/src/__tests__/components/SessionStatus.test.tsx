@@ -237,7 +237,7 @@ describe('SessionStatus', () => {
     it('auto-refreshes session info every minute', async () => {
         // Mock setInterval to call the callback immediately
         const originalSetInterval = global.setInterval;
-        const mockSetInterval = jest.fn((callback, delay) => {
+        const mockSetInterval = jest.fn((callback, _delay) => {
             // Call the callback immediately for testing
             setTimeout(callback, 10);
             return 1; // Return a mock interval ID
