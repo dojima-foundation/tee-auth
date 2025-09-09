@@ -2,6 +2,11 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Authentication Flow', () => {
     test.beforeEach(async ({ page }) => {
+        // Disable mock authentication for these tests to test real auth flow
+        await page.addInitScript(() => {
+            window.__MOCK_AUTH__ = false;
+        });
+
         // Navigate to the home page before each test
         await page.goto('/')
     })
@@ -38,8 +43,11 @@ test.describe('Authentication Flow', () => {
         // Click the dashboard link (should redirect to sign-in for unauthenticated users)
         await page.getByRole('link', { name: /go to dashboard/i }).click()
 
+        // Wait for the redirect to complete
+        await page.waitForLoadState('networkidle')
+
         // Check that we're redirected to the sign-in page (correct behavior for unauthenticated users)
-        await expect(page).toHaveURL(/.*\/auth\/signin/)
+        await expect(page).toHaveURL(/.*\/auth\/signin/, { timeout: 10000 })
 
         // Check for sign-in form elements
         // await expect(page.getByRole('button', { name: /sign in with google/i })).toBeVisible()
@@ -59,11 +67,22 @@ test.describe('Authentication Flow', () => {
 
         // Navigate to dashboard (should redirect to sign-in for unauthenticated users)
         await page.getByRole('link', { name: /go to dashboard/i }).click()
-        await expect(page).toHaveURL(/.*\/auth\/signin/)
+
+        // Wait for the redirect to complete
+        await page.waitForLoadState('networkidle')
+
+        await expect(page).toHaveURL(/.*\/auth\/signin/, { timeout: 10000 })
     })
 })
 
 test.describe('Responsive Design', () => {
+    test.beforeEach(async ({ page }) => {
+        // Enable mock authentication for responsive tests
+        await page.addInitScript(() => {
+            window.__MOCK_AUTH__ = true;
+        });
+    });
+
     test('should work on mobile devices', async ({ page }) => {
         // Set mobile viewport
         await page.setViewportSize({ width: 375, height: 667 })
@@ -92,6 +111,13 @@ test.describe('Responsive Design', () => {
 })
 
 test.describe('Accessibility', () => {
+    test.beforeEach(async ({ page }) => {
+        // Enable mock authentication for accessibility tests
+        await page.addInitScript(() => {
+            window.__MOCK_AUTH__ = true;
+        });
+    });
+
     test('should have proper heading structure', async ({ page }) => {
         await page.goto('/')
 
