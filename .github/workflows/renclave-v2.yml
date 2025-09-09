@@ -161,7 +161,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: [self-hosted, ovh, ubuntu-22.04]
-    needs: []
+    needs: [quick-checks]
     if: ${{ github.event.inputs.run_integration_tests == 'true' || (github.event_name == 'push' && github.event.inputs.run_integration_tests != 'false') }}
     timeout-minutes: 30
     
@@ -332,7 +332,7 @@ jobs:
   build:
     name: Build Release
     runs-on: [self-hosted, ovh, ubuntu-22.04]
-    needs: []
+    needs: [quick-checks, unit-tests]
     if: ${{ github.event.inputs.run_build == 'true' || (github.event_name == 'push' && github.event.inputs.run_build != 'false') }}
     timeout-minutes: 20
     
@@ -367,7 +367,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: [self-hosted, ovh, ubuntu-22.04]
-    needs: []
+    needs: [quick-checks, unit-tests]
     if: ${{ github.event.inputs.run_security == 'true' || (github.event_name == 'push' && github.event.inputs.run_security != 'false') }}
     timeout-minutes: 15
 
@@ -424,7 +424,7 @@ jobs:
   coverage:
     name: Coverage Report
     runs-on: [self-hosted, ovh, ubuntu-22.04]
-    needs: []
+    needs: [quick-checks, unit-tests]
     if: ${{ github.event.inputs.run_coverage == 'true' || (github.event_name == 'push' && github.event.inputs.run_coverage != 'false') }}
     timeout-minutes: 20
     
