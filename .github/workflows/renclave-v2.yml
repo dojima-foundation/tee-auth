@@ -3,8 +3,9 @@ name: Renclave-v2 CI/CD
 # FIXED: Docker Buildx issues resolved - uses traditional docker build
 # FIXED: Image pull policy set to 'never' to prevent registry attempts
 # FIXED: Workflow updated to match local Docker fixes
+# UPDATED: All tests now enabled by default for push events
 #
-# Default: Only integration tests are enabled by default for push events
+# Default: ALL tests are enabled by default for push events (unit, integration, e2e, build, security, coverage)
 # Manual workflow_dispatch allows fine-grained control over which jobs run
 # This workflow handles Rust-based TEE enclave service testing and building
 
@@ -21,17 +22,17 @@ on:
       run_tests:
         description: 'Run all tests'
         required: false
-        default: false
+        default: true
         type: boolean
       run_docker:
         description: 'Run Docker tests'
         required: false
-        default: false
+        default: true
         type: boolean
       run_security:
         description: 'Run security scans'
         required: false
-        default: false
+        default: true
         type: boolean
       rust_version:
         description: 'Rust version to use'
@@ -41,12 +42,12 @@ on:
       run_quick_checks:
         description: 'Run quick checks (fmt, clippy)'
         required: false
-        default: false
+        default: true
         type: boolean
       run_unit_tests:
         description: 'Run unit tests'
         required: false
-        default: false
+        default: true
         type: boolean
       run_integration_tests:
         description: 'Run integration tests'
@@ -56,17 +57,17 @@ on:
       run_e2e_tests:
         description: 'Run E2E tests'
         required: false
-        default: false
+        default: true
         type: boolean
       run_build:
         description: 'Run build job'
         required: false
-        default: false
+        default: true
         type: boolean
       run_coverage:
         description: 'Run coverage analysis'
         required: false
-        default: false
+        default: true
         type: boolean
 
 env:
@@ -81,7 +82,7 @@ jobs:
     name: Quick Checks
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     timeout-minutes: 10
-    if: ${{ github.event.inputs.run_quick_checks == 'true' }}
+    if: ${{ github.event.inputs.run_quick_checks == 'true' || (github.event_name == 'push' && github.event.inputs.run_quick_checks != 'false') }}
     
     steps:
     - name: Checkout code
@@ -114,7 +115,7 @@ jobs:
     name: Unit Tests
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     timeout-minutes: 15
-    if: ${{ github.event.inputs.run_unit_tests == 'true' }}
+    if: ${{ github.event.inputs.run_unit_tests == 'true' || (github.event_name == 'push' && github.event.inputs.run_unit_tests != 'false') }}
     
     steps:
     - name: Checkout code
@@ -161,7 +162,7 @@ jobs:
     name: Integration Tests
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: []
-    if: ${{ github.event.inputs.run_integration_tests != 'false' }}
+    if: ${{ github.event.inputs.run_integration_tests == 'true' || (github.event_name == 'push' && github.event.inputs.run_integration_tests != 'false') }}
     timeout-minutes: 30
     
     steps:
@@ -254,7 +255,7 @@ jobs:
     name: E2E Tests
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: [integration-tests]
-    if: ${{ github.event.inputs.run_e2e_tests == 'true' }}
+    if: ${{ github.event.inputs.run_e2e_tests == 'true' || (github.event_name == 'push' && github.event.inputs.run_e2e_tests != 'false') }}
     timeout-minutes: 20
     
     steps:
@@ -332,7 +333,7 @@ jobs:
     name: Build Release
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: []
-    if: ${{ github.event.inputs.run_build == 'true' }}
+    if: ${{ github.event.inputs.run_build == 'true' || (github.event_name == 'push' && github.event.inputs.run_build != 'false') }}
     timeout-minutes: 20
     
     steps:
@@ -367,7 +368,7 @@ jobs:
     name: Security Scan
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: []
-    if: ${{ github.event.inputs.run_security == 'true' }}
+    if: ${{ github.event.inputs.run_security == 'true' || (github.event_name == 'push' && github.event.inputs.run_security != 'false') }}
     timeout-minutes: 15
 
     steps:
@@ -424,7 +425,7 @@ jobs:
     name: Coverage Report
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: []
-    if: ${{ github.event.inputs.run_coverage == 'true' }}
+    if: ${{ github.event.inputs.run_coverage == 'true' || (github.event_name == 'push' && github.event.inputs.run_coverage != 'false') }}
     timeout-minutes: 20
     
     steps:
