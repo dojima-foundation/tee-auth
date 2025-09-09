@@ -1,10 +1,19 @@
-name: Renclave-v2 CI/CD (DISABLED)
+name: Renclave-v2 CI/CD
 
-# DISABLED: Only web.yml workflow is enabled
-# This workflow is disabled to prevent conflicts with the web workflow
+# Renclave-v2 TEE enclave CI/CD workflow
+# Triggers on changes to renclave-v2 directory or manual dispatch
 
 on:
-  # Disabled - will never trigger
+  push:
+    branches: [main, develop]
+    paths:
+      - 'renclave-v2/**'
+      - '.github/workflows/renclave-v2.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'renclave-v2/**'
+      - '.github/workflows/renclave-v2.yml'
   workflow_dispatch:
     inputs:
       run_tests:
