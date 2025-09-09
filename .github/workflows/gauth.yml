@@ -1,10 +1,16 @@
-name: Gauth CI/CD (DISABLED)
+name: Gauth CI/CD
 
-# DISABLED: Only renclave-v2.yml workflow is enabled
-# This workflow is disabled to prevent conflicts with the main renclave workflow
+# ENABLED: Gauth workflow now enabled for testing
+# This workflow handles Go-based authentication service testing and building
 
 on:
-  # Disabled - will never trigger
+  # Default workflow - runs on any push to main/develop
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'gauth/**'
+      - '.github/workflows/gauth.yml'
+  # Manual trigger - can be run from GitHub Actions UI
   workflow_dispatch:
     inputs:
       environment:
@@ -18,18 +24,18 @@ on:
         - prod
       run_tests:
         description: 'Run all tests'
-        required: true
+        required: false
         default: true
         type: boolean
       run_security_scan:
         description: 'Run security scans'
-        required: true
+        required: false
         default: true
         type: boolean
       run_performance_tests:
         description: 'Run performance tests'
-        required: true
-        default: false
+        required: false
+        default: true
         type: boolean
 
 jobs:
@@ -38,7 +44,7 @@ jobs:
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     # Environment variables are set explicitly in each step due to GitHub Actions inheritance issues
     # Skip tests if run_tests is false in manual dispatch
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_tests == 'true' }}
+    if: ${{ github.event.inputs.run_tests == 'true' || (github.event_name == 'push' && github.event.inputs.run_tests != 'false') }}
     
     services:
       postgres:
@@ -688,7 +694,7 @@ jobs:
     runs-on: [self-hosted, ovh, ubuntu-22.04]
     needs: test
     # Skip enhanced testing if run_tests is false in manual dispatch
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_tests == 'true' }}
+    if: ${{ github.event.inputs.run_tests == 'true' || (github.event_name == 'push' && github.event.inputs.run_tests != 'false') }}
     # Environment variables are set explicitly in each step due to GitHub Actions inheritance issues
     
     steps:
@@ -747,7 +753,7 @@ jobs:
         echo "✅ Protobuf code generated successfully"
 
     - name: Enhanced security scanning
-      if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_security_scan == 'true' }}
+      if: ${{ github.event.inputs.run_security_scan == 'true' || (github.event_name == 'push' && github.event.inputs.run_security_scan != 'false') }}
       run: |
         # Set up Go environment explicitly
         export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
@@ -778,7 +784,7 @@ jobs:
         echo "✅ Security scanning completed"
         
     - name: Performance testing
-      if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.run_performance_tests == 'true' }}
+      if: ${{ github.event.inputs.run_performance_tests == 'true' || (github.event_name == 'push' && github.event.inputs.run_performance_tests != 'false') }}
       run: |
         # Set up Go environment explicitly
         export PATH="/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin:/home/github-runner/go/bin:$PATH"
