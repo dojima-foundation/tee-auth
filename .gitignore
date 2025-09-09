@@ -418,3 +418,6 @@ Cargo.lock
 
 # Rust documentation
 doc/
+
+# Exception for Dockerfile.test (needed for GitHub Actions)
+!renclave-v2/docker/Dockerfile.test

@@ -1,0 +1,38 @@
+# Test-specific Dockerfile for Renclave
+FROM rust:1.82-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    iproute2 \
+    net-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy Cargo files first for better caching
+COPY Cargo.toml Cargo.lock ./
+COPY src/shared/Cargo.toml src/shared/
+COPY src/enclave/Cargo.toml src/enclave/
+COPY src/host/Cargo.toml src/host/
+COPY src/network/Cargo.toml src/network/
+
+# Copy source code
+COPY . .
+
+# Build dependencies
+RUN cargo build --release --workspace
+
+# Create test directories
+RUN mkdir -p /app/test-results /app/coverage
+
+# Set test environment
+ENV RUST_LOG=debug
+ENV TEST_MODE=docker
+
+# Default command
+CMD ["./scripts/run-tests-docker.sh"]
