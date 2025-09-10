@@ -57,8 +57,7 @@ export default defineConfig({
                 }
             },
         },
-        // Only include WebKit if not in CI or if explicitly enabled
-        ...(process.env.CI && process.env.ENABLE_WEBKIT !== 'true' ? [] : [{
+        {
             name: 'webkit',
             use: {
                 ...devices['Desktop Safari'],
@@ -67,7 +66,7 @@ export default defineConfig({
                     args: process.env.CI ? [] : []
                 }
             },
-        }]),
+        },
         /* Test against mobile viewports. */
         {
             name: 'Mobile Chrome',
