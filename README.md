@@ -13,6 +13,7 @@ TEE-Auth is a secure authentication and key management system leveraging trusted
 
 
 
+
 ## CI/CD Status
 
 ### Component Workflows
@@ -22,6 +23,8 @@ TEE-Auth is a secure authentication and key management system leveraging trusted
 
 ### Badge Generation
 - **Status Badges**: ![Generate Status Badges](https://github.com/dojima-foundation/tee-auth/actions/workflows/badges.yml/badge.svg)
+
+*Last updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")*
 
 ## Project Structure
 
