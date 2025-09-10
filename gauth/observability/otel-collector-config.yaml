@@ -2,7 +2,9 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: 0.0.0.0:4317
       http:
+        endpoint: 0.0.0.0:4318
 
 processors:
   batch:
@@ -30,16 +32,13 @@ exporters:
     resource_to_telemetry_conversion:
       enabled: true
   
-  loki:
-    endpoint: "http://loki:3100/loki/api/v1/push"
-    format: json
     
   otlp:
     endpoint: "jaeger:4317"
     tls:
       insecure: true
       
-  logging:
+  debug:
     verbosity: detailed
 
 service:
@@ -47,17 +46,17 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch, memory_limiter, resource]
-      exporters: [otlp, logging]
+      exporters: [otlp, debug]
     
     metrics:
       receivers: [otlp]
       processors: [batch, memory_limiter, resource]
-      exporters: [prometheus, logging]
+      exporters: [prometheus, debug]
     
     logs:
       receivers: [otlp]
       processors: [batch, memory_limiter, resource]
-      exporters: [loki, logging]
+      exporters: [debug]
   
   telemetry:
     logs:

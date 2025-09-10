@@ -77,13 +77,9 @@ export function SessionMiddleware({
 
     // Validate session on mount if enabled
     useEffect(() => {
-        console.log('🔄 [SessionMiddleware] Mount validation check:', {
-            validateOnMount,
-            isAuthenticated
-        });
+
 
         if (validateOnMount && isAuthenticated) {
-            console.log('🔍 [SessionMiddleware] Running mount validation...');
             handleValidation();
         }
     }, [validateOnMount, isAuthenticated, handleValidation]);

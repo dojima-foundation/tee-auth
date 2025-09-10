@@ -11,17 +11,11 @@ interface AuthWrapperProps {
 export function AuthWrapper({ children }: AuthWrapperProps) {
     const { loading, isAuthenticated } = useAuth();
 
-    console.log('🔄 [AuthWrapper] Render:', {
-        loading,
-        isAuthenticated
-    });
 
     // Show loading screen while validating session
     if (loading) {
-        console.log('⏳ [AuthWrapper] Showing loading screen');
         return <SessionLoading />;
     }
 
-    console.log('✅ [AuthWrapper] Rendering children');
     return <>{children}</>;
 }

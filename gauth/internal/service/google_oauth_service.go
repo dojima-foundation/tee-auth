@@ -107,7 +107,6 @@ func NewGoogleOAuthServiceWithEndpointAndAPIBase(gauthService *GAuthService, cfg
 
 // GetAuthURL generates the Google OAuth authorization URL
 func (s *GoogleOAuthService) GetAuthURL(ctx context.Context, organizationID, state string) (string, error) {
-	s.logger.Info("Generating Google OAuth auth URL", "organization_id", organizationID)
 
 	// Create state parameter that includes organization ID (optional for new users)
 	stateData := map[string]string{
@@ -138,6 +137,7 @@ func (s *GoogleOAuthService) HandleCallback(ctx context.Context, code, state str
 	if len(state) > 8 {
 		stateLog = state[:8] + "..."
 	}
+
 	s.logger.Info("Processing Google OAuth callback", "state", stateLog)
 
 	// Parse state parameter
@@ -207,7 +207,7 @@ func (s *GoogleOAuthService) HandleCallback(ctx context.Context, code, state str
 		AuthMethod:   authMethod,
 	}
 
-	s.logger.Info("Google OAuth authentication successful",
+	s.logger.Info("Google OAuth callback completed successfully",
 		"user_id", user.ID,
 		"email", user.Email,
 		"organization_id", organizationID)
@@ -440,7 +440,7 @@ func (s *GoogleOAuthService) findOrCreateUser(ctx context.Context, organizationI
 		return nil, nil, err
 	}
 
-	s.logger.Info("Created new organization and Root user for Google OAuth signin",
+	s.logger.Info("User and auth method created successfully",
 		"organization_id", orgUUID.String(),
 		"user_id", user.ID.String(),
 		"email", googleUser.Email)
@@ -450,7 +450,6 @@ func (s *GoogleOAuthService) findOrCreateUser(ctx context.Context, organizationI
 
 // RefreshToken refreshes the Google OAuth token
 func (s *GoogleOAuthService) RefreshToken(ctx context.Context, authMethodID string) error {
-	s.logger.Info("Refreshing Google OAuth token", "auth_method_id", authMethodID)
 
 	authMethodUUID, err := uuid.Parse(authMethodID)
 	if err != nil {
@@ -500,7 +499,6 @@ func (s *GoogleOAuthService) RefreshToken(ctx context.Context, authMethodID stri
 		return fmt.Errorf("failed to update auth method: %w", err)
 	}
 
-	s.logger.Info("Google OAuth token refreshed successfully", "auth_method_id", authMethodID)
 	return nil
 }
 

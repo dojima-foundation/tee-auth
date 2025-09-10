@@ -37,14 +37,6 @@ const initialState: AuthState = {
 
 // Auth reducer
 function authReducer(state: AuthState, action: AuthAction): AuthState {
-    console.log('🔄 [AuthReducer] Action:', action.type, {
-        currentState: {
-            isAuthenticated: state.isAuthenticated,
-            loading: state.loading,
-            hasUser: !!state.user,
-            hasSession: !!state.session
-        }
-    });
 
     let newState: AuthState;
 
@@ -113,13 +105,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
             newState = state;
     }
 
-    console.log('🔄 [AuthReducer] New state:', {
-        isAuthenticated: newState.isAuthenticated,
-        loading: newState.loading,
-        hasUser: !!newState.user,
-        hasSession: !!newState.session,
-        error: newState.error
-    });
 
     return newState;
 }
@@ -152,7 +137,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Check for existing session on mount and validate with backend
     useEffect(() => {
         const initializeSession = async () => {
-            console.log('🔍 [AuthProvider] Starting session initialization...');
 
             // Check if we're in test mode with mock authentication enabled
             const isTestMode = process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_TEST_MODE === 'true';
@@ -160,7 +144,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 (typeof window !== 'undefined' && (window as WindowWithMockAuth).__MOCK_AUTH__);
 
             if (isTestMode && mockAuthEnabled) {
-                console.log('🧪 [AuthProvider] Test mode detected for dashboard route, using mock authentication');
                 // Create mock session data for testing
                 const mockSession: AuthSession = {
                     session_token: 'test-session-token',
@@ -190,21 +173,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const sessionToken = localStorage.getItem('gauth_session_token');
             const sessionData = localStorage.getItem('gauth_session_data');
 
-            console.log('🔍 [AuthProvider] Session data check:', {
-                hasToken: !!sessionToken,
-                hasData: !!sessionData,
-                token: sessionToken ? `${sessionToken.substring(0, 8)}...` : 'none'
-            });
 
             if (sessionToken && sessionData) {
                 try {
                     const session: AuthSession = JSON.parse(sessionData);
 
-                    console.log('🔍 [AuthProvider] Raw session data:', {
-                        expires_at: session.expires_at,
-                        expires_at_type: typeof session.expires_at,
-                        expires_at_length: session.expires_at?.length
-                    });
 
                     // Try to parse the expires_at value
                     let expiresAt: Date;
@@ -236,23 +209,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
                         return;
                     }
 
-                    console.log('🔍 [AuthProvider] Parsed session data:', {
-                        userId: session.user?.id,
-                        email: session.user?.email,
-                        expiresAt: expiresAt.toISOString(),
-                        isExpired: expiresAt <= new Date()
-                    });
 
-                    console.log('🔍 [AuthProvider] Full session structure:', {
-                        session: session,
-                        user: session.user,
-                        userOrganizationId: session.user?.organization_id,
-                        sessionOrganizationId: (session as SessionWithOrganization).organization_id
-                    });
 
                     // Check if session is expired locally first
                     if (expiresAt <= new Date()) {
-                        console.log('⚠️ [AuthProvider] Session expired locally, clearing storage');
                         localStorage.removeItem('gauth_session_token');
                         localStorage.removeItem('gauth_session_data');
                         dispatch({ type: 'AUTH_FAILURE', payload: 'Session expired' });
@@ -260,15 +220,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                     }
 
                     // Validate session with backend
-                    console.log('🔄 [AuthProvider] Validating session with backend...');
                     dispatch({ type: 'AUTH_START' });
 
                     const response = await gauthApi.validateSession();
-                    console.log('🔍 [AuthProvider] Backend validation response:', {
-                        success: response.success,
-                        hasData: !!response.data,
-                        sessionId: response.data?.session_id
-                    });
 
                     if (response.success) {
                         // Session is valid, update with fresh data from backend
@@ -281,26 +235,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
                             }
                         };
 
-                        console.log('✅ [AuthProvider] Session validated successfully, updating state');
-                        console.log('🔍 [AuthProvider] Updated session with organization_id:', response.data.organization_id);
                         dispatch({ type: 'AUTH_SUCCESS', payload: updatedSession });
 
                         // Update Redux store with fresh session data
                         reduxDispatch(setAuthSession(updatedSession));
-                        console.log('🔄 [AuthProvider] Updated Redux store with fresh session data');
 
                         // Update local storage with fresh data
                         localStorage.setItem('gauth_session_data', JSON.stringify(updatedSession));
-                        console.log('💾 [AuthProvider] Updated local storage with fresh session data');
                     } else {
-                        console.log('❌ [AuthProvider] Session validation failed, clearing storage');
                         localStorage.removeItem('gauth_session_token');
                         localStorage.removeItem('gauth_session_data');
                         dispatch({ type: 'AUTH_FAILURE', payload: 'Session validation failed' });
 
                         // Clear Redux store
                         reduxDispatch(clearAuth());
-                        console.log('🔄 [AuthProvider] Cleared Redux store');
                     }
                 } catch (error) {
                     console.error('💥 [AuthProvider] Failed to validate session:', error);
@@ -310,15 +258,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
                     // Clear Redux store
                     reduxDispatch(clearAuth());
-                    console.log('🔄 [AuthProvider] Cleared Redux store due to error');
                 }
             } else {
-                console.log('ℹ️ [AuthProvider] No session data in local storage');
                 dispatch({ type: 'AUTH_FAILURE', payload: '' });
 
                 // Clear Redux store
                 reduxDispatch(clearAuth());
-                console.log('🔄 [AuthProvider] Cleared Redux store - no session data');
             }
         };
 

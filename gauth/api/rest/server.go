@@ -151,6 +151,9 @@ func (s *Server) setupRouter() {
 	// Add middleware
 	s.router.Use(s.recoveryMiddleware())
 
+	// Add HTTP metrics middleware
+	s.router.Use(s.httpMetricsMiddleware())
+
 	// Add OpenTelemetry middleware if telemetry is available and tracing is enabled
 	if s.telemetry != nil && s.config.Telemetry.TracingEnabled {
 		s.router.Use(telemetry.HTTPMiddleware(s.telemetry, s.logger))

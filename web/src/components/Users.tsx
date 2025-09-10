@@ -34,34 +34,19 @@ export default function Users() {
     const currentUser = useAppSelector(selectAuthUser);
     const authSession = useAppSelector(selectAuthSession);
 
-    console.log('🔍 [Users] Redux selectors:', {
-        organizationId,
-        currentUser,
-        authSession,
-        userOrganizationId: currentUser?.organization_id,
-        sessionOrganizationId: (authSession as { organization_id?: string })?.organization_id
-    });
+
 
     const [isCreatingOrg, setIsCreatingOrg] = useState(false);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
     const { showSnackbar } = useSnackbar();
 
     useEffect(() => {
-        console.log('🔄 [Users] useEffect triggered:', {
-            organizationId,
-            isAuthenticated,
-            hasOrganizationId: !!organizationId,
-            shouldFetch: organizationId && isAuthenticated
-        });
+
 
         if (organizationId && isAuthenticated) {
-            console.log('📡 [Users] Fetching users data...');
             dispatch(fetchUsers({}));
         } else {
-            console.log('⏸️ [Users] Not fetching users - missing requirements:', {
-                hasOrganizationId: !!organizationId,
-                isAuthenticated
-            });
+
         }
     }, [dispatch, organizationId, isAuthenticated]);
 

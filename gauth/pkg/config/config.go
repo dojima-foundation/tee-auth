@@ -99,6 +99,7 @@ type AuthConfig struct {
 	RequireQuorum          bool              `yaml:"require_quorum"`
 	DefaultQuorumThreshold int               `yaml:"default_quorum_threshold"`
 	GoogleOAuth            GoogleOAuthConfig `yaml:"google_oauth"`
+	FrontendURL            string            `yaml:"frontend_url"`
 }
 
 // GoogleOAuthConfig contains Google OAuth configuration
@@ -208,9 +209,10 @@ func Load() (*Config, error) {
 			GoogleOAuth: GoogleOAuthConfig{
 				ClientID:     getEnv("GOOGLE_OAUTH_CLIENT_ID", ""),
 				ClientSecret: getEnv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
-				RedirectURL:  getEnv("GOOGLE_OAUTH_REDIRECT_URL", "http://localhost:8080/auth/google/callback"),
+				RedirectURL:  getEnv("GOOGLE_OAUTH_REDIRECT_URL", "http://localhost:8083/api/v1/auth/google/callback"),
 				Enabled:      getEnvBool("GOOGLE_OAUTH_ENABLED", false),
 			},
+			FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3001"),
 		},
 		Logging: LoggingConfig{
 			Level:      getEnv("LOG_LEVEL", "info"),

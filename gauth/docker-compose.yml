@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -47,8 +45,8 @@ services:
       dockerfile: docker/Dockerfile
     container_name: gauth-service
     ports:
-      - "9090:9090" # gRPC port
-      - "8080:8080" # HTTP port
+      - "9091:9090" # gRPC port
+      - "8083:8080" # HTTP port
       - "9464:9464" # Prometheus metrics port
     environment:
       # Database
@@ -69,7 +67,16 @@ services:
 
       # Auth
       JWT_SECRET: development-secret-key-change-in-production
-      ENCRYPTION_KEY: development-32-byte-key-change-prod
+      ENCRYPTION_KEY: HlBboQmf0dDtKXvO6mjKMwYuO0vSBSs8
+
+      # Google OAuth Configuration
+      GOOGLE_OAUTH_ENABLED: ${GOOGLE_OAUTH_ENABLED:-false}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-485544309483-9n4tjv00bdvdqdvq87coip5ut7q3u7ud.apps.googleusercontent.com}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-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}
+      GOOGLE_OAUTH_REDIRECT_URL: ${GOOGLE_OAUTH_REDIRECT_URL:-http://localhost:8083/api/v1/auth/google/callback}
+
+      # Frontend Configuration
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3003}
 
       # Logging
       LOG_LEVEL: info
@@ -82,6 +89,11 @@ services:
       TELEMETRY_OTLP_INSECURE: "true"
       TELEMETRY_TRACE_SAMPLING_RATIO: "1.0"
       TELEMETRY_METRICS_PORT: "9464"
+
+      # OpenTelemetry Environment Variables
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      OTEL_SERVICE_NAME: "gauth"
       ENVIRONMENT: "development"
     depends_on:
       postgres:
@@ -110,9 +122,10 @@ services:
     image: renclave-v2:latest
     container_name: renclave-v2-service
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       RUST_LOG: info
+    command: [ "/app/scripts/start-services.sh" ]
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
       interval: 30s
@@ -235,6 +248,7 @@ services:
       - ./observability/promtail-config.yaml:/etc/promtail/config.yaml
       - /var/log:/var/log
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     command: -config.file=/etc/promtail/config.yaml
     networks:
       - gauth-network

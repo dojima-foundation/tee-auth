@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/dojima-foundation/tee-auth/gauth/internal/models"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -49,6 +50,10 @@ func (s *ActivityService) CreateActivity(ctx context.Context, organizationID, ac
 	}
 
 	s.logger.LogActivity(activityType, activity.ID.String(), createdBy, organizationID)
+
+	// Record metrics
+	telemetry.RecordActivityCreated(activityType)
+
 	return activity, nil
 }
 

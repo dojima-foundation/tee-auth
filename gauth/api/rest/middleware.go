@@ -2,7 +2,9 @@ package rest
 
 import (
 	"net/http"
+	"time"
 
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 )
@@ -30,6 +32,20 @@ func (s *Server) recoveryMiddleware() gin.HandlerFunc {
 			"error": "Internal server error",
 		})
 	})
+}
+
+// httpMetricsMiddleware records HTTP request metrics
+func (s *Server) httpMetricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+
+		// Process the request
+		c.Next()
+
+		// Record metrics
+		duration := time.Since(start)
+		telemetry.RecordHTTPRequest(c.Request.Method, c.Request.URL.Path, c.Writer.Status(), duration)
+	}
 }
 
 // corsMiddleware handles CORS headers for cross-domain sessions

@@ -64,7 +64,9 @@ func (s *Server) handleGoogleOAuthCallback(c *gin.Context) {
 
 	if code == "" || state == "" {
 		// Redirect to frontend error page
-		c.Redirect(http.StatusTemporaryRedirect, "http://localhost:3001/auth/error?error=missing_params")
+		errorURL := fmt.Sprintf("%s/auth/error?error=missing_params", s.config.Auth.FrontendURL)
+		s.logger.Error("❌ [OAuth Callback] Missing parameters", "error_url", errorURL)
+		c.Redirect(http.StatusTemporaryRedirect, errorURL)
 		return
 	}
 
@@ -78,7 +80,7 @@ func (s *Server) handleGoogleOAuthCallback(c *gin.Context) {
 	if err != nil {
 		s.logger.Error("Failed to process Google OAuth callback", "error", err)
 		// Redirect to frontend error page
-		c.Redirect(http.StatusTemporaryRedirect, "http://localhost:3001/auth/error?error=callback_failed")
+		c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%s/auth/error?error=callback_failed", s.config.Auth.FrontendURL))
 		return
 	}
 
@@ -99,7 +101,7 @@ func (s *Server) handleGoogleOAuthCallback(c *gin.Context) {
 	)
 	if err != nil {
 		s.logger.Error("Failed to create session", "error", err)
-		c.Redirect(http.StatusTemporaryRedirect, "http://localhost:3001/auth/error?error=session_creation_failed")
+		c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%s/auth/error?error=session_creation_failed", s.config.Auth.FrontendURL))
 		return
 	}
 
@@ -107,7 +109,8 @@ func (s *Server) handleGoogleOAuthCallback(c *gin.Context) {
 	s.sessionManager.SetSessionCookie(c, sessionID)
 
 	// Redirect to frontend callback page with session data
-	redirectURL := fmt.Sprintf("http://localhost:3001/auth/callback?session_id=%s&user_id=%s&email=%s&organization_id=%s",
+	redirectURL := fmt.Sprintf("%s/auth/callback?session_id=%s&user_id=%s&email=%s&organization_id=%s",
+		s.config.Auth.FrontendURL,
 		sessionID,
 		resp.User.Id,
 		resp.User.Email,

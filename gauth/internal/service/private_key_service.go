@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dojima-foundation/tee-auth/gauth/internal/models"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -92,6 +93,10 @@ func (s *PrivateKeyService) CreatePrivateKey(ctx context.Context, organizationID
 	}
 
 	s.logger.Info("Private key created successfully", "private_key_id", privateKey.ID.String(), "path", derivationPath)
+
+	// Record metrics
+	telemetry.RecordPrivateKeyCreated()
+
 	return privateKey, nil
 }
 

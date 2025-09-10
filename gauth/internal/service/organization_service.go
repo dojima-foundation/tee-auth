@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dojima-foundation/tee-auth/gauth/internal/models"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -90,6 +91,10 @@ func (s *OrganizationService) CreateOrganization(ctx context.Context, name, init
 	}
 
 	s.logger.Info("Organization created successfully", "organization_id", org.ID.String(), "name", name)
+
+	// Record metrics
+	telemetry.RecordOrganizationCreated()
+
 	return org, nil
 }
 

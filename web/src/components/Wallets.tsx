@@ -33,21 +33,11 @@ export default function Wallets() {
     const { showSnackbar } = useSnackbar();
 
     useEffect(() => {
-        console.log('🔄 [Wallets] useEffect triggered:', {
-            organizationId,
-            isAuthenticated,
-            hasOrganizationId: !!organizationId,
-            shouldFetch: organizationId && isAuthenticated
-        });
 
         if (organizationId && isAuthenticated) {
-            console.log('📡 [Wallets] Fetching wallets data...');
             dispatch(fetchWallets({}));
         } else {
-            console.log('⏸️ [Wallets] Not fetching wallets - missing requirements:', {
-                hasOrganizationId: !!organizationId,
-                isAuthenticated
-            });
+
         }
     }, [dispatch, organizationId, isAuthenticated]);
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dojima-foundation/tee-auth/gauth/internal/models"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -139,6 +140,10 @@ func (s *WalletService) CreateWallet(ctx context.Context, organizationID, name s
 	}
 
 	s.logger.Info("Wallet created successfully", "wallet_id", wallet.ID.String(), "name", name)
+
+	// Record metrics
+	telemetry.RecordWalletCreated()
+
 	return &reloadedWallet, addresses, nil
 }
 

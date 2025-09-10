@@ -25,10 +25,26 @@ Object.defineProperty(window, 'localStorage', {
 describe('GAuthApiService', () => {
     const baseUrl = 'http://localhost:8082';
     const mockSessionToken = 'mock-session-token';
+    const mockOrganizationId = 'org-456';
+    const mockSessionData = JSON.stringify({
+        user: {
+            organization_id: mockOrganizationId,
+            id: 'user-123',
+            email: 'test@example.com'
+        }
+    });
 
     beforeEach(() => {
         jest.clearAllMocks();
-        mockLocalStorage.getItem.mockReturnValue(mockSessionToken);
+        mockLocalStorage.getItem.mockImplementation((key) => {
+            if (key === 'gauth_session_token') {
+                return mockSessionToken;
+            }
+            if (key === 'gauth_session_data') {
+                return mockSessionData;
+            }
+            return null;
+        });
     });
 
     describe('Organization Management', () => {
@@ -215,7 +231,7 @@ describe('GAuthApiService', () => {
 
             const result = await gauthApi.getUsers();
 
-            expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/api/v1/users`, {
+            expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/api/v1/users?organization_id=${encodeURIComponent(mockOrganizationId)}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${mockSessionToken}`,
@@ -419,7 +435,7 @@ describe('GAuthApiService', () => {
 
             const result = await gauthApi.getWallets();
 
-            expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/api/v1/wallets`, {
+            expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/api/v1/wallets?organization_id=${encodeURIComponent(mockOrganizationId)}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${mockSessionToken}`,
@@ -509,7 +525,7 @@ describe('GAuthApiService', () => {
 
             const result = await gauthApi.getPrivateKeys();
 
-            expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/api/v1/private-keys`, {
+            expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/api/v1/private-keys?organization_id=${encodeURIComponent(mockOrganizationId)}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${mockSessionToken}`,
@@ -771,6 +787,130 @@ describe('GAuthApiService', () => {
             });
 
             expect(result).toEqual(mockResponse);
+        });
+
+        describe('Session Data Validation', () => {
+            it('throws error when session data is missing for getWallets', async () => {
+                mockLocalStorage.getItem.mockImplementation((key) => {
+                    if (key === 'gauth_session_token') {
+                        return mockSessionToken;
+                    }
+                    if (key === 'gauth_session_data') {
+                        return null; // No session data
+                    }
+                    return null;
+                });
+
+                await expect(gauthApi.getWallets()).rejects.toThrow('No session data found');
+            });
+
+            it('throws error when organization_id is missing from session for getWallets', async () => {
+                const sessionDataWithoutOrgId = JSON.stringify({
+                    user: {
+                        id: 'user-123',
+                        email: 'test@example.com'
+                        // organization_id is missing
+                    }
+                });
+
+                mockLocalStorage.getItem.mockImplementation((key) => {
+                    if (key === 'gauth_session_token') {
+                        return mockSessionToken;
+                    }
+                    if (key === 'gauth_session_data') {
+                        return sessionDataWithoutOrgId;
+                    }
+                    return null;
+                });
+
+                await expect(gauthApi.getWallets()).rejects.toThrow('Organization ID not found in session');
+            });
+
+            it('throws error when session data is missing for getUsers', async () => {
+                mockLocalStorage.getItem.mockImplementation((key) => {
+                    if (key === 'gauth_session_token') {
+                        return mockSessionToken;
+                    }
+                    if (key === 'gauth_session_data') {
+                        return null; // No session data
+                    }
+                    return null;
+                });
+
+                await expect(gauthApi.getUsers()).rejects.toThrow('No session data found');
+            });
+
+            it('throws error when organization_id is missing from session for getUsers', async () => {
+                const sessionDataWithoutOrgId = JSON.stringify({
+                    user: {
+                        id: 'user-123',
+                        email: 'test@example.com'
+                        // organization_id is missing
+                    }
+                });
+
+                mockLocalStorage.getItem.mockImplementation((key) => {
+                    if (key === 'gauth_session_token') {
+                        return mockSessionToken;
+                    }
+                    if (key === 'gauth_session_data') {
+                        return sessionDataWithoutOrgId;
+                    }
+                    return null;
+                });
+
+                await expect(gauthApi.getUsers()).rejects.toThrow('Organization ID not found in session');
+            });
+
+            it('throws error when session data is missing for getPrivateKeys', async () => {
+                mockLocalStorage.getItem.mockImplementation((key) => {
+                    if (key === 'gauth_session_token') {
+                        return mockSessionToken;
+                    }
+                    if (key === 'gauth_session_data') {
+                        return null; // No session data
+                    }
+                    return null;
+                });
+
+                await expect(gauthApi.getPrivateKeys()).rejects.toThrow('No session data found');
+            });
+
+            it('throws error when organization_id is missing from session for getPrivateKeys', async () => {
+                const sessionDataWithoutOrgId = JSON.stringify({
+                    user: {
+                        id: 'user-123',
+                        email: 'test@example.com'
+                        // organization_id is missing
+                    }
+                });
+
+                mockLocalStorage.getItem.mockImplementation((key) => {
+                    if (key === 'gauth_session_token') {
+                        return mockSessionToken;
+                    }
+                    if (key === 'gauth_session_data') {
+                        return sessionDataWithoutOrgId;
+                    }
+                    return null;
+                });
+
+                await expect(gauthApi.getPrivateKeys()).rejects.toThrow('Organization ID not found in session');
+            });
+
+            it('handles malformed session data gracefully', async () => {
+                mockLocalStorage.getItem.mockImplementation((key) => {
+                    if (key === 'gauth_session_token') {
+                        return mockSessionToken;
+                    }
+                    if (key === 'gauth_session_data') {
+                        return 'invalid-json'; // Malformed JSON
+                    }
+                    return null;
+                });
+
+                await expect(gauthApi.getWallets()).rejects.toThrow();
+            });
         });
     });
 });

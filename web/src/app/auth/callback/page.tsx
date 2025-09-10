@@ -21,10 +21,6 @@ function OAuthCallbackContent() {
         if (hasProcessed.current) {
             return;
         }
-        // Debug: Log the current URL and search parameters
-        console.log('Current URL:', window.location.href);
-        console.log('Search params:', searchParams.toString());
-        console.log('All search parameters:', Object.fromEntries(searchParams.entries()));
 
         // Check for session parameters (successful OAuth flow)
         const sessionToken = searchParams.get('session_token') || searchParams.get('session_id');
@@ -38,23 +34,6 @@ function OAuthCallbackContent() {
         const state = searchParams.get('state') || searchParams.get('oauth_state');
         const error = searchParams.get('error') || searchParams.get('oauth_error');
 
-        console.log('Parsed parameters:', {
-            sessionToken, expiresAt, userId, email, organizationId,
-            code, state, error
-        });
-
-        // Log all available parameters for debugging
-        console.log('All URL parameters:', {
-            session_token: searchParams.get('session_token'),
-            session_id: searchParams.get('session_id'),
-            expires_at: searchParams.get('expires_at'),
-            user_id: searchParams.get('user_id'),
-            email: searchParams.get('email'),
-            organization_id: searchParams.get('organization_id'),
-            code: searchParams.get('code'),
-            state: searchParams.get('state'),
-            error: searchParams.get('error')
-        });
 
         if (error) {
             console.error('OAuth error:', error);
@@ -64,8 +43,6 @@ function OAuthCallbackContent() {
 
         // If we have session data, handle successful login
         if (sessionToken && userId && email && organizationId && organizationId.trim() !== '') {
-            console.log('Processing successful OAuth login');
-            console.log('Organization ID from URL:', organizationId);
             try {
                 setProcessing(true);
                 hasProcessed.current = true;
@@ -150,7 +127,6 @@ function OAuthCallbackContent() {
 
         // If we have code and state, handle OAuth callback
         if (code && state) {
-            console.log('Processing OAuth callback with code and state');
             try {
                 setProcessing(true);
                 hasProcessed.current = true;
@@ -168,7 +144,6 @@ function OAuthCallbackContent() {
 
         // Check if we have session data but missing organization ID
         if (sessionToken && userId && email && (!organizationId || organizationId.trim() === '')) {
-            console.warn('Session data found but organization ID is missing, proceeding with empty organization ID');
 
             // If expires_at is not provided, set a default expiration (24 hours from now)
             let sessionExpiresAt = expiresAt;
@@ -239,7 +214,6 @@ function OAuthCallbackContent() {
 
         // No valid parameters found
         console.error('Missing OAuth parameters');
-        console.log('Available parameters:', Array.from(searchParams.keys()));
         router.push('/auth/error?error=' + encodeURIComponent('Missing OAuth parameters'));
         return;
     }, [searchParams, handleOAuthCallback, router, setSession, dispatch]);

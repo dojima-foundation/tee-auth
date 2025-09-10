@@ -316,7 +316,20 @@ class GAuthApiService {
     }
 
     async getUsers(): Promise<ListUsersResponse> {
-        return this.makeRequest<ListUsersResponse>('/api/v1/users');
+        // Get organization_id from session data
+        const sessionData = localStorage.getItem('gauth_session_data');
+        if (!sessionData) {
+            throw new Error('No session data found');
+        }
+
+        const session = JSON.parse(sessionData);
+        const organizationId = session.user?.organization_id;
+
+        if (!organizationId) {
+            throw new Error('Organization ID not found in session');
+        }
+
+        return this.makeRequest<ListUsersResponse>(`/api/v1/users?organization_id=${encodeURIComponent(organizationId)}`);
     }
 
     // Google OAuth Methods
@@ -347,7 +360,20 @@ class GAuthApiService {
     }
 
     async getWallets(): Promise<ListWalletsResponse> {
-        return this.makeRequest<ListWalletsResponse>('/api/v1/wallets');
+        // Get organization_id from session data
+        const sessionData = localStorage.getItem('gauth_session_data');
+        if (!sessionData) {
+            throw new Error('No session data found');
+        }
+
+        const session = JSON.parse(sessionData);
+        const organizationId = session.user?.organization_id;
+
+        if (!organizationId) {
+            throw new Error('Organization ID not found in session');
+        }
+
+        return this.makeRequest<ListWalletsResponse>(`/api/v1/wallets?organization_id=${encodeURIComponent(organizationId)}`);
     }
 
     // Private Key Methods
@@ -359,7 +385,20 @@ class GAuthApiService {
     }
 
     async getPrivateKeys(): Promise<ListPrivateKeysResponse> {
-        return this.makeRequest<ListPrivateKeysResponse>('/api/v1/private-keys');
+        // Get organization_id from session data
+        const sessionData = localStorage.getItem('gauth_session_data');
+        if (!sessionData) {
+            throw new Error('No session data found');
+        }
+
+        const session = JSON.parse(sessionData);
+        const organizationId = session.user?.organization_id;
+
+        if (!organizationId) {
+            throw new Error('Organization ID not found in session');
+        }
+
+        return this.makeRequest<ListPrivateKeysResponse>(`/api/v1/private-keys?organization_id=${encodeURIComponent(organizationId)}`);
     }
 
     // Session Management Methods

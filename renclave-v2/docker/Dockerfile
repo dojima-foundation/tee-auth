@@ -40,5 +40,5 @@ RUN chmod +x /app/bin/* /app/scripts/* || true
 
 WORKDIR /app
 
-# Default command runs comprehensive tests
-CMD ["/app/scripts/test-comprehensive.sh"]
+# Default command starts the services
+CMD ["/app/scripts/start-services.sh"]

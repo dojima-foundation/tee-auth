@@ -35,21 +35,11 @@ export default function PrivateKeys() {
     const { showSnackbar } = useSnackbar();
 
     useEffect(() => {
-        console.log('🔄 [PrivateKeys] useEffect triggered:', {
-            organizationId,
-            isAuthenticated,
-            hasOrganizationId: !!organizationId,
-            shouldFetch: organizationId && isAuthenticated
-        });
 
         if (organizationId && isAuthenticated) {
-            console.log('📡 [PrivateKeys] Fetching private keys data...');
             dispatch(fetchPrivateKeys({}));
         } else {
-            console.log('⏸️ [PrivateKeys] Not fetching private keys - missing requirements:', {
-                hasOrganizationId: !!organizationId,
-                isAuthenticated
-            });
+
         }
     }, [dispatch, organizationId, isAuthenticated]);
 

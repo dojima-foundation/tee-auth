@@ -1,0 +1,50 @@
+services:
+  # Web Frontend Service
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gauth-web
+    ports:
+      - "3003:3000"
+    environment:
+      # Next.js Configuration
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: 1
+
+      # API Configuration - Connect to external gauth service
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8083}
+      NEXT_PUBLIC_GRPC_URL: ${NEXT_PUBLIC_GRPC_URL:-http://localhost:9091}
+      NEXT_PUBLIC_GAUTH_API_URL: ${NEXT_PUBLIC_GAUTH_API_URL:-http://localhost:8083}
+
+      # Authentication Configuration
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3003}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-development-nextauth-secret-change-in-production}
+
+      # OAuth Configuration (Google)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-485544309483-9n4tjv00bdvdqdvq87coip5ut7q3u7ud.apps.googleusercontent.com}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-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}
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    networks:
+      - web-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+
+# Networks
+networks:
+  web-network:
+    driver: bridge

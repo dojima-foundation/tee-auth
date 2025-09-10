@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dojima-foundation/tee-auth/gauth/internal/models"
+	"github.com/dojima-foundation/tee-auth/gauth/pkg/telemetry"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -40,6 +41,10 @@ func (s *UserService) CreateUser(ctx context.Context, organizationID, username, 
 	}
 
 	s.logger.Info("User created successfully", "user_id", user.ID.String(), "username", username)
+
+	// Record metrics
+	telemetry.RecordUserCreated()
+
 	return user, nil
 }
 
