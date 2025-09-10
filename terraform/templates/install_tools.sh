@@ -171,23 +171,43 @@ install_go() {
         echo 'export GOMODCACHE="/opt/go-cache/go-mod"' >> /home/github-runner/.bashrc
         echo 'export GOSUMDB="sum.golang.org"' >> /home/github-runner/.bashrc
         echo 'export GOPROXY="https://proxy.golang.org,direct"' >> /home/github-runner/.bashrc
+
+        # Add Go environment to runner user's bashrc (for GitHub Actions workflows)
+        echo 'export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"' >> /home/runner/.bashrc
+        echo 'export GOPATH="/home/runner/go"' >> /home/runner/.bashrc
+        echo 'export GOROOT="/usr/local/go"' >> /home/runner/.bashrc
+        echo 'export GOCACHE="/opt/go-cache/go-build"' >> /home/runner/.bashrc
+        echo 'export GOTMPDIR="/opt/go-cache/go-tmp"' >> /home/runner/.bashrc
+        echo 'export GOMODCACHE="/opt/go-cache/go-mod"' >> /home/runner/.bashrc
+        echo 'export GOSUMDB="sum.golang.org"' >> /home/runner/.bashrc
+        echo 'export GOPROXY="https://proxy.golang.org,direct"' >> /home/runner/.bashrc
         
         # Create necessary directories
         mkdir -p /home/ubuntu/go/pkg /home/ubuntu/.cache/go-build /home/ubuntu/.cache/go-tmp
         mkdir -p /home/runner/go/bin
         chown -R runner:runner /home/runner/go
         
+        # Add runner user to ubuntu group for cache access
+        usermod -aG ubuntu runner
+        
         # Create github-runner user and directories
         useradd -m -s /bin/bash github-runner 2>/dev/null || echo "User already exists"
         usermod -aG docker github-runner
         usermod -aG sudo github-runner
+        usermod -aG ubuntu github-runner
         mkdir -p /home/github-runner/go
         chown -R github-runner:github-runner /home/github-runner
         
         # Create Go cache directory for CI/CD workflows
-        mkdir -p /opt/go-cache/go-build /opt/go-cache/go-tmp /opt/go-cache/go-mod
-        chown -R github-runner:github-runner /opt/go-cache
-        chmod -R 755 /opt/go-cache
+        mkdir -p /opt/go-cache/go-build /opt/go-cache/go-tmp /opt/go-cache/go-mod/cache /opt/go-cache/go-sumdb
+        
+        # Set permissive permissions for GitHub Actions runner user
+        chown -R runner:ubuntu /opt/go-cache
+        chmod -R 777 /opt/go-cache
+        
+        # Ensure runner user can write to github-runner's Go bin directory
+        chown -R runner:ubuntu /home/github-runner/go
+        chmod -R 775 /home/github-runner/go
         
         # Clean up
         rm -f go1.23.0.linux-amd64.tar.gz
@@ -219,9 +239,18 @@ install_go_tools() {
     go install golang.org/x/tools/cmd/goimports@latest
     go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
     
-    # Install golang-migrate tool
-    curl -L https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz | tar xvz
-    mv migrate /usr/local/bin/
+    # Install golang-migrate tool with postgres support
+    go install -tags "postgres" github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+    
+    # Copy Go tools to github-runner directory for CI/CD access
+    cp /home/ubuntu/go/bin/protoc-gen-go /home/github-runner/go/bin/ 2>/dev/null || true
+    cp /home/ubuntu/go/bin/protoc-gen-go-grpc /home/github-runner/go/bin/ 2>/dev/null || true
+    cp /home/ubuntu/go/bin/golangci-lint /home/github-runner/go/bin/ 2>/dev/null || true
+    cp /home/ubuntu/go/bin/goimports /home/github-runner/go/bin/ 2>/dev/null || true
+    cp /home/ubuntu/go/bin/gosec /home/github-runner/go/bin/ 2>/dev/null || true
+    cp /home/ubuntu/go/bin/migrate /home/github-runner/go/bin/ 2>/dev/null || true
+    chown github-runner:github-runner /home/github-runner/go/bin/* 2>/dev/null || true
+    chmod +x /home/github-runner/go/bin/* 2>/dev/null || true
     
     # Update PATH to include Go bin for both users
     echo 'export PATH="/usr/local/go/bin:/home/ubuntu/go/bin:$PATH"' >> /home/ubuntu/.bashrc
