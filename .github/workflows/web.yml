@@ -140,7 +140,31 @@ jobs:
           libgdk-pixbuf2.0-0 \
           gstreamer1.0-wpe \
           libgstreamer-plugins-base1.0-0 \
-          libgstreamer-plugins-bad1.0-0
+          libgstreamer-plugins-bad1.0-0 \
+          libgtk-4-1 \
+          libvpx7 \
+          libevent-2.1-7 \
+          libflite1 \
+          libflite-usenglish1 \
+          libflite-cmu-grapheme-lang1 \
+          libflite-cmu-grapheme-lex1 \
+          libflite-cmu-indic-lang1 \
+          libflite-cmu-indic-lex1 \
+          libflite-cmulex1 \
+          libflite-cmu-time-awb1 \
+          libflite-cmu-us-awb1 \
+          libflite-cmu-us-kal161 \
+          libflite-cmu-us-kal1 \
+          libflite-cmu-us-rms1 \
+          libflite-cmu-us-slt1 \
+          libavif13 \
+          libwebpmux3 \
+          libenchant-2-2 \
+          libsecret-1-0 \
+          libhyphen0 \
+          libmanette-0.2-0 \
+          libgles2-mesa \
+          libx264-163
         
     - name: Run E2E tests
       run: |
@@ -276,7 +300,31 @@ jobs:
           libgdk-pixbuf2.0-0 \
           gstreamer1.0-wpe \
           libgstreamer-plugins-base1.0-0 \
-          libgstreamer-plugins-bad1.0-0
+          libgstreamer-plugins-bad1.0-0 \
+          libgtk-4-1 \
+          libvpx7 \
+          libevent-2.1-7 \
+          libflite1 \
+          libflite-usenglish1 \
+          libflite-cmu-grapheme-lang1 \
+          libflite-cmu-grapheme-lex1 \
+          libflite-cmu-indic-lang1 \
+          libflite-cmu-indic-lex1 \
+          libflite-cmulex1 \
+          libflite-cmu-time-awb1 \
+          libflite-cmu-us-awb1 \
+          libflite-cmu-us-kal161 \
+          libflite-cmu-us-kal1 \
+          libflite-cmu-us-rms1 \
+          libflite-cmu-us-slt1 \
+          libavif13 \
+          libwebpmux3 \
+          libenchant-2-2 \
+          libsecret-1-0 \
+          libhyphen0 \
+          libmanette-0.2-0 \
+          libgles2-mesa \
+          libx264-163
         
     - name: Verify Playwright installation
       run: |
@@ -300,7 +348,8 @@ jobs:
     - name: Run accessibility tests
       run: |
         cd web
-        npm run test:accessibility:ci
+        # Enable WebKit for accessibility tests after dependencies are installed
+        ENABLE_WEBKIT=true npm run test:accessibility:ci
       timeout-minutes: 15
         
     - name: Upload accessibility report
@@ -371,7 +420,31 @@ jobs:
           libgdk-pixbuf2.0-0 \
           gstreamer1.0-wpe \
           libgstreamer-plugins-base1.0-0 \
-          libgstreamer-plugins-bad1.0-0
+          libgstreamer-plugins-bad1.0-0 \
+          libgtk-4-1 \
+          libvpx7 \
+          libevent-2.1-7 \
+          libflite1 \
+          libflite-usenglish1 \
+          libflite-cmu-grapheme-lang1 \
+          libflite-cmu-grapheme-lex1 \
+          libflite-cmu-indic-lang1 \
+          libflite-cmu-indic-lex1 \
+          libflite-cmulex1 \
+          libflite-cmu-time-awb1 \
+          libflite-cmu-us-awb1 \
+          libflite-cmu-us-kal161 \
+          libflite-cmu-us-kal1 \
+          libflite-cmu-us-rms1 \
+          libflite-cmu-us-slt1 \
+          libavif13 \
+          libwebpmux3 \
+          libenchant-2-2 \
+          libsecret-1-0 \
+          libhyphen0 \
+          libmanette-0.2-0 \
+          libgles2-mesa \
+          libx264-163
         
     - name: Run mobile tests
       run: |
