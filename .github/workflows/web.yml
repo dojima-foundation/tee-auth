@@ -112,59 +112,10 @@ jobs:
         # Clear any corrupted Playwright cache
         rm -rf ~/.cache/ms-playwright/ || true
         
-    - name: Install Playwright browsers (without deps)
+    - name: Install Playwright browsers with dependencies
       run: |
         cd web
-        npx playwright install
-        
-    - name: Install Playwright system dependencies manually
-      run: |
-        # Install system dependencies manually to avoid apt-key issues
-        sudo apt-get update || true
-        sudo apt-get install -y \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libxkbcommon0 \
-          libgtk-3-0 \
-          libgbm1 \
-          libasound2 \
-          libxss1 \
-          libgconf-2-4 \
-          libxrandr2 \
-          libasound2 \
-          libpangocairo-1.0-0 \
-          libatk1.0-0 \
-          libcairo-gobject2 \
-          libgtk-3-0 \
-          libgdk-pixbuf2.0-0 \
-          gstreamer1.0-wpe \
-          libgstreamer-plugins-base1.0-0 \
-          libgstreamer-plugins-bad1.0-0 \
-          libgtk-4-1 \
-          libvpx7 \
-          libevent-2.1-7 \
-          libflite1 \
-          libflite-usenglish1 \
-          libflite-cmu-grapheme-lang1 \
-          libflite-cmu-grapheme-lex1 \
-          libflite-cmu-indic-lang1 \
-          libflite-cmu-indic-lex1 \
-          libflite-cmulex1 \
-          libflite-cmu-time-awb1 \
-          libflite-cmu-us-awb1 \
-          libflite-cmu-us-kal161 \
-          libflite-cmu-us-kal1 \
-          libflite-cmu-us-rms1 \
-          libflite-cmu-us-slt1 \
-          libavif13 \
-          libwebpmux3 \
-          libenchant-2-2 \
-          libsecret-1-0 \
-          libhyphen0 \
-          libmanette-0.2-0 \
-          libgles2-mesa \
-          libx264-163
+        npx playwright install --with-deps
         
     - name: Run E2E tests
       run: |
@@ -272,59 +223,10 @@ jobs:
         # Clear any corrupted Playwright cache
         rm -rf ~/.cache/ms-playwright/ || true
         
-    - name: Install Playwright browsers (without deps)
+    - name: Install Playwright browsers with dependencies
       run: |
         cd web
-        npx playwright install
-        
-    - name: Install Playwright system dependencies manually
-      run: |
-        # Install system dependencies manually to avoid apt-key issues
-        sudo apt-get update || true
-        sudo apt-get install -y \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libxkbcommon0 \
-          libgtk-3-0 \
-          libgbm1 \
-          libasound2 \
-          libxss1 \
-          libgconf-2-4 \
-          libxrandr2 \
-          libasound2 \
-          libpangocairo-1.0-0 \
-          libatk1.0-0 \
-          libcairo-gobject2 \
-          libgtk-3-0 \
-          libgdk-pixbuf2.0-0 \
-          gstreamer1.0-wpe \
-          libgstreamer-plugins-base1.0-0 \
-          libgstreamer-plugins-bad1.0-0 \
-          libgtk-4-1 \
-          libvpx7 \
-          libevent-2.1-7 \
-          libflite1 \
-          libflite-usenglish1 \
-          libflite-cmu-grapheme-lang1 \
-          libflite-cmu-grapheme-lex1 \
-          libflite-cmu-indic-lang1 \
-          libflite-cmu-indic-lex1 \
-          libflite-cmulex1 \
-          libflite-cmu-time-awb1 \
-          libflite-cmu-us-awb1 \
-          libflite-cmu-us-kal161 \
-          libflite-cmu-us-kal1 \
-          libflite-cmu-us-rms1 \
-          libflite-cmu-us-slt1 \
-          libavif13 \
-          libwebpmux3 \
-          libenchant-2-2 \
-          libsecret-1-0 \
-          libhyphen0 \
-          libmanette-0.2-0 \
-          libgles2-mesa \
-          libx264-163
+        npx playwright install --with-deps
         
     - name: Verify Playwright installation
       run: |
@@ -332,24 +234,10 @@ jobs:
         npx playwright --version
         npx playwright install --dry-run
         
-    - name: Verify browser executables
-      run: |
-        cd web
-        # Check if browser executables exist
-        ls -la ~/.cache/ms-playwright/ || echo "Playwright cache directory not found"
-        find ~/.cache/ms-playwright/ -name "pw_run.sh" 2>/dev/null || echo "No pw_run.sh found"
-        
-        # List installed browsers
-        npx playwright install --dry-run | grep -E "(chromium|firefox|webkit)" || echo "Browser check completed"
-        
-        # Test WebKit specifically
-        npx playwright test --project=webkit --grep="should display home page" --reporter=line || echo "WebKit test failed"
-        
     - name: Run accessibility tests
       run: |
         cd web
-        # Enable WebKit for accessibility tests after dependencies are installed
-        ENABLE_WEBKIT=true npm run test:accessibility:ci
+        npm run test:accessibility:ci
       timeout-minutes: 15
         
     - name: Upload accessibility report
@@ -392,59 +280,10 @@ jobs:
         # Clear any corrupted Playwright cache
         rm -rf ~/.cache/ms-playwright/ || true
         
-    - name: Install Playwright browsers (without deps)
+    - name: Install Playwright browsers with dependencies
       run: |
         cd web
-        npx playwright install
-        
-    - name: Install Playwright system dependencies manually
-      run: |
-        # Install system dependencies manually to avoid apt-key issues
-        sudo apt-get update || true
-        sudo apt-get install -y \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libxkbcommon0 \
-          libgtk-3-0 \
-          libgbm1 \
-          libasound2 \
-          libxss1 \
-          libgconf-2-4 \
-          libxrandr2 \
-          libasound2 \
-          libpangocairo-1.0-0 \
-          libatk1.0-0 \
-          libcairo-gobject2 \
-          libgtk-3-0 \
-          libgdk-pixbuf2.0-0 \
-          gstreamer1.0-wpe \
-          libgstreamer-plugins-base1.0-0 \
-          libgstreamer-plugins-bad1.0-0 \
-          libgtk-4-1 \
-          libvpx7 \
-          libevent-2.1-7 \
-          libflite1 \
-          libflite-usenglish1 \
-          libflite-cmu-grapheme-lang1 \
-          libflite-cmu-grapheme-lex1 \
-          libflite-cmu-indic-lang1 \
-          libflite-cmu-indic-lex1 \
-          libflite-cmulex1 \
-          libflite-cmu-time-awb1 \
-          libflite-cmu-us-awb1 \
-          libflite-cmu-us-kal161 \
-          libflite-cmu-us-kal1 \
-          libflite-cmu-us-rms1 \
-          libflite-cmu-us-slt1 \
-          libavif13 \
-          libwebpmux3 \
-          libenchant-2-2 \
-          libsecret-1-0 \
-          libhyphen0 \
-          libmanette-0.2-0 \
-          libgles2-mesa \
-          libx264-163
+        npx playwright install --with-deps
         
     - name: Run mobile tests
       run: |
