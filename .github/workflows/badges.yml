@@ -50,17 +50,20 @@ jobs:
         
         # Check if badges section already exists in README
         if grep -q "## CI/CD Status" README.md; then
-          # Replace existing badges section
-          awk '
-            /^## CI\/CD Status/ { 
-              skip = 1; 
-              while ((getline line < "badges_section.md") > 0) print line; 
-              close("badges_section.md");
-              next 
-            }
-            skip && /^##/ && !/^## CI\/CD Status/ { skip = 0 }
-            !skip { print }
-          ' README.md > README_new.md
+          # Find the line number of the first "## CI/CD Status" and the next "##" section (not ###)
+          first_badge_line=$(grep -n "^## CI/CD Status" README.md | head -1 | cut -d: -f1)
+          next_section_line=$(awk -v start="$first_badge_line" 'NR > start && /^##[^#]/ && !/^## CI\/CD Status/ { print NR; exit }' README.md)
+          
+          # If no next section found, use end of file
+          if [ -z "$next_section_line" ]; then
+            next_section_line=$(wc -l < README.md)
+            next_section_line=$((next_section_line + 1))
+          fi
+          
+          # Create new README: content before badges + new badges + content after badges
+          head -n $((first_badge_line - 1)) README.md > README_new.md
+          cat badges_section.md >> README_new.md
+          tail -n +$next_section_line README.md >> README_new.md
           mv README_new.md README.md
         else
           # Add badges section after the first heading

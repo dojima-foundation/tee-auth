@@ -1,4 +1,4 @@
-.PHONY: help init plan apply destroy validate format clean status setup logs dev prod staging
+.PHONY: help init plan apply destroy validate format clean status setup logs dev prod staging install-tools quick-install-tools
 
 # Default target
 help:
@@ -15,6 +15,8 @@ help:
 	@echo "  status    - Show current status and outputs"
 	@echo "  setup     - Complete setup (init + plan + apply)"
 	@echo "  logs      - Show runner logs (requires SSH access)"
+	@echo "  install-tools - Install development tools on runners"
+	@echo "  quick-install-tools - Quick install essential tools on runners"
 	@echo ""
 	@echo "Environment-specific commands:"
 	@echo "  dev       - Deploy to development environment"
@@ -211,6 +213,34 @@ flavors:
 	@echo "r2-30 - 4 vCPUs, 30GB RAM, 100GB storage (Memory optimized)"
 	@echo "r2-60 - 8 vCPUs, 60GB RAM, 200GB storage (Memory optimized)"
 
+# Install development tools on runners
+install-tools:
+	@echo "=== Installing Development Tools on Runners ==="
+	@if [ -f "terraform.tfstate" ]; then \
+		for ip in $$(terraform output -raw runner_ips 2>/dev/null); do \
+			echo "Installing tools on runner $$ip..."; \
+			scp -i runner_private_key.pem -o StrictHostKeyChecking=no templates/install_tools.sh ubuntu@$$ip:~/; \
+			ssh -i runner_private_key.pem -o StrictHostKeyChecking=no ubuntu@$$ip 'chmod +x install_tools.sh && ./install_tools.sh'; \
+			echo "Tools installed on runner $$ip"; \
+		done; \
+	else \
+		echo "No Terraform state found. Run 'make init' first."; \
+	fi
+
+# Quick install essential tools on runners
+quick-install-tools:
+	@echo "=== Quick Installing Essential Tools on Runners ==="
+	@if [ -f "terraform.tfstate" ]; then \
+		for ip in $$(terraform output -raw runner_ips 2>/dev/null); do \
+			echo "Quick installing tools on runner $$ip..."; \
+			scp -i runner_private_key.pem -o StrictHostKeyChecking=no templates/quick_install_tools.sh ubuntu@$$ip:~/; \
+			ssh -i runner_private_key.pem -o StrictHostKeyChecking=no ubuntu@$$ip 'chmod +x quick_install_tools.sh && ./quick_install_tools.sh'; \
+			echo "Essential tools installed on runner $$ip"; \
+		done; \
+	else \
+		echo "No Terraform state found. Run 'make init' first."; \
+	fi
+
 # Show project structure
 structure:
 	@echo "=== Project Structure ==="
@@ -223,6 +253,11 @@ structure:
 	@echo "│   ├── ovh-infrastructure/  # OVH Cloud infrastructure"
 	@echo "│   ├── github-runner/       # GitHub Actions runner"
 	@echo "│   └── monitoring/          # Monitoring and observability"
+	@echo "├── templates/"
+	@echo "│   ├── install_tools.sh     # Complete tools installation script"
+	@echo "│   ├── quick_install_tools.sh # Quick tools installation script"
+	@echo "│   ├── user_data.sh         # Terraform user data script"
+	@echo "│   └── README.md            # Installation documentation"
 	@echo "├── scripts/"
 	@echo "│   ├── setup/        # Setup scripts"
 	@echo "│   ├── monitoring/   # Monitoring scripts"
