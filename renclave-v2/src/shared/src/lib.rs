@@ -1,6 +1,167 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// Quorum member with alias and public key
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct QuorumMember {
+    /// Member alias/identifier
+    pub alias: String,
+    /// Member's public key (32 bytes)
+    pub pub_key: Vec<u8>,
+}
+
+/// Manifest envelope for quorum operations
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ManifestEnvelope {
+    /// The manifest data
+    pub manifest: Manifest,
+    /// Manifest set approvals
+    pub manifest_set_approvals: Vec<Approval>,
+    /// Share set approvals
+    pub share_set_approvals: Vec<Approval>,
+}
+
+/// Manifest data structure
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Manifest {
+    /// Namespace information
+    pub namespace: Namespace,
+    /// Enclave configuration
+    pub enclave: NitroConfig,
+    /// Pivot configuration
+    pub pivot: PivotConfig,
+    /// Manifest set
+    pub manifest_set: ManifestSet,
+    /// Share set
+    pub share_set: ShareSet,
+}
+
+/// Namespace information
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Namespace {
+    /// Nonce for ordering
+    pub nonce: u64,
+    /// Namespace name
+    pub name: String,
+    /// Quorum key
+    pub quorum_key: Vec<u8>,
+}
+
+/// Nitro enclave configuration
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct NitroConfig {
+    /// PCR0 value
+    pub pcr0: Vec<u8>,
+    /// PCR1 value
+    pub pcr1: Vec<u8>,
+    /// PCR2 value
+    pub pcr2: Vec<u8>,
+    /// PCR3 value
+    pub pcr3: Vec<u8>,
+    /// AWS root certificate
+    pub aws_root_certificate: Vec<u8>,
+    /// QOS commit hash
+    pub qos_commit: String,
+}
+
+/// Pivot configuration
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PivotConfig {
+    /// Pivot hash
+    pub hash: [u8; 32],
+    /// Restart policy
+    pub restart: RestartPolicy,
+    /// Arguments
+    pub args: Vec<String>,
+}
+
+/// Restart policy
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum RestartPolicy {
+    Always,
+    Never,
+    OnFailure,
+}
+
+/// Manifest set
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ManifestSet {
+    /// Threshold for approvals
+    pub threshold: u32,
+    /// Members
+    pub members: Vec<QuorumMember>,
+}
+
+/// Share set
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ShareSet {
+    /// Threshold for approvals
+    pub threshold: u32,
+    /// Members
+    pub members: Vec<QuorumMember>,
+}
+
+/// Encrypted share for injection
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct EncryptedShare {
+    pub member_id: String,
+    #[serde(with = "serde_bytes")]
+    pub encrypted_share: Vec<u8>,
+    #[serde(with = "serde_bytes")]
+    pub public_key: Vec<u8>,
+}
+
+/// Approval structure
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Approval {
+    /// Signature
+    pub signature: Vec<u8>,
+    /// Member who approved
+    pub member: QuorumMember,
+}
+
+/// Genesis output per Setup Member
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GenesisMemberOutput {
+    /// The Quorum Member whom's Setup Key was used.
+    pub share_set_member: QuorumMember,
+    /// Quorum Key Share encrypted to the `setup_member`'s Personal Key.
+    pub encrypted_quorum_key_share: Vec<u8>,
+    /// Sha512 hash of the plaintext quorum key share. Used by the share set
+    /// member to verify they correctly decrypted the share.
+    #[serde(with = "serde_bytes")]
+    pub share_hash: [u8; 64],
+}
+
+/// A set of member shards used to successfully recover the quorum key during
+/// the genesis ceremony.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RecoveredPermutation(pub Vec<MemberShard>);
+
+/// Member shard structure
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MemberShard {
+    /// Member of the Setup Set.
+    pub member: QuorumMember,
+    /// Shard of the generated Quorum Key, encrypted to the `member`s Setup Key.
+    pub shard: Vec<u8>,
+}
+
+/// An encrypted quorum key along with a signature over the encrypted payload
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct EncryptedQuorumKey {
+    /// The encrypted payload: a quorum key
+    pub encrypted_quorum_key: Vec<u8>,
+    /// Signature over the encrypted quorum key
+    pub signature: Vec<u8>,
+}
+
+impl Default for RestartPolicy {
+    fn default() -> Self {
+        RestartPolicy::Always
+    }
+}
+
 /// Request types for communication between host and enclave
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnclaveRequest {
@@ -26,6 +187,34 @@ pub enum EnclaveOperation {
         seed_phrase: String,
         path: String,
         curve: String,
+    },
+    GenerateQuorumKey {
+        members: Vec<QuorumMember>,
+        threshold: u32,
+        dr_key: Option<Vec<u8>>,
+    },
+    ExportQuorumKey {
+        new_manifest_envelope: ManifestEnvelope,
+        cose_sign1_attestation_document: Vec<u8>,
+    },
+    InjectQuorumKey {
+        encrypted_quorum_key: EncryptedQuorumKey,
+    },
+    GenesisBoot {
+        namespace_name: String,
+        namespace_nonce: u64,
+        manifest_members: Vec<QuorumMember>,
+        manifest_threshold: u32,
+        share_members: Vec<QuorumMember>,
+        share_threshold: u32,
+        pivot_hash: [u8; 32],
+        pivot_args: Vec<String>,
+        dr_key: Option<Vec<u8>>,
+    },
+    InjectShares {
+        namespace_name: String,
+        namespace_nonce: u64,
+        shares: Vec<DecryptedShare>,
     },
     GetInfo,
 }
@@ -60,6 +249,35 @@ pub enum EnclaveResult {
         address: String,
         path: String,
         curve: String,
+    },
+    QuorumKeyGenerated {
+        quorum_key: Vec<u8>,
+        member_outputs: Vec<GenesisMemberOutput>,
+        threshold: u32,
+        recovery_permutations: Vec<RecoveredPermutation>,
+        dr_key_wrapped_quorum_key: Option<Vec<u8>>,
+        #[serde(with = "serde_bytes")]
+        quorum_key_hash: [u8; 64],
+        test_message_ciphertext: Vec<u8>,
+        test_message_signature: Vec<u8>,
+        test_message: Vec<u8>,
+    },
+    QuorumKeyExported {
+        encrypted_quorum_key: EncryptedQuorumKey,
+    },
+    QuorumKeyInjected {
+        success: bool,
+    },
+    GenesisBootCompleted {
+        quorum_public_key: Vec<u8>,
+        ephemeral_key: Vec<u8>,
+        manifest_envelope: ManifestEnvelope,
+        waiting_state: String,
+        encrypted_shares: Vec<GenesisMemberOutput>,
+    },
+    SharesInjected {
+        reconstructed_quorum_key: Vec<u8>,
+        success: bool,
     },
     Info {
         version: String,
@@ -126,6 +344,90 @@ pub struct DeriveAddressResponse {
     pub address: String,
     pub path: String,
     pub curve: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GenerateQuorumKeyRequest {
+    pub members: Vec<QuorumMember>,
+    pub threshold: u32,
+    pub dr_key: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GenerateQuorumKeyResponse {
+    pub quorum_key: Vec<u8>,
+    pub member_outputs: Vec<GenesisMemberOutput>,
+    pub threshold: u32,
+    pub recovery_permutations: Vec<RecoveredPermutation>,
+    pub dr_key_wrapped_quorum_key: Option<Vec<u8>>,
+    #[serde(with = "serde_bytes")]
+    pub quorum_key_hash: [u8; 64],
+    pub test_message_ciphertext: Vec<u8>,
+    pub test_message_signature: Vec<u8>,
+    pub test_message: Vec<u8>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExportQuorumKeyRequest {
+    pub new_manifest_envelope: ManifestEnvelope,
+    pub cose_sign1_attestation_document: Vec<u8>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExportQuorumKeyResponse {
+    pub encrypted_quorum_key: EncryptedQuorumKey,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InjectQuorumKeyRequest {
+    pub encrypted_quorum_key: EncryptedQuorumKey,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InjectQuorumKeyResponse {
+    pub success: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GenesisBootRequest {
+    pub namespace_name: String,
+    pub namespace_nonce: u64,
+    pub manifest_members: Vec<QuorumMember>,
+    pub manifest_threshold: u32,
+    pub share_members: Vec<QuorumMember>,
+    pub share_threshold: u32,
+    pub pivot_hash: [u8; 32],
+    pub pivot_args: Vec<String>,
+    pub dr_key: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GenesisBootResponse {
+    pub quorum_public_key: Vec<u8>,
+    pub ephemeral_key: Vec<u8>,
+    pub manifest_envelope: ManifestEnvelope,
+    pub waiting_state: String,
+    pub encrypted_shares: Vec<GenesisMemberOutput>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecryptedShare {
+    pub member_alias: String,
+    #[serde(with = "serde_bytes")]
+    pub decrypted_share: Vec<u8>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ShareInjectionRequest {
+    pub namespace_name: String,
+    pub namespace_nonce: u64,
+    pub shares: Vec<DecryptedShare>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ShareInjectionResponse {
+    pub reconstructed_quorum_key: Vec<u8>,
+    pub success: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

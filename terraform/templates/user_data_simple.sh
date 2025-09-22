@@ -366,7 +366,7 @@ log "Setting up final configurations..."
 # Set proper permissions
 chown -R github-runner:github-runner /home/github-runner
 
-# Create a simple monitoring script
+# Create a comprehensive monitoring script
 cat > /usr/local/bin/runner-monitor << 'EOF'
 #!/bin/bash
 
@@ -381,11 +381,199 @@ EOF
 
 chmod +x /usr/local/bin/runner-monitor
 
-# Create system information script
+# Create runner reconfiguration script
+cat > /usr/local/bin/runner-reconfigure << 'EOF'
+#!/bin/bash
+
+# GitHub Actions Runner Reconfiguration Script
+# Usage: runner-reconfigure <github_token> <target_type> <target_name> [labels]
+
+set -e
+
+GITHUB_TOKEN="$1"
+TARGET_TYPE="$2"  # "org" or "repo"
+TARGET_NAME="$3"  # organization or repository name
+LABELS="${4:-ovh,self-hosted,ubuntu-22.04}"
+
+if [ -z "$GITHUB_TOKEN" ] || [ -z "$TARGET_TYPE" ] || [ -z "$TARGET_NAME" ]; then
+    echo "Usage: $0 <github_token> <target_type> <target_name> [labels]"
+    echo "  target_type: 'org' for organization or 'repo' for repository"
+    echo "  target_name: organization name (e.g., 'dojima-foundation') or repo name (e.g., 'user/repo')"
+    echo "  labels: comma-separated labels (default: ovh,self-hosted,ubuntu-22.04)"
+    echo ""
+    echo "Examples:"
+    echo "  $0 <token> org dojima-foundation"
+    echo "  $0 <token> org dojimanetwork"
+    echo "  $0 <token> repo bhaagiKenpachi/spark-park-cricket"
+    echo "  $0 <token> repo dojima-foundation/tee-auth"
+    exit 1
+fi
+
+echo "Reconfiguring runner for $TARGET_TYPE: $TARGET_NAME"
+
+# Get registration token
+if [ "$TARGET_TYPE" = "org" ]; then
+    RUNNER_URL="https://github.com/$TARGET_NAME"
+    RUNNER_TOKEN=$(curl -s -X POST \
+        -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github.v3+json" \
+        "https://api.github.com/orgs/$TARGET_NAME/actions/runners/registration-token" | \
+        jq -r '.token')
+else
+    RUNNER_URL="https://github.com/$TARGET_NAME"
+    RUNNER_TOKEN=$(curl -s -X POST \
+        -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github.v3+json" \
+        "https://api.github.com/repos/$TARGET_NAME/actions/runners/registration-token" | \
+        jq -r '.token')
+fi
+
+if [ "$RUNNER_TOKEN" = "null" ] || [ -z "$RUNNER_TOKEN" ]; then
+    echo "Failed to get registration token for $RUNNER_URL"
+    echo "Please check:"
+    echo "  1. GitHub token has correct permissions"
+    echo "  2. Target organization/repository exists"
+    echo "  3. Token has access to the target"
+    exit 1
+fi
+
+# Stop current service
+systemctl stop github-runner || true
+
+# Remove current configuration
+cd /home/github-runner
+./config.sh remove --unattended --token "$GITHUB_TOKEN" || true
+
+# Configure for new target
+./config.sh \
+    --url "$RUNNER_URL" \
+    --token "$RUNNER_TOKEN" \
+    --name "$(hostname)-$(date +%s)" \
+    --labels "$LABELS" \
+    --unattended \
+    --replace
+
+# Start service
+systemctl start github-runner
+
+echo "Runner reconfigured successfully for $RUNNER_URL"
+echo "Labels: $LABELS"
+echo "Service status: $(systemctl is-active github-runner)"
+EOF
+
+chmod +x /usr/local/bin/runner-reconfigure
+
+# Create multi-organization setup script
+cat > /usr/local/bin/setup-multi-org-runners << 'EOF'
+#!/bin/bash
+
+# Multi-Organization GitHub Actions Runner Setup Script
+# This script helps configure runners for multiple organizations and repositories
+
+set -e
+
+GITHUB_TOKEN="${1:-$GITHUB_TOKEN}"
+
+if [ -z "$GITHUB_TOKEN" ]; then
+    echo "Usage: $0 <github_token>"
+    echo "  github_token: GitHub Personal Access Token with appropriate permissions"
+    echo ""
+    echo "Required token permissions:"
+    echo "  - admin:org (for organization-level runners)"
+    echo "  - repo (for repository-level runners)"
+    echo "  - actions:write (for runner management)"
+    exit 1
+fi
+
+echo "=== Multi-Organization Runner Setup ==="
+echo "Setting up runners for multiple organizations and repositories"
+echo ""
+
+# Test access to supported organizations and repositories
+echo "=== Testing GitHub API Access ==="
+
+# Test organizations
+echo "Testing access to org: dojima-foundation"
+curl -s -H "Authorization: token $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github.v3+json" \
+    "https://api.github.com/orgs/dojima-foundation" | \
+    jq -e '.login' > /dev/null 2>&1 && echo "✅ Access confirmed: dojima-foundation" || echo "❌ Access denied: dojima-foundation"
+
+echo "Testing access to org: dojimanetwork"
+curl -s -H "Authorization: token $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github.v3+json" \
+    "https://api.github.com/orgs/dojimanetwork" | \
+    jq -e '.login' > /dev/null 2>&1 && echo "✅ Access confirmed: dojimanetwork" || echo "❌ Access denied: dojimanetwork"
+
+# Test user repositories
+echo "Testing access to user: bhaagiKenpachi"
+curl -s -H "Authorization: token $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github.v3+json" \
+    "https://api.github.com/users/bhaagiKenpachi" | \
+    jq -e '.login' > /dev/null 2>&1 && echo "✅ Access confirmed: bhaagiKenpachi" || echo "❌ Access denied: bhaagiKenpachi"
+
+# Test specific repositories
+echo "Testing access to repo: bhaagiKenpachi/spark-park-cricket"
+curl -s -H "Authorization: token $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github.v3+json" \
+    "https://api.github.com/repos/bhaagiKenpachi/spark-park-cricket" | \
+    jq -e '.full_name' > /dev/null 2>&1 && echo "✅ Access confirmed: bhaagiKenpachi/spark-park-cricket" || echo "❌ Access denied: bhaagiKenpachi/spark-park-cricket"
+
+echo "Testing access to repo: dojima-foundation/tee-auth"
+curl -s -H "Authorization: token $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github.v3+json" \
+    "https://api.github.com/repos/dojima-foundation/tee-auth" | \
+    jq -e '.full_name' > /dev/null 2>&1 && echo "✅ Access confirmed: dojima-foundation/tee-auth" || echo "❌ Access denied: dojima-foundation/tee-auth"
+
+echo ""
+echo "=== Available Configuration Options ==="
+echo ""
+echo "1. Organization-level runners (recommended for multiple repos):"
+echo "   - dojima-foundation: All repos in the organization can use the runner"
+echo "   - dojimanetwork: All repos in the organization can use the runner"
+echo ""
+echo "2. Repository-level runners (for specific repos):"
+echo "   - bhaagiKenpachi/spark-park-cricket: Dedicated runner for this repo"
+echo "   - dojima-foundation/tee-auth: Dedicated runner for this repo"
+echo ""
+echo "=== Configuration Commands ==="
+echo ""
+echo "To configure for organization-level access:"
+echo "  runner-reconfigure $GITHUB_TOKEN org dojima-foundation 'ovh,self-hosted,ubuntu-22.04,dojima-foundation'"
+echo "  runner-reconfigure $GITHUB_TOKEN org dojimanetwork 'ovh,self-hosted,ubuntu-22.04,dojimanetwork'"
+echo ""
+echo "To configure for repository-level access:"
+echo "  runner-reconfigure $GITHUB_TOKEN repo bhaagiKenpachi/spark-park-cricket 'ovh,self-hosted,ubuntu-22.04,bhaagiKenpachi'"
+echo "  runner-reconfigure $GITHUB_TOKEN repo dojima-foundation/tee-auth 'ovh,self-hosted,ubuntu-22.04,dojima-foundation'"
+echo ""
+echo "=== Workflow Configuration ==="
+echo ""
+echo "For organization-level runners, use these labels in your workflows:"
+echo "  runs-on: [self-hosted, ovh, ubuntu-22.04, dojima-foundation]"
+echo "  runs-on: [self-hosted, ovh, ubuntu-22.04, dojimanetwork]"
+echo ""
+echo "For repository-level runners, use these labels:"
+echo "  runs-on: [self-hosted, ovh, ubuntu-22.04, bhaagiKenpachi]"
+echo "  runs-on: [self-hosted, ovh, ubuntu-22.04, dojima-foundation]"
+echo ""
+echo "=== Current Runner Status ==="
+echo "Service Status: $(systemctl is-active github-runner)"
+echo "Runner Configuration: $(cat /home/github-runner/.runner 2>/dev/null | jq -r '.url // "Not configured"' 2>/dev/null || echo "Not configured")"
+echo ""
+echo "=== Next Steps ==="
+echo "1. Choose your configuration approach (organization vs repository level)"
+echo "2. Run the appropriate runner-reconfigure command"
+echo "3. Update your workflow files to use the correct labels"
+echo "4. Test the setup with a simple workflow"
+EOF
+
+chmod +x /usr/local/bin/setup-multi-org-runners
+
+# Create comprehensive system information script
 cat > /usr/local/bin/runner-info << 'EOF'
 #!/bin/bash
 
-echo "=== System Information ==="
+echo "=== GitHub Actions Runner Information ==="
 echo "Hostname: $(hostname)"
 echo "OS: $(lsb_release -d | cut -f2)"
 echo "Kernel: $(uname -r)"
@@ -394,7 +582,40 @@ echo "CPU: $(nproc) cores"
 echo "Memory: $(free -h | awk '/^Mem:/{print $2}')"
 echo "Disk: $(df -h / | awk 'NR==2{print $4}') available"
 echo "Uptime: $(uptime -p)"
-echo "========================="
+echo "Docker Version: $(docker --version 2>/dev/null || echo 'Not installed')"
+echo "Runner Service: $(systemctl is-active actions.runner.* 2>/dev/null || echo 'Not running')"
+echo ""
+echo "=== Development Tools ==="
+echo "Go Version: $(go version 2>/dev/null || echo 'Not installed')"
+echo "protoc-gen-go: $(protoc-gen-go --version 2>/dev/null || echo 'Not installed')"
+echo "protoc-gen-go-grpc: $(protoc-gen-go-grpc --version 2>/dev/null || echo 'Not installed')"
+echo "Rust Version: $(rustc --version 2>/dev/null || echo 'Not installed')"
+echo "Node.js Version: $(node --version 2>/dev/null || echo 'Not installed')"
+echo "NPM Version: $(npm --version 2>/dev/null || echo 'Not installed')"
+echo ""
+echo "=== Database Tools ==="
+echo "PostgreSQL Client: $(psql --version 2>/dev/null || echo 'Not installed')"
+echo "Redis CLI: $(redis-cli --version 2>/dev/null || echo 'Not installed')"
+echo "Migration Tool: $(migrate -version 2>/dev/null || echo 'Not installed')"
+echo ""
+echo "=== Build Tools ==="
+echo "Make: $(make --version 2>/dev/null | head -n1 || echo 'Not installed')"
+echo "CMake: $(cmake --version 2>/dev/null | head -n1 || echo 'Not installed')"
+echo "GCC: $(gcc --version 2>/dev/null | head -n1 || echo 'Not installed')"
+echo "Python: $(python3 --version 2>/dev/null || echo 'Not installed')"
+echo ""
+echo "=== Performance & Testing Tools ==="
+echo "Lighthouse: $(lighthouse --version 2>/dev/null || echo 'Not installed')"
+echo "Lighthouse CI: $(lhci --version 2>/dev/null || echo 'Not installed')"
+echo "Playwright: $(npx playwright --version 2>/dev/null || echo 'Not installed')"
+echo ""
+echo "=== CI/CD Tools ==="
+echo "GitHub CLI: $(gh --version 2>/dev/null | head -n1 || echo 'Not installed')"
+echo "Kubernetes CLI: $(kubectl version --client --short 2>/dev/null || echo 'Not installed')"
+echo "Terraform: $(terraform version 2>/dev/null | head -n1 || echo 'Not installed')"
+echo "AWS CLI: $(aws --version 2>/dev/null || echo 'Not installed')"
+echo "Docker Compose: $(docker-compose --version 2>/dev/null || echo 'Not installed')"
+echo "========================================="
 EOF
 
 chmod +x /usr/local/bin/runner-info
@@ -411,4 +632,25 @@ echo "Runner URL: $RUNNER_URL"
 echo "Service Status: $(systemctl is-active github-runner)"
 echo "Health Check: Every 5 minutes"
 echo "Status Page: http://$(curl -s ifconfig.me)/runner-status.html"
+echo ""
+echo "=== Available Utility Scripts ==="
+echo "runner-monitor: Check runner status and health"
+echo "runner-info: Display comprehensive system information"
+echo "runner-reconfigure: Reconfigure runner for different org/repo"
+echo "setup-multi-org-runners: Setup runners for multiple organizations"
+echo ""
+echo "=== Usage Examples ==="
+echo "Check runner status: runner-monitor"
+echo "View system info: runner-info"
+echo "Setup multi-org support: setup-multi-org-runners <github_token>"
+echo "Reconfigure for org: runner-reconfigure <token> org dojima-foundation"
+echo "Reconfigure for repo: runner-reconfigure <token> repo bhaagiKenpachi/spark-park-cricket"
+echo ""
+echo "=== Multi-Organization Support ==="
+echo "This runner supports the following organizations and repositories:"
+echo "  - dojima-foundation (organization)"
+echo "  - dojimanetwork (organization)"
+echo "  - bhaagiKenpachi (user account with repositories)"
+echo ""
+echo "Use 'setup-multi-org-runners <token>' to configure for multiple targets"
 echo "======================"

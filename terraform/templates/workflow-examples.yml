@@ -1,0 +1,341 @@
+# GitHub Actions Workflow Examples for Multi-Organization Self-Hosted Runners
+# This file contains example workflows for different organizations and repositories
+
+# =============================================================================
+# EXAMPLE 1: Dojima Foundation Organization Workflow
+# =============================================================================
+# File: .github/workflows/dojima-foundation-ci.yml
+# Use this for repositories in the dojima-foundation organization
+
+name: Dojima Foundation CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  WORKING_DIRECTORY: "."
+
+jobs:
+  # Code Quality Checks
+  code-quality:
+    name: Code Quality
+    runs-on: [self-hosted, ovh, ubuntu-22.04, dojima-foundation]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Code Quality Checks
+        run: |
+          echo "Running code quality checks for dojima-foundation"
+          # Add your code quality commands here
+          echo "✅ Code quality checks completed"
+
+  # Unit Tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: [self-hosted, ovh, ubuntu-22.04, dojima-foundation]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Unit Tests
+        run: |
+          echo "Running unit tests for dojima-foundation"
+          # Add your unit test commands here
+          echo "✅ Unit tests completed"
+
+  # Build
+  build:
+    name: Build
+    runs-on: [self-hosted, ovh, ubuntu-22.04, dojima-foundation]
+    needs: [code-quality, unit-tests]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Application
+        run: |
+          echo "Building application for dojima-foundation"
+          # Add your build commands here
+          echo "✅ Build completed"
+
+# =============================================================================
+# EXAMPLE 2: Dojima Network Organization Workflow
+# =============================================================================
+# File: .github/workflows/dojima-network-ci.yml
+# Use this for repositories in the dojimanetwork organization
+
+name: Dojima Network CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  WORKING_DIRECTORY: "."
+
+jobs:
+  # Code Quality Checks
+  code-quality:
+    name: Code Quality
+    runs-on: [self-hosted, ovh, ubuntu-22.04, dojimanetwork]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Code Quality Checks
+        run: |
+          echo "Running code quality checks for dojimanetwork"
+          # Add your code quality commands here
+          echo "✅ Code quality checks completed"
+
+  # Unit Tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: [self-hosted, ovh, ubuntu-22.04, dojimanetwork]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Unit Tests
+        run: |
+          echo "Running unit tests for dojimanetwork"
+          # Add your unit test commands here
+          echo "✅ Unit tests completed"
+
+  # Build
+  build:
+    name: Build
+    runs-on: [self-hosted, ovh, ubuntu-22.04, dojimanetwork]
+    needs: [code-quality, unit-tests]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Application
+        run: |
+          echo "Building application for dojimanetwork"
+          # Add your build commands here
+          echo "✅ Build completed"
+
+# =============================================================================
+# EXAMPLE 3: BhaagiKenpachi User Repository Workflow
+# =============================================================================
+# File: .github/workflows/bhaagi-kenpachi-ci.yml
+# Use this for repositories owned by the bhaagiKenpachi user
+
+name: BhaagiKenpachi CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  WORKING_DIRECTORY: "."
+
+jobs:
+  # Code Quality Checks
+  code-quality:
+    name: Code Quality
+    runs-on: [self-hosted, ovh, ubuntu-22.04, bhaagiKenpachi]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Code Quality Checks
+        run: |
+          echo "Running code quality checks for bhaagiKenpachi"
+          # Add your code quality commands here
+          echo "✅ Code quality checks completed"
+
+  # Unit Tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: [self-hosted, ovh, ubuntu-22.04, bhaagiKenpachi]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Unit Tests
+        run: |
+          echo "Running unit tests for bhaagiKenpachi"
+          # Add your unit test commands here
+          echo "✅ Unit tests completed"
+
+  # Build
+  build:
+    name: Build
+    runs-on: [self-hosted, ovh, ubuntu-22.04, bhaagiKenpachi]
+    needs: [code-quality, unit-tests]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Application
+        run: |
+          echo "Building application for bhaagiKenpachi"
+          # Add your build commands here
+          echo "✅ Build completed"
+
+# =============================================================================
+# EXAMPLE 4: Repository-Specific Workflow (Spark Park Cricket)
+# =============================================================================
+# File: .github/workflows/spark-park-cricket-ci.yml
+# Use this for the specific spark-park-cricket repository
+
+name: Spark Park Cricket CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  WORKING_DIRECTORY: "."
+
+jobs:
+  # Backend CI
+  backend-ci:
+    name: Backend CI
+    runs-on: [self-hosted, ovh, ubuntu-22.04, bhaagiKenpachi]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Backend Code Quality
+        run: |
+          echo "Running backend code quality for spark-park-cricket"
+          # Add your backend code quality commands here
+          echo "✅ Backend code quality completed"
+      - name: Backend Unit Tests
+        run: |
+          echo "Running backend unit tests for spark-park-cricket"
+          # Add your backend unit test commands here
+          echo "✅ Backend unit tests completed"
+      - name: Backend Build
+        run: |
+          echo "Building backend for spark-park-cricket"
+          # Add your backend build commands here
+          echo "✅ Backend build completed"
+
+  # Frontend CI
+  frontend-ci:
+    name: Frontend CI
+    runs-on: [self-hosted, ovh, ubuntu-22.04, bhaagiKenpachi]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Frontend Code Quality
+        run: |
+          echo "Running frontend code quality for spark-park-cricket"
+          # Add your frontend code quality commands here
+          echo "✅ Frontend code quality completed"
+      - name: Frontend Unit Tests
+        run: |
+          echo "Running frontend unit tests for spark-park-cricket"
+          # Add your frontend unit test commands here
+          echo "✅ Frontend unit tests completed"
+      - name: Frontend Build
+        run: |
+          echo "Building frontend for spark-park-cricket"
+          # Add your frontend build commands here
+          echo "✅ Frontend build completed"
+
+# =============================================================================
+# EXAMPLE 5: Test Runner Workflow
+# =============================================================================
+# File: .github/workflows/test-runner.yml
+# Use this to test if the self-hosted runner is working correctly
+
+name: Test Self-Hosted Runner
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: [self-hosted, ovh, ubuntu-22.04]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Runner Environment
+        run: |
+          echo "🏏 Testing self-hosted runner environment"
+          echo "Runner OS: $(uname -a)"
+          echo "Runner Hostname: $(hostname)"
+          echo "Runner Uptime: $(uptime)"
+          echo ""
+          echo "=== Available Development Tools ==="
+          echo "Go Version: $(go version 2>/dev/null || echo 'Not available')"
+          echo "Node.js Version: $(node --version 2>/dev/null || echo 'Not available')"
+          echo "NPM Version: $(npm --version 2>/dev/null || echo 'Not available')"
+          echo "Docker Version: $(docker --version 2>/dev/null || echo 'Not available')"
+          echo "Rust Version: $(rustc --version 2>/dev/null || echo 'Not available')"
+          echo "Python Version: $(python3 --version 2>/dev/null || echo 'Not available')"
+          echo ""
+          echo "=== Database Tools ==="
+          echo "PostgreSQL Client: $(psql --version 2>/dev/null || echo 'Not available')"
+          echo "Redis CLI: $(redis-cli --version 2>/dev/null || echo 'Not available')"
+          echo ""
+          echo "=== CI/CD Tools ==="
+          echo "GitHub CLI: $(gh --version 2>/dev/null | head -n1 || echo 'Not available')"
+          echo "Kubernetes CLI: $(kubectl version --client --short 2>/dev/null || echo 'Not available')"
+          echo "Terraform: $(terraform version 2>/dev/null | head -n1 || echo 'Not available')"
+          echo ""
+          echo "=== System Information ==="
+          echo "CPU Cores: $(nproc)"
+          echo "Memory: $(free -h | awk '/^Mem:/{print $2}')"
+          echo "Disk Space: $(df -h / | awk 'NR==2{print $4}') available"
+          echo ""
+          echo "✅ Self-hosted runner is working correctly!"
+
+# =============================================================================
+# USAGE INSTRUCTIONS
+# =============================================================================
+
+# To use these workflow examples:
+#
+# 1. Copy the appropriate workflow file to your repository's .github/workflows/ directory
+# 2. Modify the workflow to match your specific needs
+# 3. Ensure your runner is configured with the correct labels
+# 4. Test the workflow with a simple push or pull request
+#
+# Available runner labels:
+# - self-hosted (required)
+# - ovh (infrastructure provider)
+# - ubuntu-22.04 (operating system)
+# - dojima-foundation (for dojima-foundation organization)
+# - dojimanetwork (for dojimanetwork organization)
+# - bhaagiKenpachi (for bhaagiKenpachi user repositories)
+#
+# Runner configuration commands:
+# - For organization-level: runner-reconfigure <token> org <org-name>
+# - For repository-level: runner-reconfigure <token> repo <user/repo>
+# - For multi-org setup: setup-multi-org-runners <token>

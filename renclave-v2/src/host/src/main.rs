@@ -82,6 +82,8 @@ impl QemuHost {
             .route("/network/status", get(api_handlers::network_status))
             .route("/network/test", post(api_handlers::test_connectivity))
             .route("/enclave/info", get(api_handlers::enclave_info))
+            .route("/enclave/genesis-boot", post(api_handlers::genesis_boot))
+            .route("/enclave/inject-shares", post(api_handlers::inject_shares))
             .with_state(app_state);
 
         info!("✅ HTTP router configured with all endpoints");

@@ -1,0 +1,36 @@
+[package]
+name = "genesis-key-generator"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "genesis-key-generator"
+path = "genesis_key_generator.rs"
+
+[[bin]]
+name = "share-injector"
+path = "share_injector.rs"
+
+[[bin]]
+name = "verification-tool"
+path = "verification_tool.rs"
+
+[[bin]]
+name = "share-distributor"
+path = "share_distributor.rs"
+
+[[bin]]
+name = "member-decryptor"
+path = "member_decryptor.rs"
+
+[dependencies]
+p256 = { workspace = true }
+rand = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+anyhow = { workspace = true }
+hex = { workspace = true }
+sha2 = { workspace = true }
+chrono = { version = "0.4", features = ["serde"] }
+renclave-shared = { path = "../shared" }

@@ -1,0 +1,19 @@
+---
+description: Research folder file type restrictions
+alwaysApply: false
+---
+# Research Folder Rules
+
+The `research/` folder is restricted to **markdown files only** (`.md` extension).
+
+## File Type Restrictions
+- ✅ **Allowed**: `.md` files (markdown documents)
+- ❌ **Not Allowed**: Any other file types including:
+  - PDF files (`.pdf`)
+  - Text files (`.txt`)
+  - Word documents (`.doc`, `.docx`)
+  - Images (`.png`, `.jpg`, `.gif`, etc.)
+  - Any other file extensions
+
+## Purpose
+This folder is intended for research documentation and notes in markdown format only. All research materials should be converted to or written in markdown format for consistency and version control compatibility.

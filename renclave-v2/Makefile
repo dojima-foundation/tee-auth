@@ -26,6 +26,7 @@ help: ## Show this help message
 	@echo "  build          - Build all crates in release mode"
 	@echo "  build-debug    - Build all crates in debug mode"
 	@echo "  clean          - Clean build artifacts"
+	@echo "  clean-profraw  - Clean profiling files (default_*)"
 	@echo ""
 	@echo "🧪 Testing Commands:"
 	@echo "  test           - Run all tests (unit locally, integration/e2e in Docker)"
@@ -60,6 +61,11 @@ clean: ## Clean build artifacts
 	@echo "🧹 Cleaning build artifacts..."
 	$(CARGO) clean
 	@echo "✅ Clean completed!"
+
+clean-profraw: ## Clean profiling files (default_*)
+	@echo "🧹 Cleaning profiling files (default_*)..."
+	@find . -name "default_*" -type f -delete
+	@echo "✅ Profiling files cleaned!"
 
 # Testing targets
 test: ## Run all tests (hybrid: unit local + integration/E2E Docker)
@@ -206,7 +212,7 @@ status: ## Show project status
 	@$(CARGO) --version || echo "❌ Cargo not found"
 
 # Phony targets
-.PHONY: help build build-debug clean test test-unit test-integration test-e2e \
+.PHONY: help build build-debug clean clean-profraw test test-unit test-integration test-e2e \
         test-integration-only test-e2e-only test-docker test-force \
         docker-build docker-up docker-down docker-logs docker-clean \
         check fmt clippy bench bench-seed bench-concurrent bench-stress performance \

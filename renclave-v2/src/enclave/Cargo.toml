@@ -27,8 +27,20 @@ uuid = { workspace = true }
 bitcoin = { workspace = true }
 secp256k1 = { workspace = true }
 
+# Quorum key generation dependencies
+p256 = { workspace = true }
+aes-gcm = { workspace = true }
+hmac = { workspace = true }
+hkdf = { workspace = true }
+sha2 = { workspace = true }
+zeroize = { workspace = true }
+borsh = { workspace = true }
+serde_bytes = { workspace = true }
+tempfile = "3.8"
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
 tokio-test = { workspace = true }
+env_logger = "0.11"
 
 # Note: AWS Nitro libraries removed for QEMU compatibility

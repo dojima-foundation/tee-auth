@@ -46,6 +46,9 @@ pub async fn get_info(
         capabilities: vec![
             "seed_generation".to_string(),
             "seed_validation".to_string(),
+            "quorum_key_generation".to_string(),
+            "quorum_key_export".to_string(),
+            "quorum_key_inject".to_string(),
             "network_connectivity".to_string(),
             "enclave_communication".to_string(),
         ],
@@ -561,6 +564,467 @@ pub async fn derive_address(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(ErrorResponse {
                         error: "Unexpected response from enclave".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Enclave communication failed: {}", e),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Generate quorum key using Shamir Secret Sharing
+pub async fn generate_quorum_key(
+    State(state): State<AppState>,
+    Json(request): Json<GenerateQuorumKeyRequest>,
+) -> std::result::Result<Json<GenerateQuorumKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("🔐 Quorum key generation requested (ID: {})", request_id);
+
+    // Validate request
+    if request.members.is_empty() {
+        warn!("❌ No members provided for quorum key generation");
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "At least one member is required".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    if request.threshold == 0 || request.threshold > request.members.len() as u32 {
+        warn!("❌ Invalid threshold: {}", request.threshold);
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Threshold must be between 1 and number of members".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    debug!(
+        "📋 Request validated - members: {}, threshold: {}",
+        request.members.len(),
+        request.threshold
+    );
+
+    // Send request to enclave
+    match state
+        .enclave_client
+        .generate_quorum_key(request.members, request.threshold, request.dr_key)
+        .await
+    {
+        Ok(enclave_response) => match enclave_response.result {
+            EnclaveResult::QuorumKeyGenerated {
+                quorum_key,
+                member_outputs,
+                threshold,
+                recovery_permutations,
+                dr_key_wrapped_quorum_key,
+                quorum_key_hash,
+                test_message_ciphertext,
+                test_message_signature,
+                test_message,
+            } => {
+                info!("✅ Quorum key generation successful (ID: {})", request_id);
+                Ok(Json(GenerateQuorumKeyResponse {
+                    quorum_key,
+                    member_outputs,
+                    threshold,
+                    recovery_permutations,
+                    dr_key_wrapped_quorum_key,
+                    quorum_key_hash,
+                    test_message_ciphertext,
+                    test_message_signature,
+                    test_message,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                error!("❌ Enclave error during quorum key generation: {}", message);
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: message,
+                        code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                error!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response from enclave".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Enclave communication failed: {}", e),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Export quorum key
+pub async fn export_quorum_key(
+    State(state): State<AppState>,
+    Json(request): Json<ExportQuorumKeyRequest>,
+) -> std::result::Result<Json<ExportQuorumKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("📤 Quorum key export requested (ID: {})", request_id);
+
+    // Send request to enclave
+    match state
+        .enclave_client
+        .export_quorum_key(
+            request.new_manifest_envelope,
+            request.cose_sign1_attestation_document,
+        )
+        .await
+    {
+        Ok(enclave_response) => match enclave_response.result {
+            EnclaveResult::QuorumKeyExported {
+                encrypted_quorum_key,
+            } => {
+                info!("✅ Quorum key export successful (ID: {})", request_id);
+                Ok(Json(ExportQuorumKeyResponse {
+                    encrypted_quorum_key,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                error!("❌ Enclave error during quorum key export: {}", message);
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: message,
+                        code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                error!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response from enclave".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Enclave communication failed: {}", e),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Inject quorum key
+pub async fn inject_quorum_key(
+    State(state): State<AppState>,
+    Json(request): Json<InjectQuorumKeyRequest>,
+) -> std::result::Result<Json<InjectQuorumKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("📥 Quorum key injection requested (ID: {})", request_id);
+
+    // Send request to enclave
+    match state
+        .enclave_client
+        .inject_quorum_key(request.encrypted_quorum_key)
+        .await
+    {
+        Ok(enclave_response) => match enclave_response.result {
+            EnclaveResult::QuorumKeyInjected { success } => {
+                info!("✅ Quorum key injection successful (ID: {})", request_id);
+                Ok(Json(InjectQuorumKeyResponse { success }))
+            }
+            EnclaveResult::Error { message, code } => {
+                error!("❌ Enclave error during quorum key injection: {}", message);
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: message,
+                        code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                error!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response from enclave".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Enclave communication failed: {}", e),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Execute Genesis Boot flow
+pub async fn genesis_boot(
+    State(state): State<AppState>,
+    Json(request): Json<GenesisBootRequest>,
+) -> std::result::Result<Json<GenesisBootResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("🌱 Genesis Boot flow requested (ID: {})", request_id);
+    debug!("🔍 Genesis Boot request details:");
+    debug!("  - namespace_name: {}", request.namespace_name);
+    debug!("  - namespace_nonce: {}", request.namespace_nonce);
+    debug!(
+        "  - manifest_members: {} members",
+        request.manifest_members.len()
+    );
+    debug!("  - manifest_threshold: {}", request.manifest_threshold);
+    debug!("  - share_members: {} members", request.share_members.len());
+    debug!("  - share_threshold: {}", request.share_threshold);
+
+    // Validate request
+    if request.manifest_members.is_empty() {
+        warn!("❌ No manifest members provided for Genesis Boot");
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "At least one manifest member is required".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    if request.share_members.is_empty() {
+        warn!("❌ No share members provided for Genesis Boot");
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "At least one share member is required".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    if request.manifest_threshold == 0
+        || request.manifest_threshold > request.manifest_members.len() as u32
+    {
+        warn!(
+            "❌ Invalid manifest threshold: {}",
+            request.manifest_threshold
+        );
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Invalid manifest threshold".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    if request.share_threshold == 0 || request.share_threshold > request.share_members.len() as u32
+    {
+        warn!("❌ Invalid share threshold: {}", request.share_threshold);
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Invalid share threshold".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    // Send Genesis Boot request to enclave
+    info!("📡 Sending Genesis Boot request to enclave...");
+    debug!("🔍 Enclave client state: {:?}", state.enclave_client);
+
+    match state
+        .enclave_client
+        .genesis_boot(
+            request.namespace_name,
+            request.namespace_nonce,
+            request.manifest_members,
+            request.manifest_threshold,
+            request.share_members,
+            request.share_threshold,
+            request.pivot_hash,
+            request.pivot_args,
+            request.dr_key,
+        )
+        .await
+    {
+        Ok(enclave_response) => match enclave_response.result {
+            EnclaveResult::GenesisBootCompleted {
+                quorum_public_key,
+                ephemeral_key,
+                manifest_envelope,
+                waiting_state,
+                encrypted_shares,
+            } => {
+                info!(
+                    "✅ Genesis Boot flow completed successfully (ID: {})",
+                    request_id
+                );
+                Ok(Json(GenesisBootResponse {
+                    quorum_public_key,
+                    ephemeral_key,
+                    manifest_envelope,
+                    waiting_state,
+                    encrypted_shares,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                error!("❌ Enclave error during Genesis Boot: {}", message);
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: message,
+                        code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                error!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response from enclave".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Enclave communication failed: {}", e),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Inject shares to complete Genesis Boot flow
+pub async fn inject_shares(
+    State(state): State<AppState>,
+    Json(request): Json<ShareInjectionRequest>,
+) -> std::result::Result<Json<ShareInjectionResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("🔐 Share injection requested (ID: {})", request_id);
+    debug!("🔍 Share injection request details:");
+    debug!("  - namespace_name: {}", request.namespace_name);
+    debug!("  - namespace_nonce: {}", request.namespace_nonce);
+    debug!("  - shares: {} shares", request.shares.len());
+
+    // Validate request
+    if request.shares.is_empty() {
+        warn!("❌ No shares provided for injection");
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "At least one share is required".to_string(),
+                code: 400,
+                request_id: Some(request_id),
+            }),
+        ));
+    }
+
+    // Send share injection request to enclave
+    info!("📡 Sending share injection request to enclave...");
+    debug!("🔍 Enclave client state: {:?}", state.enclave_client);
+    
+    match state
+        .enclave_client
+        .inject_shares(
+            request.namespace_name,
+            request.namespace_nonce,
+            request.shares,
+        )
+        .await
+    {
+        Ok(enclave_response) => match enclave_response.result {
+            EnclaveResult::SharesInjected {
+                reconstructed_quorum_key,
+                success,
+            } => {
+                info!("✅ Share injection completed successfully");
+                Ok(Json(ShareInjectionResponse {
+                    reconstructed_quorum_key,
+                    success,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                error!("❌ Share injection failed: {}", message);
+                Err((
+                    StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                    Json(ErrorResponse {
+                        error: message,
+                        code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                error!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response type from enclave".to_string(),
                         code: 500,
                         request_id: Some(request_id),
                     }),
