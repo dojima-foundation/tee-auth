@@ -1,26 +1,41 @@
+use anyhow::anyhow;
+use hex;
 use log::{debug, error, info, warn};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::fs;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
 use uuid::Uuid;
 
+mod application_state;
+mod data_encryption;
 mod nitro;
 mod quorum;
 mod seed_generator;
+mod transaction_signing;
 
-use quorum::{boot_genesis, GenesisSet, P256Pair};
-use renclave_enclave::manifest;
+use application_state::{ApplicationPhase, ApplicationStateManager};
+use data_encryption::DataEncryption;
+use quorum::{boot_genesis, GenesisSet};
 use renclave_enclave::storage::TeeStorage;
+use renclave_enclave::tee_communication::TeeCommunicationManager;
 use renclave_network::{NetworkConfig, NetworkManager};
-use renclave_shared::{EnclaveOperation, EnclaveRequest, EnclaveResponse, EnclaveResult};
+use renclave_shared::{
+    ApplicationMetadata, EnclaveOperation, EnclaveRequest, EnclaveResponse, EnclaveResult,
+};
 use seed_generator::SeedGenerator;
+use transaction_signing::TransactionSigner;
 
 /// QEMU Nitro Enclave for secure seed generation
+#[derive(Clone)]
 pub struct NitroEnclave {
     seed_generator: Arc<SeedGenerator>,
     network_manager: Arc<NetworkManager>,
     enclave_id: String,
+    data_encryption: Arc<Mutex<Option<DataEncryption>>>,
+    transaction_signer: Arc<Mutex<Option<TransactionSigner>>>,
+    state_manager: Arc<Mutex<ApplicationStateManager>>,
+    tee_communication: Arc<Mutex<TeeCommunicationManager>>,
 }
 
 impl NitroEnclave {
@@ -54,6 +69,13 @@ impl NitroEnclave {
             seed_generator,
             network_manager,
             enclave_id,
+            data_encryption: Arc::new(Mutex::new(None)),
+            transaction_signer: Arc::new(Mutex::new(None)),
+            state_manager: Arc::new(Mutex::new(ApplicationStateManager::new(
+                "renclave-v2".to_string(),
+                "1.0.0".to_string(),
+            ))),
+            tee_communication: Arc::new(Mutex::new(TeeCommunicationManager::new())),
         })
     }
 
@@ -119,15 +141,9 @@ impl NitroEnclave {
                                 let enclave_id = self.enclave_id.clone();
 
                                 // Handle client in a separate task
+                                let enclave = self.clone();
                                 tokio::spawn(async move {
-                                    if let Err(e) = Self::handle_client(
-                                        stream,
-                                        seed_generator,
-                                        network_manager,
-                                        enclave_id,
-                                    )
-                                    .await
-                                    {
+                                    if let Err(e) = enclave.handle_client(stream).await {
                                         error!("❌ Error handling client: {}", e);
                                     }
                                 });
@@ -168,12 +184,7 @@ impl NitroEnclave {
     }
 
     /// Handle client connection
-    async fn handle_client(
-        stream: UnixStream,
-        seed_generator: Arc<SeedGenerator>,
-        network_manager: Arc<NetworkManager>,
-        enclave_id: String,
-    ) -> anyhow::Result<()> {
+    async fn handle_client(&self, stream: UnixStream) -> anyhow::Result<()> {
         debug!("🔍 Handling client connection");
 
         let mut reader = BufReader::new(stream);
@@ -192,16 +203,14 @@ impl NitroEnclave {
                     debug!("📨 Received request: {}", request_json);
 
                     // Parse request
+                    debug!("🔍 ABOUT TO PARSE JSON: {}", request_json);
                     match serde_json::from_str::<EnclaveRequest>(request_json) {
                         Ok(request) => {
+                            info!("🔍 JSON PARSED SUCCESSFULLY");
+                            info!("🔍 REQUEST ID: {}", request.id);
+                            info!("🔍 REQUEST OPERATION: {:?}", request.operation);
                             // Process request
-                            let response = Self::process_request(
-                                request,
-                                &seed_generator,
-                                &network_manager,
-                                &enclave_id,
-                            )
-                            .await;
+                            let response = self.process_request(request).await;
 
                             // Send response
                             match serde_json::to_string(&response) {
@@ -266,32 +275,111 @@ impl NitroEnclave {
     }
 
     /// Process enclave request
-    async fn process_request(
-        request: EnclaveRequest,
-        seed_generator: &SeedGenerator,
-        network_manager: &NetworkManager,
-        enclave_id: &str,
-    ) -> EnclaveResponse {
+    async fn process_request(&self, request: EnclaveRequest) -> EnclaveResponse {
+        info!("🔍 PROCESS_REQUEST FUNCTION CALLED");
         debug!("⚙️  Processing request: {:?}", request.operation);
 
+        debug!(
+            "🔍 Processing request operation: {:?}",
+            std::mem::discriminant(&request.operation)
+        );
+        info!("🔍 ABOUT TO MATCH ON REQUEST OPERATION");
+        info!("🔍 REQUEST OPERATION TYPE: {:?}", request.operation);
         let result = match request.operation {
             EnclaveOperation::GenerateSeed {
                 strength,
                 passphrase,
             } => {
+                info!("🔍 MATCHED: GenerateSeed");
                 info!("🔑 Generating seed phrase (strength: {} bits)", strength);
 
-                match seed_generator
+                // Check if quorum key is available for encryption
+                let quorum_key_available = {
+                    let state_manager = self.state_manager.lock().unwrap();
+                    state_manager.get_status().has_quorum_key
+                };
+
+                if !quorum_key_available {
+                    error!("❌ Cannot generate seed: Quorum key not provisioned");
+                    return EnclaveResponse::new(
+                        request.id,
+                        EnclaveResult::Error {
+                            message: "Cannot generate seed: Quorum key not provisioned. Please complete Genesis Boot and Share Injection first.".to_string(),
+                            code: 503,
+                        },
+                    );
+                }
+
+                match self
+                    .seed_generator
                     .generate_seed(strength, passphrase.as_deref())
                     .await
                 {
                     Ok(seed_result) => {
-                        info!("✅ Seed phrase generated successfully");
-                        EnclaveResult::SeedGenerated {
-                            seed_phrase: seed_result.phrase,
-                            entropy: seed_result.entropy,
-                            strength: seed_result.strength,
-                            word_count: seed_result.word_count,
+                        info!("✅ Seed phrase generated successfully in TEE");
+                        info!("🔐 Encrypting seed with quorum public key before returning");
+
+                        // Encrypt the seed with the quorum public key before returning
+                        match self.data_encryption.lock().unwrap().as_ref() {
+                            Some(encryption_service) => {
+                                // Get the quorum public key for encryption
+                                let quorum_public_key = {
+                                    let state_manager = self.state_manager.lock().unwrap();
+                                    let state = state_manager.get_state();
+                                    state
+                                        .get_quorum_key()
+                                        .map(|key| key.public_key().to_bytes())
+                                };
+
+                                match quorum_public_key {
+                                    Ok(quorum_pub_bytes) => {
+                                        match encryption_service.encrypt_data(
+                                            &seed_result.phrase.as_bytes(),
+                                            &quorum_pub_bytes,
+                                        ) {
+                                            Ok(encrypted_seed) => {
+                                                info!("✅ Seed encrypted with quorum public key successfully");
+                                                info!("📝 Client should store encrypted seed in external database");
+
+                                                // Return actual encrypted seed data for database storage
+                                                EnclaveResult::SeedGenerated {
+                                                    seed_phrase: hex::encode(&encrypted_seed), // Return encrypted data as hex
+                                                    entropy: seed_result.entropy,
+                                                    strength: seed_result.strength,
+                                                    word_count: seed_result.word_count,
+                                                }
+                                            }
+                                            Err(e) => {
+                                                error!("❌ Failed to encrypt seed with quorum public key: {}", e);
+                                                EnclaveResult::Error {
+                                                    message: format!(
+                                                        "Seed encryption failed: {}",
+                                                        e
+                                                    ),
+                                                    code: 500,
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Err(e) => {
+                                        error!(
+                                            "❌ Quorum public key not available for encryption: {}",
+                                            e
+                                        );
+                                        EnclaveResult::Error {
+                                            message: format!("Quorum public key not available for encryption: {}", e),
+                                            code: 503,
+                                        }
+                                    }
+                                }
+                            }
+                            None => {
+                                error!("❌ Data encryption service not initialized");
+                                EnclaveResult::Error {
+                                    message: "Data encryption service not initialized - quorum key not provisioned".to_string(),
+                                    code: 503,
+                                }
+                            }
                         }
                     }
                     Err(e) => {
@@ -307,7 +395,7 @@ impl NitroEnclave {
             EnclaveOperation::ValidateSeed { seed_phrase } => {
                 info!("🔍 Validating seed phrase");
 
-                match seed_generator.validate_seed(&seed_phrase).await {
+                match self.seed_generator.validate_seed(&seed_phrase).await {
                     Ok(is_valid) => {
                         info!("✅ Seed phrase validation completed");
                         EnclaveResult::SeedValidated {
@@ -328,7 +416,7 @@ impl NitroEnclave {
             EnclaveOperation::GetInfo => {
                 info!("ℹ️  Providing enclave information");
 
-                let _network_status = network_manager.get_status().await;
+                let _network_status = self.network_manager.get_status().await;
                 let capabilities = vec![
                     "seed_generation".to_string(),
                     "bip39_compliance".to_string(),
@@ -340,7 +428,7 @@ impl NitroEnclave {
 
                 EnclaveResult::Info {
                     version: env!("CARGO_PKG_VERSION").to_string(),
-                    enclave_id: enclave_id.to_string(),
+                    enclave_id: self.enclave_id.clone(),
                     capabilities,
                 }
             }
@@ -352,7 +440,11 @@ impl NitroEnclave {
             } => {
                 info!("🔑 Deriving key (path: {}, curve: {})", path, curve);
 
-                match seed_generator.derive_key(&seed_phrase, &path, &curve).await {
+                match self
+                    .seed_generator
+                    .derive_key(&seed_phrase, &path, &curve)
+                    .await
+                {
                     Ok(key_result) => {
                         info!("✅ Key derivation successful");
                         EnclaveResult::KeyDerived {
@@ -380,7 +472,8 @@ impl NitroEnclave {
             } => {
                 info!("📍 Deriving address (path: {}, curve: {})", path, curve);
 
-                match seed_generator
+                match self
+                    .seed_generator
                     .derive_address(&seed_phrase, &path, &curve)
                     .await
                 {
@@ -530,8 +623,16 @@ impl NitroEnclave {
                 info!("🔧 QoS PATTERN: Using decrypted shares from members for reconstruction");
 
                 // Extract the decrypted share data from the request
-                let member_shares: Vec<Vec<u8>> =
-                    shares.iter().map(|s| s.decrypted_share.clone()).collect();
+                // Add x-coordinates back to shares for proper reconstruction
+                let member_shares: Vec<Vec<u8>> = shares
+                    .iter()
+                    .enumerate()
+                    .map(|(i, s)| {
+                        let mut share_with_x = vec![(i + 1) as u8]; // x-coordinate
+                        share_with_x.extend_from_slice(&s.decrypted_share);
+                        share_with_x
+                    })
+                    .collect();
 
                 info!(
                     "🎯 Using {} decrypted shares from members",
@@ -617,12 +718,112 @@ impl NitroEnclave {
                                     }
 
                                     // Store the quorum key in TEE (simplified for now)
-                                    let storage = TeeStorage::new();
+                                    let _storage = TeeStorage::new();
                                     // For now, we'll skip the storage step to avoid type issues
                                     // In a real implementation, this would store the quorum key
                                     info!("🔐 Quorum key would be stored in TEE (skipped for type compatibility)");
 
                                     info!("✅ Quorum key stored in TEE successfully");
+
+                                    // Initialize services with the quorum key
+                                    info!("🔧 Initializing data encryption and transaction signing services...");
+                                    let quorum_pair =
+                                        match crate::quorum::P256Pair::from_master_seed(&seed_array)
+                                        {
+                                            Ok(pair) => pair,
+                                            Err(e) => {
+                                                error!("❌ Failed to create quorum pair: {}", e);
+                                                return EnclaveResponse::new(
+                                                    request.id,
+                                                    EnclaveResult::SharesInjected {
+                                                        reconstructed_quorum_key: vec![],
+                                                        success: false,
+                                                    },
+                                                );
+                                            }
+                                        };
+
+                                    // Initialize data encryption service
+                                    let data_encryption = DataEncryption::new(quorum_pair.clone());
+                                    *self.data_encryption.lock().unwrap() = Some(data_encryption);
+
+                                    // Initialize transaction signing service
+                                    let transaction_signer =
+                                        TransactionSigner::new(quorum_pair.clone());
+                                    *self.transaction_signer.lock().unwrap() =
+                                        Some(transaction_signer);
+
+                                    // Set quorum key in TEE communication manager for TEE-to-TEE operations
+                                    info!("🔗 Setting quorum key in TEE communication manager...");
+                                    match renclave_enclave::P256Pair::from_master_seed(&seed_array)
+                                    {
+                                        Ok(tee_quorum_pair) => {
+                                            if let Err(e) = self
+                                                .tee_communication
+                                                .lock()
+                                                .unwrap()
+                                                .set_quorum_key(tee_quorum_pair)
+                                            {
+                                                error!("❌ Failed to set quorum key in TEE communication manager: {}", e);
+                                            } else {
+                                                info!("✅ Quorum key set in TEE communication manager successfully");
+                                            }
+                                        }
+                                        Err(e) => {
+                                            error!("❌ Failed to create TEE quorum pair: {}", e);
+                                        }
+                                    }
+
+                                    // Set manifest envelope in TEE communication manager
+                                    let storage = TeeStorage::new();
+                                    if let Ok(stored_manifest) = storage.get_manifest_envelope() {
+                                        info!("📄 Setting manifest envelope in TEE communication manager...");
+                                        if let Err(e) = self
+                                            .tee_communication
+                                            .lock()
+                                            .unwrap()
+                                            .set_manifest_envelope(stored_manifest)
+                                        {
+                                            error!("❌ Failed to set manifest envelope in TEE communication manager: {}", e);
+                                        } else {
+                                            info!("✅ Manifest envelope set in TEE communication manager successfully");
+                                        }
+                                    } else {
+                                        error!("❌ Failed to get stored manifest envelope for TEE communication manager");
+                                    }
+
+                                    // Update application state - transition to GenesisBooted first, then QuorumKeyProvisioned
+                                    let mut state_manager = self.state_manager.lock().unwrap();
+
+                                    // First transition to GenesisBooted
+                                    if let Err(e) =
+                                        state_manager.transition_to(ApplicationPhase::GenesisBooted)
+                                    {
+                                        error!("❌ Failed to transition to GenesisBooted: {}", e);
+                                    } else {
+                                        info!("✅ State transitioned to GenesisBooted");
+
+                                        // Then transition to QuorumKeyProvisioned
+                                        if let Err(e) = state_manager
+                                            .transition_to(ApplicationPhase::QuorumKeyProvisioned)
+                                        {
+                                            error!("❌ Failed to transition to QuorumKeyProvisioned: {}", e);
+                                        } else {
+                                            info!("✅ State transitioned to QuorumKeyProvisioned");
+
+                                            // Now provision the quorum key
+                                            if let Err(e) =
+                                                state_manager.provision_quorum_key(quorum_pair)
+                                            {
+                                                error!("❌ Failed to provision quorum key in state manager: {}", e);
+                                            } else {
+                                                info!("✅ Quorum key provisioned successfully");
+                                            }
+                                        }
+                                    }
+
+                                    info!("✅ Services initialized successfully");
+
                                     EnclaveResult::SharesInjected {
                                         reconstructed_quorum_key: quorum_public_key,
                                         success: true,
@@ -650,6 +851,360 @@ impl NitroEnclave {
                     }
                 }
             }
+            // Data Encryption/Decryption Operations
+            EnclaveOperation::EncryptData {
+                data,
+                recipient_public,
+            } => {
+                info!("🔐 Encrypting data ({} bytes)", data.len());
+
+                match self.data_encryption.lock().unwrap().as_ref() {
+                    Some(encryption_service) => {
+                        match encryption_service.encrypt_data(&data, &recipient_public) {
+                            Ok(encrypted_data) => {
+                                info!("✅ Data encrypted successfully");
+                                EnclaveResult::DataEncrypted { encrypted_data }
+                            }
+                            Err(e) => {
+                                error!("❌ Failed to encrypt data: {}", e);
+                                EnclaveResult::Error {
+                                    message: format!("Data encryption failed: {}", e),
+                                    code: 500,
+                                }
+                            }
+                        }
+                    }
+                    None => {
+                        error!("❌ Data encryption service not initialized");
+                        EnclaveResult::Error {
+                            message: "Data encryption service not initialized - quorum key not provisioned".to_string(),
+                            code: 503,
+                        }
+                    }
+                }
+            }
+
+            EnclaveOperation::DecryptData { encrypted_data } => {
+                info!("🔓 Decrypting data ({} bytes)", encrypted_data.len());
+
+                match self.data_encryption.lock().unwrap().as_ref() {
+                    Some(encryption_service) => {
+                        match encryption_service.decrypt_data(&encrypted_data) {
+                            Ok(decrypted_data) => {
+                                info!("✅ Data decrypted successfully");
+                                EnclaveResult::DataDecrypted { decrypted_data }
+                            }
+                            Err(e) => {
+                                error!("❌ Failed to decrypt data: {}", e);
+                                EnclaveResult::Error {
+                                    message: format!("Data decryption failed: {}", e),
+                                    code: 500,
+                                }
+                            }
+                        }
+                    }
+                    None => {
+                        error!("❌ Data encryption service not initialized");
+                        EnclaveResult::Error {
+                            message: "Data encryption service not initialized - quorum key not provisioned".to_string(),
+                            code: 503,
+                        }
+                    }
+                }
+            }
+
+            // Transaction Signing Operations
+            EnclaveOperation::SignTransaction { transaction_data } => {
+                info!("✍️  Signing transaction ({} bytes)", transaction_data.len());
+
+                // Check if quorum key is available
+                let quorum_key_available = {
+                    let state_manager = self.state_manager.lock().unwrap();
+                    state_manager.get_status().has_quorum_key
+                };
+
+                if !quorum_key_available {
+                    error!("❌ Cannot sign transaction: Quorum key not provisioned");
+                    return EnclaveResponse::new(
+                        request.id,
+                        EnclaveResult::Error {
+                            message: "Cannot sign transaction: Quorum key not provisioned. Please complete Genesis Boot and Share Injection first.".to_string(),
+                            code: 503,
+                        },
+                    );
+                }
+
+                // Use the quorum key directly for signing (correct QoS architecture)
+                let signer_service = {
+                    let signer_guard = self.transaction_signer.lock().unwrap();
+                    signer_guard.clone()
+                };
+
+                match signer_service {
+                    Some(signer_service) => {
+                        match signer_service.sign_raw_message(&transaction_data) {
+                            Ok(signature) => {
+                                info!("✅ Transaction signed successfully with quorum key");
+                                EnclaveResult::TransactionSigned {
+                                    signature,
+                                    recovery_id: 0, // P256 doesn't use recovery ID
+                                }
+                            }
+                            Err(e) => {
+                                error!("❌ Failed to sign transaction: {}", e);
+                                EnclaveResult::Error {
+                                    message: format!("Transaction signing failed: {}", e),
+                                    code: 500,
+                                }
+                            }
+                        }
+                    }
+                    None => {
+                        error!("❌ Transaction signer service not initialized");
+                        EnclaveResult::Error {
+                            message: "Transaction signer service not initialized - quorum key not provisioned".to_string(),
+                            code: 503,
+                        }
+                    }
+                }
+            }
+
+            EnclaveOperation::SignTransactionWithSeed {
+                transaction_data,
+                encrypted_seed,
+            } => {
+                info!(
+                    "✍️  Signing transaction with encrypted seed ({} bytes)",
+                    transaction_data.len()
+                );
+
+                // Check if quorum key is available
+                let quorum_key_available = {
+                    let state_manager = self.state_manager.lock().unwrap();
+                    state_manager.get_status().has_quorum_key
+                };
+
+                if !quorum_key_available {
+                    error!("❌ Cannot sign transaction: Quorum key not provisioned");
+                    return EnclaveResponse::new(
+                        request.id,
+                        EnclaveResult::Error {
+                            message: "Cannot sign transaction: Quorum key not provisioned. Please complete Genesis Boot and Share Injection first.".to_string(),
+                            code: 503,
+                        },
+                    );
+                }
+
+                // Decrypt the seed using the quorum key
+                let encryption_service = {
+                    let encryption_guard = self.data_encryption.lock().unwrap();
+                    encryption_guard.clone()
+                };
+
+                match encryption_service {
+                    Some(encryption_service) => {
+                        match encryption_service.decrypt_data(&encrypted_seed) {
+                            Ok(decrypted_seed_bytes) => {
+                                info!("✅ Seed decrypted successfully");
+
+                                // Convert decrypted bytes back to mnemonic string
+                                let mnemonic = match String::from_utf8(decrypted_seed_bytes) {
+                                    Ok(m) => m,
+                                    Err(e) => {
+                                        error!("❌ Invalid UTF-8 in decrypted seed: {}", e);
+                                        return EnclaveResponse::new(
+                                            request.id,
+                                            EnclaveResult::Error {
+                                                message: format!(
+                                                    "Invalid UTF-8 in decrypted seed: {}",
+                                                    e
+                                                ),
+                                                code: 500,
+                                            },
+                                        );
+                                    }
+                                };
+
+                                // Derive signing key from the mnemonic
+                                info!("🔑 Deriving signing key from decrypted seed");
+                                match self
+                                    .seed_generator
+                                    .derive_key(&mnemonic, "m/44'/60'/0'/0/0", "secp256k1")
+                                    .await
+                                {
+                                    Ok(_key_result) => {
+                                        info!("✅ Signing key derived from seed");
+
+                                        // Use the derived key for signing
+                                        let signer_service = {
+                                            let signer_guard =
+                                                self.transaction_signer.lock().unwrap();
+                                            signer_guard.clone()
+                                        };
+
+                                        match signer_service {
+                                            Some(signer_service) => {
+                                                match signer_service
+                                                    .sign_raw_message(&transaction_data)
+                                                {
+                                                    Ok(signature) => {
+                                                        info!("✅ Transaction signed successfully with seed-derived key");
+                                                        EnclaveResult::TransactionSigned {
+                                                            signature,
+                                                            recovery_id: 0, // P256 doesn't use recovery ID
+                                                        }
+                                                    }
+                                                    Err(e) => {
+                                                        error!(
+                                                            "❌ Failed to sign transaction: {}",
+                                                            e
+                                                        );
+                                                        EnclaveResult::Error {
+                                                            message: format!(
+                                                                "Transaction signing failed: {}",
+                                                                e
+                                                            ),
+                                                            code: 500,
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            None => {
+                                                error!(
+                                                    "❌ Transaction signer service not initialized"
+                                                );
+                                                EnclaveResult::Error {
+                                                    message: "Transaction signer service not initialized - quorum key not provisioned".to_string(),
+                                                    code: 503,
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Err(e) => {
+                                        error!("❌ Failed to derive signing key from seed: {}", e);
+                                        EnclaveResult::Error {
+                                            message: format!("Key derivation failed: {}", e),
+                                            code: 500,
+                                        }
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                error!("❌ Failed to decrypt seed: {}", e);
+                                EnclaveResult::Error {
+                                    message: format!("Seed decryption failed: {}", e),
+                                    code: 500,
+                                }
+                            }
+                        }
+                    }
+                    None => {
+                        error!("❌ Data encryption service not initialized");
+                        EnclaveResult::Error {
+                            message: "Data encryption service not initialized - quorum key not provisioned".to_string(),
+                            code: 503,
+                        }
+                    }
+                }
+            }
+
+            EnclaveOperation::SignMessage { message } => {
+                info!("✍️  Signing message ({} bytes)", message.len());
+
+                match self.transaction_signer.lock().unwrap().as_ref() {
+                    Some(signer_service) => match signer_service.sign_raw_message(&message) {
+                        Ok(signature) => {
+                            info!("✅ Message signed successfully");
+                            EnclaveResult::MessageSigned { signature }
+                        }
+                        Err(e) => {
+                            error!("❌ Failed to sign message: {}", e);
+                            EnclaveResult::Error {
+                                message: format!("Message signing failed: {}", e),
+                                code: 500,
+                            }
+                        }
+                    },
+                    None => {
+                        error!("❌ Transaction signer service not initialized");
+                        EnclaveResult::Error {
+                            message: "Transaction signer service not initialized - quorum key not provisioned".to_string(),
+                            code: 503,
+                        }
+                    }
+                }
+            }
+
+            // Application State Operations
+            EnclaveOperation::GetApplicationStatus => {
+                info!("📊 Getting application status");
+
+                let status = self.state_manager.lock().unwrap().get_status();
+                let metadata = ApplicationMetadata {
+                    name: status.metadata.name,
+                    version: status.metadata.version,
+                    last_updated: status.metadata.last_updated,
+                    operation_count: status.metadata.operation_count,
+                };
+                EnclaveResult::ApplicationStatus {
+                    phase: format!("{:?}", status.phase),
+                    has_quorum_key: status.has_quorum_key,
+                    data_count: status.data_count,
+                    metadata,
+                }
+            }
+
+            EnclaveOperation::StoreApplicationData { key, data } => {
+                info!(
+                    "💾 Storing application data (key: {}, {} bytes)",
+                    key,
+                    data.len()
+                );
+
+                match self
+                    .state_manager
+                    .lock()
+                    .unwrap()
+                    .get_state_mut()
+                    .store_data(key, data)
+                {
+                    Ok(()) => {
+                        info!("✅ Application data stored successfully");
+                        EnclaveResult::ApplicationDataStored { success: true }
+                    }
+                    Err(e) => {
+                        error!("❌ Failed to store application data: {}", e);
+                        EnclaveResult::Error {
+                            message: format!("Application data storage failed: {}", e),
+                            code: 500,
+                        }
+                    }
+                }
+            }
+
+            EnclaveOperation::GetApplicationData { key } => {
+                info!("📖 Retrieving application data (key: {})", key);
+
+                match self
+                    .state_manager
+                    .lock()
+                    .unwrap()
+                    .get_state()
+                    .get_data(&key)
+                {
+                    Some(data) => {
+                        info!("✅ Application data retrieved successfully");
+                        EnclaveResult::ApplicationDataRetrieved {
+                            data: Some(data.clone()),
+                        }
+                    }
+                    None => {
+                        info!("ℹ️  Application data not found for key: {}", key);
+                        EnclaveResult::ApplicationDataRetrieved { data: None }
+                    }
+                }
+            }
+
             EnclaveOperation::GenerateQuorumKey { .. } => EnclaveResult::Error {
                 message: "GenerateQuorumKey operation not implemented in this flow".to_string(),
                 code: 501,
@@ -662,6 +1217,468 @@ impl NitroEnclave {
                 message: "InjectQuorumKey operation not implemented in this flow".to_string(),
                 code: 501,
             },
+            EnclaveOperation::ResetEnclave => {
+                info!("🔄 Resetting enclave state");
+
+                // Clear all storage
+                let storage = TeeStorage::new();
+                if let Err(e) = storage.clear_all() {
+                    error!("❌ Failed to clear storage: {}", e);
+                    return EnclaveResponse::new(
+                        request.id,
+                        EnclaveResult::EnclaveReset { success: false },
+                    );
+                }
+
+                // Reset application state
+                {
+                    let mut state_manager = self.state_manager.lock().unwrap();
+                    state_manager.reset();
+                }
+
+                info!("✅ Enclave state reset successfully");
+                EnclaveResult::EnclaveReset { success: true }
+            }
+
+            // TEE-to-TEE Communication Operations
+            EnclaveOperation::BootKeyForward {
+                manifest_envelope,
+                pivot,
+            } => {
+                info!("🔍 MATCHED: BootKeyForward");
+                info!("🚀 Handling boot key forward request");
+
+                // Parse manifest envelope from request
+                let parsed_manifest = match serde_json::from_value(manifest_envelope) {
+                    Ok(manifest) => manifest,
+                    Err(e) => {
+                        error!("❌ Failed to parse manifest envelope: {}", e);
+                        return EnclaveResponse::new(
+                            request.id,
+                            EnclaveResult::Error {
+                                message: format!("Failed to parse manifest envelope: {}", e),
+                                code: 400,
+                            },
+                        );
+                    }
+                };
+
+                // Parse pivot from request
+                let parsed_pivot = match serde_json::from_value(pivot) {
+                    Ok(pivot) => pivot,
+                    Err(e) => {
+                        error!("❌ Failed to parse pivot: {}", e);
+                        return EnclaveResponse::new(
+                            request.id,
+                            EnclaveResult::Error {
+                                message: format!("Failed to parse pivot: {}", e),
+                                code: 400,
+                            },
+                        );
+                    }
+                };
+
+                let boot_request = renclave_enclave::attestation::BootKeyForwardRequest {
+                    manifest_envelope: parsed_manifest,
+                    pivot: parsed_pivot,
+                };
+
+                let tee_comm = self.tee_communication.lock().unwrap();
+                match tee_comm.handle_boot_key_forward(boot_request) {
+                    Ok(response) => {
+                        info!("✅ Boot key forward response created");
+                        info!("✅ TEE1 (Original Node) created BootKeyForward response for TEE2");
+
+                        match serde_json::to_value(response.nsm_response) {
+                            Ok(nsm_response) => {
+                                EnclaveResult::BootKeyForwardResponse { nsm_response }
+                            }
+                            Err(e) => {
+                                error!("❌ Failed to serialize NSM response: {}", e);
+                                EnclaveResult::Error {
+                                    message: format!("Failed to serialize NSM response: {}", e),
+                                    code: 500,
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        error!("❌ Boot key forward failed: {}", e);
+                        EnclaveResult::Error {
+                            message: format!("Boot key forward failed: {}", e),
+                            code: 500,
+                        }
+                    }
+                }
+            }
+
+            EnclaveOperation::ExportKey {
+                manifest_envelope,
+                attestation_doc,
+            } => {
+                info!("🔍 MATCHED: ExportKey");
+                info!("📤 MAIN.RS - Handling export key request");
+                debug!("🔍 ExportKey handler reached");
+
+                // Parse manifest envelope from request
+                let parsed_manifest = match serde_json::from_value(manifest_envelope) {
+                    Ok(manifest) => {
+                        info!("✅ Successfully parsed manifest envelope from request");
+                        manifest
+                    }
+                    Err(e) => {
+                        error!("❌ Failed to parse manifest envelope: {}", e);
+                        return EnclaveResponse::new(
+                            request.id,
+                            EnclaveResult::Error {
+                                message: format!("Failed to parse manifest envelope: {}", e),
+                                code: 400,
+                            },
+                        );
+                    }
+                };
+
+                // Parse attestation document from request
+                info!("✅ Successfully parsed attestation document from request");
+                debug!(
+                    "📄 Attestation document size: {} bytes",
+                    attestation_doc.as_array().map(|arr| arr.len()).unwrap_or(0)
+                );
+
+                // Convert attestation document from JSON array to bytes
+                let attestation_doc_bytes = match attestation_doc.as_array() {
+                    Some(arr) => {
+                        let bytes: Result<Vec<u8>, _> = arr
+                            .iter()
+                            .filter_map(|v| v.as_u64())
+                            .map(|n| {
+                                if n <= 255 {
+                                    Ok(n as u8)
+                                } else {
+                                    Err(format!("Invalid byte value: {}", n))
+                                }
+                            })
+                            .collect();
+                        match bytes {
+                            Ok(bytes) => {
+                                info!("✅ Successfully converted attestation document to bytes: {} bytes", bytes.len());
+                                bytes
+                            }
+                            Err(e) => {
+                                error!("❌ Failed to convert attestation document to bytes: {}", e);
+                                return EnclaveResponse::new(
+                                    request.id,
+                                    EnclaveResult::Error {
+                                        message: format!(
+                                            "Failed to convert attestation document to bytes: {}",
+                                            e
+                                        ),
+                                        code: 400,
+                                    },
+                                );
+                            }
+                        }
+                    }
+                    None => {
+                        error!("❌ Attestation document is not an array");
+                        return EnclaveResponse::new(
+                            request.id,
+                            EnclaveResult::Error {
+                                message: "Attestation document must be an array of bytes"
+                                    .to_string(),
+                                code: 400,
+                            },
+                        );
+                    }
+                };
+
+                let export_request = renclave_enclave::attestation::ExportKeyRequest {
+                    manifest_envelope: parsed_manifest,
+                    cose_sign1_attestation_doc: attestation_doc_bytes,
+                };
+
+                let tee_comm = self.tee_communication.lock().unwrap();
+                match tee_comm.handle_export_key(export_request) {
+                    Ok(response) => {
+                        info!("✅ Export key response created");
+                        EnclaveResult::ExportKeyResponse {
+                            encrypted_quorum_key: response.encrypted_quorum_key,
+                            signature: response.signature,
+                        }
+                    }
+                    Err(e) => {
+                        error!("❌ Export key failed: {}", e);
+                        EnclaveResult::Error {
+                            message: format!("Export key failed: {}", e),
+                            code: 500,
+                        }
+                    }
+                }
+            }
+
+            EnclaveOperation::InjectKey {
+                encrypted_quorum_key,
+                signature,
+            } => {
+                info!("💉 Handling inject key request");
+
+                let inject_request = match (
+                    serde_json::from_value(encrypted_quorum_key),
+                    serde_json::from_value(signature),
+                ) {
+                    (Ok(encrypted_quorum_key), Ok(signature)) => {
+                        renclave_enclave::attestation::InjectKeyRequest {
+                            encrypted_quorum_key,
+                            signature,
+                        }
+                    }
+                    (Err(e), _) => {
+                        error!("❌ Failed to parse encrypted quorum key: {}", e);
+                        return EnclaveResponse::new(
+                            request.id,
+                            EnclaveResult::Error {
+                                message: format!("Failed to parse encrypted quorum key: {}", e),
+                                code: 400,
+                            },
+                        );
+                    }
+                    (_, Err(e)) => {
+                        error!("❌ Failed to parse signature: {}", e);
+                        return EnclaveResponse::new(
+                            request.id,
+                            EnclaveResult::Error {
+                                message: format!("Failed to parse signature: {}", e),
+                                code: 400,
+                            },
+                        );
+                    }
+                };
+
+                let tee_comm = self.tee_communication.lock().unwrap();
+                match tee_comm.handle_inject_key(inject_request) {
+                    Ok(_response) => {
+                        info!("✅ Key injection successful - TEE is now provisioned");
+
+                        // Follow QoS pattern: transition from WaitingForForwardedKey to QuorumKeyProvisioned
+                        info!("🔄 Following QoS pattern: transitioning from WaitingForForwardedKey to QuorumKeyProvisioned...");
+                        let mut state_manager = self.state_manager.lock().unwrap();
+                        if let Err(e) =
+                            state_manager.transition_to(ApplicationPhase::QuorumKeyProvisioned)
+                        {
+                            error!(
+                                "❌ Failed to transition to QuorumKeyProvisioned phase: {}",
+                                e
+                            );
+                            return EnclaveResponse::new(
+                                request.id,
+                                EnclaveResult::Error {
+                                    message: format!(
+                                        "Failed to transition to QuorumKeyProvisioned phase: {}",
+                                        e
+                                    ),
+                                    code: 500,
+                                },
+                            );
+                        }
+
+                        // Now set the quorum key (this should work in QuorumKeyProvisioned phase)
+                        info!("🔗 Setting quorum key in QuorumKeyProvisioned phase...");
+                        if let Some(quorum_key) = tee_comm.get_quorum_key().unwrap_or(None) {
+                            // Convert from renclave_enclave::P256Pair to crate::quorum::P256Pair
+                            let quorum_key_bytes = quorum_key.private_key_bytes();
+                            let quorum_key_array: [u8; 32] = quorum_key_bytes.try_into().unwrap();
+                            let converted_quorum_key =
+                                crate::quorum::P256Pair::from_master_seed(&quorum_key_array)
+                                    .unwrap();
+
+                            if let Err(e) = state_manager
+                                .get_state_mut()
+                                .set_quorum_key(converted_quorum_key.clone())
+                            {
+                                error!("❌ Failed to set quorum key in state manager: {}", e);
+                                return EnclaveResponse::new(
+                                    request.id,
+                                    EnclaveResult::Error {
+                                        message: format!(
+                                            "Failed to set quorum key in state manager: {}",
+                                            e
+                                        ),
+                                        code: 500,
+                                    },
+                                );
+                            }
+
+                            // Initialize data encryption service with the quorum key
+                            info!("🔧 Initializing data encryption service with quorum key...");
+                            let data_encryption = DataEncryption::new(converted_quorum_key.clone());
+                            *self.data_encryption.lock().unwrap() = Some(data_encryption);
+                            info!("✅ Data encryption service initialized");
+
+                            // Initialize transaction signing service with the quorum key
+                            info!("🔧 Initializing transaction signing service with quorum key...");
+                            let transaction_signer =
+                                TransactionSigner::new(converted_quorum_key.clone());
+                            *self.transaction_signer.lock().unwrap() = Some(transaction_signer);
+                            info!("✅ Transaction signing service initialized");
+
+                            // Finally transition to ApplicationReady
+                            info!("🔄 Transitioning to ApplicationReady phase...");
+                            if let Err(e) =
+                                state_manager.transition_to(ApplicationPhase::ApplicationReady)
+                            {
+                                error!("❌ Failed to transition to ApplicationReady phase: {}", e);
+                                return EnclaveResponse::new(
+                                    request.id,
+                                    EnclaveResult::Error {
+                                        message: format!(
+                                            "Failed to transition to ApplicationReady phase: {}",
+                                            e
+                                        ),
+                                        code: 500,
+                                    },
+                                );
+                            }
+
+                            info!("✅ TEE2 successfully provisioned with quorum key and services, now ApplicationReady");
+                        } else {
+                            error!("❌ No quorum key found in TEE communication manager after injection");
+                            return EnclaveResponse::new(
+                                request.id,
+                                EnclaveResult::Error {
+                                    message: "No quorum key found in TEE communication manager after injection".to_string(),
+                                    code: 500,
+                                },
+                            );
+                        }
+
+                        EnclaveResult::InjectKeyResponse { success: true }
+                    }
+                    Err(e) => {
+                        error!("❌ Key injection failed: {}", e);
+                        EnclaveResult::Error {
+                            message: format!("Key injection failed: {}", e),
+                            code: 500,
+                        }
+                    }
+                }
+            }
+            EnclaveOperation::GenerateAttestation {
+                manifest_hash,
+                pcr_values,
+            } => {
+                info!("📄 Handling generate attestation request");
+
+                // Try to use stored manifest envelope first (QoS pattern)
+                let tee_comm = self.tee_communication.lock().unwrap();
+                let (final_manifest_hash, final_pcr_values) =
+                    if let Ok(stored_manifest) = tee_comm.get_manifest_envelope() {
+                        info!("✅ Using stored manifest envelope for attestation generation");
+                        let stored_hash = stored_manifest.manifest.qos_hash();
+                        let stored_pcr_values = (
+                            stored_manifest.manifest.enclave.pcr0,
+                            stored_manifest.manifest.enclave.pcr1,
+                            stored_manifest.manifest.enclave.pcr2,
+                            stored_manifest.manifest.enclave.pcr3,
+                        );
+                        info!("📄 Using stored manifest hash: {} bytes", stored_hash.len());
+                        (stored_hash, stored_pcr_values)
+                    } else {
+                        info!("⚠️ No stored manifest envelope, using provided values");
+                        (manifest_hash, pcr_values)
+                    };
+
+                match tee_comm.generate_attestation_doc(&final_manifest_hash, final_pcr_values) {
+                    Ok(attestation_doc) => {
+                        info!("✅ Attestation document generated successfully");
+                        match borsh::to_vec(&attestation_doc) {
+                            Ok(attestation_doc_bytes) => {
+                                EnclaveResult::GenerateAttestationResponse {
+                                    attestation_doc: attestation_doc_bytes,
+                                }
+                            }
+                            Err(e) => {
+                                error!("❌ Failed to serialize attestation document: {}", e);
+                                EnclaveResult::Error {
+                                    message: format!(
+                                        "Failed to serialize attestation document: {}",
+                                        e
+                                    ),
+                                    code: 500,
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        error!("❌ Attestation document generation failed: {}", e);
+                        EnclaveResult::Error {
+                            message: format!("Attestation document generation failed: {}", e),
+                            code: 500,
+                        }
+                    }
+                }
+            }
+
+            EnclaveOperation::ShareManifest { manifest_envelope } => {
+                info!("📄 Handling share manifest request");
+
+                // Parse manifest envelope from request
+                let parsed_manifest = match serde_json::from_value(manifest_envelope) {
+                    Ok(manifest) => {
+                        info!("✅ Successfully parsed manifest envelope from request");
+                        manifest
+                    }
+                    Err(e) => {
+                        error!("❌ Failed to parse manifest envelope: {}", e);
+                        return EnclaveResponse::new(
+                            request.id,
+                            EnclaveResult::Error {
+                                message: format!("Failed to parse manifest envelope: {}", e),
+                                code: 400,
+                            },
+                        );
+                    }
+                };
+
+                // Store manifest envelope in TEE communication manager
+                let tee_comm = self.tee_communication.lock().unwrap();
+                match tee_comm.set_manifest_envelope(parsed_manifest) {
+                    Ok(_) => {
+                        info!("✅ Manifest envelope stored successfully");
+
+                        // Follow QoS pattern: transition from WaitingForBootInstruction to WaitingForForwardedKey
+                        info!("🔄 Following QoS pattern: transitioning from WaitingForBootInstruction to WaitingForForwardedKey...");
+                        let mut state_manager = self.state_manager.lock().unwrap();
+                        if let Err(e) =
+                            state_manager.transition_to(ApplicationPhase::WaitingForForwardedKey)
+                        {
+                            error!(
+                                "❌ Failed to transition to WaitingForForwardedKey phase: {}",
+                                e
+                            );
+                            return EnclaveResponse::new(
+                                request.id,
+                                EnclaveResult::Error {
+                                    message: format!(
+                                        "Failed to transition to WaitingForForwardedKey phase: {}",
+                                        e
+                                    ),
+                                    code: 500,
+                                },
+                            );
+                        }
+                        info!("✅ Successfully transitioned to WaitingForForwardedKey phase");
+
+                        EnclaveResult::ShareManifestResponse { success: true }
+                    }
+                    Err(e) => {
+                        error!("❌ Failed to store manifest envelope: {}", e);
+                        EnclaveResult::Error {
+                            message: format!("Failed to store manifest envelope: {}", e),
+                            code: 500,
+                        }
+                    }
+                }
+            }
         };
 
         EnclaveResponse::new(request.id, result)

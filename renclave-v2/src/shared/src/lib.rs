@@ -1,8 +1,10 @@
+use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use sha2::{Digest, Sha256};
 
 /// Quorum member with alias and public key
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
 pub struct QuorumMember {
     /// Member alias/identifier
     pub alias: String,
@@ -11,7 +13,7 @@ pub struct QuorumMember {
 }
 
 /// Manifest envelope for quorum operations
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
 pub struct ManifestEnvelope {
     /// The manifest data
     pub manifest: Manifest,
@@ -22,7 +24,7 @@ pub struct ManifestEnvelope {
 }
 
 /// Manifest data structure
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
 pub struct Manifest {
     /// Namespace information
     pub namespace: Namespace,
@@ -37,7 +39,7 @@ pub struct Manifest {
 }
 
 /// Namespace information
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
 pub struct Namespace {
     /// Nonce for ordering
     pub nonce: u64,
@@ -48,7 +50,7 @@ pub struct Namespace {
 }
 
 /// Nitro enclave configuration
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
 pub struct NitroConfig {
     /// PCR0 value
     pub pcr0: Vec<u8>,
@@ -65,7 +67,7 @@ pub struct NitroConfig {
 }
 
 /// Pivot configuration
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
 pub struct PivotConfig {
     /// Pivot hash
     pub hash: [u8; 32],
@@ -76,7 +78,7 @@ pub struct PivotConfig {
 }
 
 /// Restart policy
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
 pub enum RestartPolicy {
     Always,
     Never,
@@ -84,7 +86,7 @@ pub enum RestartPolicy {
 }
 
 /// Manifest set
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
 pub struct ManifestSet {
     /// Threshold for approvals
     pub threshold: u32,
@@ -93,7 +95,7 @@ pub struct ManifestSet {
 }
 
 /// Share set
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
 pub struct ShareSet {
     /// Threshold for approvals
     pub threshold: u32,
@@ -112,7 +114,7 @@ pub struct EncryptedShare {
 }
 
 /// Approval structure
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
 pub struct Approval {
     /// Signature
     pub signature: Vec<u8>,
@@ -159,6 +161,56 @@ pub struct EncryptedQuorumKey {
 impl Default for RestartPolicy {
     fn default() -> Self {
         RestartPolicy::Always
+    }
+}
+
+impl Manifest {
+    /// Calculate the QoS hash of this manifest
+    pub fn qos_hash(&self) -> Vec<u8> {
+        // Create a deterministic hash of the manifest
+        let mut hasher = Sha256::new();
+        
+        // Hash namespace info
+        hasher.update(&self.namespace.nonce.to_le_bytes());
+        hasher.update(self.namespace.name.as_bytes());
+        hasher.update(&self.namespace.quorum_key);
+        
+        // Hash enclave config
+        hasher.update(&self.enclave.pcr0);
+        hasher.update(&self.enclave.pcr1);
+        hasher.update(&self.enclave.pcr2);
+        hasher.update(&self.enclave.pcr3);
+        hasher.update(&self.enclave.aws_root_certificate);
+        hasher.update(self.enclave.qos_commit.as_bytes());
+        
+        // Hash pivot config
+        hasher.update(&self.pivot.hash);
+        // Convert RestartPolicy to string manually
+        let restart_str = match self.pivot.restart {
+            RestartPolicy::Always => "Always",
+            RestartPolicy::Never => "Never",
+            RestartPolicy::OnFailure => "OnFailure",
+        };
+        hasher.update(restart_str.as_bytes());
+        for arg in &self.pivot.args {
+            hasher.update(arg.as_bytes());
+        }
+        
+        // Hash manifest set
+        hasher.update(&self.manifest_set.threshold.to_le_bytes());
+        for member in &self.manifest_set.members {
+            hasher.update(member.alias.as_bytes());
+            hasher.update(&member.pub_key);
+        }
+        
+        // Hash share set
+        hasher.update(&self.share_set.threshold.to_le_bytes());
+        for member in &self.share_set.members {
+            hasher.update(member.alias.as_bytes());
+            hasher.update(&member.pub_key);
+        }
+        
+        hasher.finalize().to_vec()
     }
 }
 
@@ -217,6 +269,70 @@ pub enum EnclaveOperation {
         shares: Vec<DecryptedShare>,
     },
     GetInfo,
+    // Data Encryption/Decryption Operations
+    EncryptData {
+        data: Vec<u8>,
+        recipient_public: Vec<u8>,
+    },
+    DecryptData {
+        encrypted_data: Vec<u8>,
+    },
+    // Transaction Signing Operations
+    SignTransaction {
+        transaction_data: Vec<u8>,
+    },
+    SignTransactionWithSeed {
+        transaction_data: Vec<u8>,
+        encrypted_seed: Vec<u8>,
+    },
+    SignMessage {
+        message: Vec<u8>,
+    },
+    // Application State Operations
+    GetApplicationStatus,
+    StoreApplicationData {
+        key: String,
+        data: Vec<u8>,
+    },
+    GetApplicationData {
+        key: String,
+    },
+    // Reset Operations
+    ResetEnclave,
+
+    // TEE-to-TEE Communication Operations
+    BootKeyForward {
+        manifest_envelope: serde_json::Value,
+        pivot: serde_json::Value,
+    },
+    ExportKey {
+        manifest_envelope: serde_json::Value,
+        attestation_doc: serde_json::Value,
+    },
+    InjectKey {
+        encrypted_quorum_key: serde_json::Value,
+        signature: serde_json::Value,
+    },
+    GenerateAttestation {
+        manifest_hash: Vec<u8>,
+        pcr_values: (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>),
+    },
+    ShareManifest {
+        manifest_envelope: serde_json::Value,
+    },
+}
+
+/// Application metadata for tracking state information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApplicationMetadata {
+    /// Application name
+    pub name: String,
+    /// Application version
+    pub version: String,
+    /// Last updated timestamp
+    pub last_updated: u64,
+    /// Number of operations performed
+    pub operation_count: u64,
 }
 
 /// Response types from enclave to host
@@ -287,6 +403,56 @@ pub enum EnclaveResult {
     Error {
         message: String,
         code: u32,
+    },
+    // Data Encryption/Decryption Results
+    DataEncrypted {
+        encrypted_data: Vec<u8>,
+    },
+    DataDecrypted {
+        decrypted_data: Vec<u8>,
+    },
+    // Transaction Signing Results
+    TransactionSigned {
+        signature: Vec<u8>,
+        recovery_id: u8,
+    },
+    MessageSigned {
+        signature: Vec<u8>,
+    },
+    // Application State Results
+    ApplicationStatus {
+        phase: String,
+        has_quorum_key: bool,
+        data_count: usize,
+        metadata: ApplicationMetadata,
+    },
+    ApplicationDataStored {
+        success: bool,
+    },
+    ApplicationDataRetrieved {
+        data: Option<Vec<u8>>,
+    },
+    // Reset Results
+    EnclaveReset {
+        success: bool,
+    },
+
+    // TEE-to-TEE Communication Results
+    BootKeyForwardResponse {
+        nsm_response: serde_json::Value,
+    },
+    ExportKeyResponse {
+        encrypted_quorum_key: Vec<u8>,
+        signature: Vec<u8>,
+    },
+    InjectKeyResponse {
+        success: bool,
+    },
+    GenerateAttestationResponse {
+        attestation_doc: Vec<u8>,
+    },
+    ShareManifestResponse {
+        success: bool,
     },
 }
 
@@ -435,6 +601,129 @@ pub struct ErrorResponse {
     pub error: String,
     pub code: u32,
     pub request_id: Option<String>,
+}
+
+// Data Encryption/Decryption Request/Response Types
+
+/// Request to encrypt data
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EncryptDataRequest {
+    /// Data to encrypt
+    pub data: Vec<u8>,
+    /// Recipient's public key
+    pub recipient_public: Vec<u8>,
+}
+
+/// Response from data encryption
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EncryptDataResponse {
+    /// Whether encryption was successful
+    pub success: bool,
+    /// Encrypted data
+    pub encrypted_data: Vec<u8>,
+}
+
+/// Request to decrypt data
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DecryptDataRequest {
+    /// Encrypted data to decrypt
+    pub encrypted_data: Vec<u8>,
+}
+
+/// Response from data decryption
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DecryptDataResponse {
+    /// Whether decryption was successful
+    pub success: bool,
+    /// Decrypted data
+    pub decrypted_data: Vec<u8>,
+}
+
+// Transaction Signing Request/Response Types
+
+/// Request to sign a transaction
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignTransactionRequest {
+    /// Transaction data to sign
+    pub transaction_data: Vec<u8>,
+}
+
+/// Response from transaction signing
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignTransactionResponse {
+    /// Whether signing was successful
+    pub success: bool,
+    /// Signature bytes
+    pub signature: Vec<u8>,
+    /// Recovery ID for signature
+    pub recovery_id: u8,
+}
+
+/// Request to sign a message
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignMessageRequest {
+    /// Message to sign
+    pub message: Vec<u8>,
+}
+
+/// Response from message signing
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignMessageResponse {
+    /// Whether signing was successful
+    pub success: bool,
+    /// Signature bytes
+    pub signature: Vec<u8>,
+}
+
+// Application Status Request/Response Types
+
+/// Response from application status request
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApplicationStatusResponse {
+    /// Whether request was successful
+    pub success: bool,
+    /// Current application phase
+    pub phase: String,
+    /// Whether quorum key is available
+    pub has_quorum_key: bool,
+    /// Number of stored data items
+    pub data_count: usize,
+    /// Application metadata
+    pub metadata: ApplicationMetadata,
+}
+
+// Application Data Storage Request/Response Types
+
+/// Request to store application data
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StoreApplicationDataRequest {
+    /// Key to store data under
+    pub key: String,
+    /// Data to store
+    pub data: Vec<u8>,
+}
+
+/// Response from application data storage
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StoreApplicationDataResponse {
+    /// Whether storage was successful
+    pub success: bool,
+}
+
+/// Request to get application data
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetApplicationDataRequest {
+    /// Key to retrieve data for
+    pub key: String,
+}
+
+/// Response from application data retrieval
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetApplicationDataResponse {
+    /// Whether retrieval was successful
+    pub success: bool,
+    /// Retrieved data (None if not found)
+    pub data: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -10,6 +10,9 @@ pub mod storage;
 pub mod manifest;
 pub mod tee_waiting;
 pub mod genesis_boot;
+pub mod data_encryption;
+pub mod attestation;
+pub mod tee_communication;
 
 // Re-export main types for convenience
 pub use quorum::{

@@ -11,6 +11,10 @@ path = "src/lib.rs"
 name = "enclave"
 path = "src/main.rs"
 
+[[bin]]
+name = "test_tee_communication_simple"
+path = "test_tee_communication_simple.rs"
+
 [dependencies]
 renclave-shared = { path = "../shared" }
 renclave-network = { path = "../network" }

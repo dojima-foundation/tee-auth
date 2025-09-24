@@ -4,6 +4,7 @@ members = [
     "src/host",
     "src/shared",
     "src/network",
+    "src/tools",
     "benchmarks"
 ]
 resolver = "2"
@@ -56,7 +57,7 @@ llvm-tools-preview = "0.12"
 # Note: AWS Nitro libraries removed for QEMU compatibility
 
     # Quorum key generation dependencies - compatible versions
-    p256 = { version = "0.8", default-features = false, features = ["ecdsa", "ecdh", "arithmetic"] }
+    p256 = { version = "0.12.0", default-features = false, features = ["ecdsa", "ecdh", "arithmetic"] }
     aes-gcm = { version = "0.10.3", features = ["aes", "alloc"], default-features = false }
     hmac = { version = "0.12", default-features = false }
     hkdf = { version = "0.12", default-features = false }

@@ -12,6 +12,7 @@ log = { workspace = true }
 uuid = { workspace = true }
 borsh = { workspace = true }
 serde_bytes = { workspace = true }
+sha2 = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }

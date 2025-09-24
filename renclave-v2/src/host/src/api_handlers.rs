@@ -1,4 +1,8 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+    Json,
+};
 use log::{debug, error, info, warn};
 use uuid::Uuid;
 
@@ -987,7 +991,7 @@ pub async fn inject_shares(
     // Send share injection request to enclave
     info!("📡 Sending share injection request to enclave...");
     debug!("🔍 Enclave client state: {:?}", state.enclave_client);
-    
+
     match state
         .enclave_client
         .inject_shares(
@@ -1049,9 +1053,6 @@ pub async fn inject_shares(
 mod tests {
     use super::*;
     use axum::http::StatusCode;
-    use axum::Json;
-    use renclave_shared::*;
-    use std::sync::Arc;
 
     // Mock implementations for testing
     #[derive(Clone)]
@@ -1181,4 +1182,813 @@ mod tests {
         // Test implementation would go here
     }
     */
+}
+
+/// Encrypt data using quorum keys
+pub async fn encrypt_data(
+    State(state): State<AppState>,
+    Json(request): Json<EncryptDataRequest>,
+) -> std::result::Result<Json<EncryptDataResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("🔐 Data encryption requested (ID: {})", request_id);
+
+    // Send request to enclave
+    let enclave_request = EnclaveRequest {
+        id: request_id.clone(),
+        operation: EnclaveOperation::EncryptData {
+            data: request.data,
+            recipient_public: request.recipient_public,
+        },
+    };
+
+    match state
+        .enclave_client
+        .send_request(enclave_request.operation)
+        .await
+    {
+        Ok(response) => match response.result {
+            EnclaveResult::DataEncrypted { encrypted_data } => {
+                info!("✅ Data encrypted successfully");
+                Ok(Json(EncryptDataResponse {
+                    success: true,
+                    encrypted_data,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                warn!("❌ Enclave error: {} (code: {})", message, code);
+                Err((
+                    StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                    Json(ErrorResponse {
+                        error: "Data encryption failed".to_string(),
+                        code: code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                warn!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Enclave communication failed".to_string(),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Decrypt data using quorum keys
+pub async fn decrypt_data(
+    State(state): State<AppState>,
+    Json(request): Json<DecryptDataRequest>,
+) -> std::result::Result<Json<DecryptDataResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("🔓 Data decryption requested (ID: {})", request_id);
+
+    // Send request to enclave
+    let enclave_request = EnclaveRequest {
+        id: request_id.clone(),
+        operation: EnclaveOperation::DecryptData {
+            encrypted_data: request.encrypted_data,
+        },
+    };
+
+    match state
+        .enclave_client
+        .send_request(enclave_request.operation)
+        .await
+    {
+        Ok(response) => match response.result {
+            EnclaveResult::DataDecrypted { decrypted_data } => {
+                info!("✅ Data decrypted successfully");
+                Ok(Json(DecryptDataResponse {
+                    success: true,
+                    decrypted_data,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                warn!("❌ Enclave error: {} (code: {})", message, code);
+                Err((
+                    StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                    Json(ErrorResponse {
+                        error: "Data decryption failed".to_string(),
+                        code: code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                warn!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Enclave communication failed".to_string(),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Sign transaction using quorum keys
+pub async fn sign_transaction(
+    State(state): State<AppState>,
+    Json(request): Json<SignTransactionRequest>,
+) -> std::result::Result<Json<SignTransactionResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("✍️  Transaction signing requested (ID: {})", request_id);
+
+    // Send request to enclave
+    let enclave_request = EnclaveRequest {
+        id: request_id.clone(),
+        operation: EnclaveOperation::SignTransaction {
+            transaction_data: request.transaction_data,
+        },
+    };
+
+    match state
+        .enclave_client
+        .send_request(enclave_request.operation)
+        .await
+    {
+        Ok(response) => match response.result {
+            EnclaveResult::TransactionSigned {
+                signature,
+                recovery_id,
+            } => {
+                info!("✅ Transaction signed successfully");
+                Ok(Json(SignTransactionResponse {
+                    success: true,
+                    signature,
+                    recovery_id,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                warn!("❌ Enclave error: {} (code: {})", message, code);
+                Err((
+                    StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                    Json(ErrorResponse {
+                        error: "Transaction signing failed".to_string(),
+                        code: code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                warn!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Enclave communication failed".to_string(),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Sign message using quorum keys
+pub async fn sign_message(
+    State(state): State<AppState>,
+    Json(request): Json<SignMessageRequest>,
+) -> std::result::Result<Json<SignMessageResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("✍️  Message signing requested (ID: {})", request_id);
+
+    // Send request to enclave
+    let enclave_request = EnclaveRequest {
+        id: request_id.clone(),
+        operation: EnclaveOperation::SignMessage {
+            message: request.message,
+        },
+    };
+
+    match state
+        .enclave_client
+        .send_request(enclave_request.operation)
+        .await
+    {
+        Ok(response) => match response.result {
+            EnclaveResult::MessageSigned { signature } => {
+                info!("✅ Message signed successfully");
+                Ok(Json(SignMessageResponse {
+                    success: true,
+                    signature,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                warn!("❌ Enclave error: {} (code: {})", message, code);
+                Err((
+                    StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                    Json(ErrorResponse {
+                        error: "Message signing failed".to_string(),
+                        code: code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                warn!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Enclave communication failed".to_string(),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Get application status
+pub async fn get_application_status(
+    State(state): State<AppState>,
+) -> std::result::Result<Json<ApplicationStatusResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("📊 Application status requested (ID: {})", request_id);
+
+    // Send request to enclave
+    let enclave_request = EnclaveRequest {
+        id: request_id.clone(),
+        operation: EnclaveOperation::GetApplicationStatus,
+    };
+
+    match state
+        .enclave_client
+        .send_request(enclave_request.operation)
+        .await
+    {
+        Ok(response) => match response.result {
+            EnclaveResult::ApplicationStatus {
+                phase,
+                has_quorum_key,
+                data_count,
+                metadata,
+            } => {
+                info!("✅ Application status retrieved successfully");
+                Ok(Json(ApplicationStatusResponse {
+                    success: true,
+                    phase,
+                    has_quorum_key,
+                    data_count,
+                    metadata,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                warn!("❌ Enclave error: {} (code: {})", message, code);
+                Err((
+                    StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                    Json(ErrorResponse {
+                        error: "Application status retrieval failed".to_string(),
+                        code: code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                warn!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Enclave communication failed".to_string(),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Store application data
+pub async fn store_application_data(
+    State(state): State<AppState>,
+    Json(request): Json<StoreApplicationDataRequest>,
+) -> std::result::Result<Json<StoreApplicationDataResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("💾 Application data storage requested (ID: {})", request_id);
+
+    // Send request to enclave
+    let enclave_request = EnclaveRequest {
+        id: request_id.clone(),
+        operation: EnclaveOperation::StoreApplicationData {
+            key: request.key,
+            data: request.data,
+        },
+    };
+
+    match state
+        .enclave_client
+        .send_request(enclave_request.operation)
+        .await
+    {
+        Ok(response) => match response.result {
+            EnclaveResult::ApplicationDataStored { success } => {
+                info!("✅ Application data stored successfully");
+                Ok(Json(StoreApplicationDataResponse { success }))
+            }
+            EnclaveResult::Error { message, code } => {
+                warn!("❌ Enclave error: {} (code: {})", message, code);
+                Err((
+                    StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                    Json(ErrorResponse {
+                        error: "Application data storage failed".to_string(),
+                        code: code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                warn!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Enclave communication failed".to_string(),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Get application data
+pub async fn get_application_data(
+    State(state): State<AppState>,
+    Query(request): Query<GetApplicationDataRequest>,
+) -> std::result::Result<Json<GetApplicationDataResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!(
+        "📖 Application data retrieval requested (ID: {})",
+        request_id
+    );
+
+    // Send request to enclave
+    let enclave_request = EnclaveRequest {
+        id: request_id.clone(),
+        operation: EnclaveOperation::GetApplicationData { key: request.key },
+    };
+
+    match state
+        .enclave_client
+        .send_request(enclave_request.operation)
+        .await
+    {
+        Ok(response) => match response.result {
+            EnclaveResult::ApplicationDataRetrieved { data } => {
+                info!("✅ Application data retrieved successfully");
+                Ok(Json(GetApplicationDataResponse {
+                    success: true,
+                    data,
+                }))
+            }
+            EnclaveResult::Error { message, code } => {
+                warn!("❌ Enclave error: {} (code: {})", message, code);
+                Err((
+                    StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                    Json(ErrorResponse {
+                        error: "Application data retrieval failed".to_string(),
+                        code: code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                warn!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Enclave communication failed".to_string(),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// Reset enclave state
+pub async fn reset_enclave(
+    State(state): State<AppState>,
+) -> std::result::Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("🔄 Enclave reset requested (ID: {})", request_id);
+
+    // Send request to enclave
+    let enclave_request = EnclaveRequest {
+        id: request_id.clone(),
+        operation: EnclaveOperation::ResetEnclave,
+    };
+
+    match state
+        .enclave_client
+        .send_request(enclave_request.operation)
+        .await
+    {
+        Ok(response) => match response.result {
+            EnclaveResult::EnclaveReset { success } => {
+                if success {
+                    info!("✅ Enclave reset successfully");
+                    Ok(Json(serde_json::json!({
+                        "success": true,
+                        "message": "Enclave state reset successfully"
+                    })))
+                } else {
+                    warn!("❌ Enclave reset failed");
+                    Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(ErrorResponse {
+                            error: "Enclave reset failed".to_string(),
+                            code: 500,
+                            request_id: Some(request_id),
+                        }),
+                    ))
+                }
+            }
+            EnclaveResult::Error { message, code } => {
+                warn!("❌ Enclave error: {} (code: {})", message, code);
+                Err((
+                    StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                    Json(ErrorResponse {
+                        error: "Enclave reset failed".to_string(),
+                        code: code,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+            _ => {
+                warn!("❌ Unexpected response type from enclave");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Unexpected response".to_string(),
+                        code: 500,
+                        request_id: Some(request_id),
+                    }),
+                ))
+            }
+        },
+        Err(e) => {
+            error!("❌ Failed to communicate with enclave: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Enclave communication failed".to_string(),
+                    code: 503,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// TEE-to-TEE Communication: Boot Key Forward
+pub async fn boot_key_forward(
+    State(state): State<AppState>,
+    Json(request): Json<serde_json::Value>,
+) -> std::result::Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!(
+        "🔄 TEE-to-TEE Boot Key Forward requested (ID: {})",
+        request_id
+    );
+
+    match state
+        .enclave_client
+        .send_request(EnclaveOperation::BootKeyForward {
+            manifest_envelope: request
+                .get("manifest_envelope")
+                .cloned()
+                .unwrap_or(serde_json::Value::Null),
+            pivot: request
+                .get("pivot")
+                .cloned()
+                .unwrap_or(serde_json::Value::Null),
+        })
+        .await
+    {
+        Ok(response) => {
+            info!(
+                "✅ Boot Key Forward completed successfully (ID: {})",
+                request_id
+            );
+            Ok(Json(
+                serde_json::to_value(response).unwrap_or(serde_json::Value::Null),
+            ))
+        }
+        Err(e) => {
+            error!("❌ Boot Key Forward failed: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Boot Key Forward failed: {}", e),
+                    code: 500,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// TEE-to-TEE Communication: Export Key
+pub async fn export_key(
+    State(state): State<AppState>,
+    Json(request): Json<serde_json::Value>,
+) -> std::result::Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("🔄 TEE-to-TEE Export Key requested (ID: {})", request_id);
+
+    match state
+        .enclave_client
+        .send_request(EnclaveOperation::ExportKey {
+            manifest_envelope: request
+                .get("manifest_envelope")
+                .cloned()
+                .unwrap_or(serde_json::Value::Null),
+            attestation_doc: request
+                .get("attestation_doc")
+                .cloned()
+                .unwrap_or(serde_json::Value::Null),
+        })
+        .await
+    {
+        Ok(response) => {
+            info!("✅ Export Key completed successfully (ID: {})", request_id);
+            Ok(Json(
+                serde_json::to_value(response).unwrap_or(serde_json::Value::Null),
+            ))
+        }
+        Err(e) => {
+            error!("❌ Export Key failed: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Export Key failed: {}", e),
+                    code: 500,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// TEE-to-TEE Communication: Inject Key
+pub async fn inject_key(
+    State(state): State<AppState>,
+    Json(request): Json<serde_json::Value>,
+) -> std::result::Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!("🔄 TEE-to-TEE Inject Key requested (ID: {})", request_id);
+
+    match state
+        .enclave_client
+        .send_request(EnclaveOperation::InjectKey {
+            encrypted_quorum_key: request
+                .get("encrypted_quorum_key")
+                .cloned()
+                .unwrap_or(serde_json::Value::Null),
+            signature: request
+                .get("signature")
+                .cloned()
+                .unwrap_or(serde_json::Value::Null),
+        })
+        .await
+    {
+        Ok(response) => {
+            info!("✅ Inject Key completed successfully (ID: {})", request_id);
+            Ok(Json(
+                serde_json::to_value(response).unwrap_or(serde_json::Value::Null),
+            ))
+        }
+        Err(e) => {
+            error!("❌ Inject Key failed: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Inject Key failed: {}", e),
+                    code: 500,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// TEE-to-TEE Communication: Generate Attestation Document
+pub async fn generate_attestation(
+    State(state): State<AppState>,
+    Json(request): Json<serde_json::Value>,
+) -> std::result::Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!(
+        "🔄 TEE-to-TEE Generate Attestation requested (ID: {})",
+        request_id
+    );
+
+    match state
+        .enclave_client
+        .send_request(EnclaveOperation::GenerateAttestation {
+            manifest_hash: request
+                .get("manifest_hash")
+                .and_then(|v| v.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_u64().map(|n| n as u8))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            pcr_values: (
+                request
+                    .get("pcr0")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_u64().map(|n| n as u8))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+                request
+                    .get("pcr1")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_u64().map(|n| n as u8))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+                request
+                    .get("pcr2")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_u64().map(|n| n as u8))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+                request
+                    .get("pcr3")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_u64().map(|n| n as u8))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            ),
+        })
+        .await
+    {
+        Ok(response) => {
+            info!(
+                "✅ Generate Attestation completed successfully (ID: {})",
+                request_id
+            );
+            Ok(Json(
+                serde_json::to_value(response).unwrap_or(serde_json::Value::Null),
+            ))
+        }
+        Err(e) => {
+            error!("❌ Generate Attestation failed: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Generate Attestation failed: {}", e),
+                    code: 500,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
+}
+
+/// TEE-to-TEE Communication: Share Manifest Envelope
+pub async fn share_manifest(
+    State(state): State<AppState>,
+    Json(request): Json<serde_json::Value>,
+) -> std::result::Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let request_id = Uuid::new_v4().to_string();
+    info!(
+        "🔄 TEE-to-TEE Share Manifest requested (ID: {})",
+        request_id
+    );
+
+    match state
+        .enclave_client
+        .send_request(EnclaveOperation::ShareManifest {
+            manifest_envelope: request
+                .get("manifest_envelope")
+                .cloned()
+                .unwrap_or(serde_json::Value::Null),
+        })
+        .await
+    {
+        Ok(response) => {
+            info!(
+                "✅ Share Manifest completed successfully (ID: {})",
+                request_id
+            );
+            Ok(Json(
+                serde_json::to_value(response).unwrap_or(serde_json::Value::Null),
+            ))
+        }
+        Err(e) => {
+            error!("❌ Share Manifest failed: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Share Manifest failed: {}", e),
+                    code: 500,
+                    request_id: Some(request_id),
+                }),
+            ))
+        }
+    }
 }

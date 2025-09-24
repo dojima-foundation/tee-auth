@@ -5,16 +5,29 @@ use anyhow::{anyhow, Result};
 use borsh::{BorshDeserialize, BorshSerialize};
 use log::info;
 use p256::{
-    ecdsa::{signature::Signature, SigningKey, VerifyingKey},
+    ecdsa::{Signature, SigningKey, VerifyingKey},
 };
 use rand::{rngs::OsRng, Rng};
 use sha2::{Digest, Sha256, Sha512};
 use std::fmt;
 
+// Import the data encryption types
+use crate::data_encryption::{Envelope, P256EncryptPair};
+
 /// P256 key pair for quorum operations
 pub struct P256Pair {
     secret: SigningKey,
     public: VerifyingKey,
+}
+
+impl Clone for P256Pair {
+    fn clone(&self) -> Self {
+        // Recreate the key pair from the secret key bytes
+        let secret_bytes = self.secret.to_bytes();
+        let secret = SigningKey::from_bytes(&secret_bytes).unwrap();
+        let public = VerifyingKey::from(&secret);
+        Self { secret, public }
+    }
 }
 
 /// P256 public key for quorum operations
@@ -101,6 +114,11 @@ impl P256Pair {
         }
     }
 
+    /// Get the private key bytes
+    pub fn private_key_bytes(&self) -> Vec<u8> {
+        self.secret.to_bytes().to_vec()
+    }
+
     /// Get the master seed (32 bytes)
     pub fn to_master_seed(&self) -> [u8; MASTER_SEED_LEN] {
         self.secret.to_bytes().into()
@@ -124,16 +142,31 @@ impl P256Pair {
     /// Sign data with this key pair
     pub fn sign(&self, data: &[u8]) -> Result<Vec<u8>> {
         use p256::ecdsa::signature::Signer;
-        let signature = self.secret.sign(data);
-        Ok(signature.as_bytes().to_vec())
+        let signature: Signature = self.secret.sign(data);
+        Ok(signature.to_bytes().to_vec())
     }
 
     /// Decrypt data using ECDH
     pub fn decrypt(&self, encrypted_data: &[u8]) -> Result<Vec<u8>> {
-        // This is a simplified implementation
-        // In a real implementation, you'd use proper ECDH + AES-GCM
-        // For now, we'll just return the data as-is for testing
-        Ok(encrypted_data.to_vec())
+        info!("🔓 DEBUG: P256Pair::decrypt() called");
+        info!("🔓 DEBUG: Encrypted data length: {} bytes", encrypted_data.len());
+        info!("🔓 DEBUG: Encrypted data (first 10 bytes): {:?}", &encrypted_data[..encrypted_data.len().min(10)]);
+        
+        // Deserialize the envelope
+        let _envelope: Envelope = borsh::from_slice(encrypted_data)
+            .map_err(|e| anyhow!("Failed to deserialize envelope: {}", e))?;
+        info!("🔓 DEBUG: Successfully deserialized envelope");
+        
+        // Create the decryptor using the quorum key
+        let decryptor = P256EncryptPair::from_bytes(&self.secret.to_bytes())?;
+        info!("🔓 DEBUG: Created P256EncryptPair from quorum secret");
+        
+        // Decrypt using the same key pair
+        let decrypted = decryptor.decrypt(encrypted_data)?;
+        info!("🔓 DEBUG: Decryption successful, length: {} bytes", decrypted.len());
+        info!("🔓 DEBUG: Decrypted data (first 10 bytes): {:?}", &decrypted[..decrypted.len().min(10)]);
+        
+        Ok(decrypted)
     }
 }
 
@@ -344,7 +377,16 @@ pub fn shares_reconstruct<B: AsRef<[Vec<u8>]>>(shares: B) -> Result<Vec<u8>> {
     info!("✅ SSS Reconstruction completed (vsss-rs):");
     info!("  📊 Reconstructed secret: {} bytes = {:?}", secret.len(), &secret[..std::cmp::min(8, secret.len())]);
 
-    Ok(secret)
+    // The secret should be 33 bytes (including x-coordinate), but we need only the first 32 bytes
+    if secret.len() != 33 {
+        return Err(anyhow!("Reconstructed secret has invalid length: {} bytes (expected 33)", secret.len()));
+    }
+
+    // Return only the first 32 bytes (without x-coordinate)
+    let secret_32_bytes = secret[..32].to_vec();
+    info!("  📊 Final secret (32 bytes): {} bytes = {:?}", secret_32_bytes.len(), &secret_32_bytes[..std::cmp::min(8, secret_32_bytes.len())]);
+
+    Ok(secret_32_bytes)
 }
 
 /// Multiply two elements in GF(256) using the AES polynomial
