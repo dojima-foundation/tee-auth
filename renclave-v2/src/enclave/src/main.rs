@@ -623,16 +623,9 @@ impl NitroEnclave {
                 info!("🔧 QoS PATTERN: Using decrypted shares from members for reconstruction");
 
                 // Extract the decrypted share data from the request
-                // Add x-coordinates back to shares for proper reconstruction
-                let member_shares: Vec<Vec<u8>> = shares
-                    .iter()
-                    .enumerate()
-                    .map(|(i, s)| {
-                        let mut share_with_x = vec![(i + 1) as u8]; // x-coordinate
-                        share_with_x.extend_from_slice(&s.decrypted_share);
-                        share_with_x
-                    })
-                    .collect();
+                // The decrypted_share field already contains the full share (including x-coordinate)
+                let member_shares: Vec<Vec<u8>> =
+                    shares.iter().map(|s| s.decrypted_share.clone()).collect();
 
                 info!(
                     "🎯 Using {} decrypted shares from members",
@@ -701,12 +694,61 @@ impl NitroEnclave {
                                                     [..std::cmp::min(8, stored_quorum_key.len())]
                                             );
 
+                                            // Detailed key comparison with hex output
+                                            info!("🔍 DETAILED KEY COMPARISON:");
+                                            info!(
+                                                "  📊 Expected key (from manifest): {} bytes",
+                                                stored_quorum_key.len()
+                                            );
+                                            info!(
+                                                "  📊 Expected key (hex): {}",
+                                                hex::encode(stored_quorum_key)
+                                            );
+                                            info!(
+                                                "  📊 Expected key (first 16 bytes): {:?}",
+                                                &stored_quorum_key
+                                                    [..std::cmp::min(16, stored_quorum_key.len())]
+                                            );
+
+                                            info!(
+                                                "  📊 Reconstructed key: {} bytes",
+                                                quorum_public_key.len()
+                                            );
+                                            info!(
+                                                "  📊 Reconstructed key (hex): {}",
+                                                hex::encode(&quorum_public_key)
+                                            );
+                                            info!(
+                                                "  📊 Reconstructed key (first 16 bytes): {:?}",
+                                                &quorum_public_key
+                                                    [..std::cmp::min(16, quorum_public_key.len())]
+                                            );
+
                                             if quorum_public_key == *stored_quorum_key {
                                                 info!("✅ KEY MATCH: Reconstructed key matches stored manifest key!");
                                             } else {
                                                 error!("❌ KEY MISMATCH: Reconstructed key does not match stored manifest key!");
                                                 error!("  Expected: {:?}", stored_quorum_key);
                                                 error!("  Got:      {:?}", quorum_public_key);
+
+                                                // Additional analysis
+                                                if stored_quorum_key.len()
+                                                    != quorum_public_key.len()
+                                                {
+                                                    error!("  📊 LENGTH MISMATCH: Expected {} bytes, got {} bytes", stored_quorum_key.len(), quorum_public_key.len());
+                                                } else {
+                                                    // Find first differing byte
+                                                    for (i, (expected, got)) in stored_quorum_key
+                                                        .iter()
+                                                        .zip(quorum_public_key.iter())
+                                                        .enumerate()
+                                                    {
+                                                        if expected != got {
+                                                            error!("  📊 FIRST DIFFERENCE at byte {}: expected 0x{:02x}, got 0x{:02x}", i, expected, got);
+                                                            break;
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                         Err(e) => {

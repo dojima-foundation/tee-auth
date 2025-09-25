@@ -242,6 +242,7 @@ pub fn shares_generate(
     info!("🔧 SSS Generation Debug (using vsss-rs like QoS):");
     info!("  📊 Secret: {} bytes = {:?}", secret.len(), &secret[..std::cmp::min(8, secret.len())]);
     info!("  📊 Share count: {}, Threshold: {}", share_count, threshold);
+    info!("  📊 Secret (full hex): {}", hex::encode(secret));
 
     // Implement the exact same approach as vsss-rs used by QoS  
     // Generate one polynomial per byte, but with consistent coefficients
@@ -299,6 +300,7 @@ pub fn shares_reconstruct<B: AsRef<[Vec<u8>]>>(shares: B) -> Result<Vec<u8>> {
     
     for (i, share) in shares.iter().enumerate() {
         info!("  📋 Share {}: {} bytes = {:?}", i + 1, share.len(), &share[..std::cmp::min(8, share.len())]);
+        info!("  📋 Share {} (full hex): {}", i + 1, hex::encode(share));
     }
 
     // Extract x-coordinates and share data (vsss-rs format compatibility)
@@ -376,15 +378,17 @@ pub fn shares_reconstruct<B: AsRef<[Vec<u8>]>>(shares: B) -> Result<Vec<u8>> {
     
     info!("✅ SSS Reconstruction completed (vsss-rs):");
     info!("  📊 Reconstructed secret: {} bytes = {:?}", secret.len(), &secret[..std::cmp::min(8, secret.len())]);
+    info!("  📊 Reconstructed secret (full hex): {}", hex::encode(&secret));
 
-    // The secret should be 33 bytes (including x-coordinate), but we need only the first 32 bytes
-    if secret.len() != 33 {
-        return Err(anyhow!("Reconstructed secret has invalid length: {} bytes (expected 33)", secret.len()));
+    // The secret should be 32 bytes (the original secret length)
+    if secret.len() != 32 {
+        return Err(anyhow!("Reconstructed secret has invalid length: {} bytes (expected 32)", secret.len()));
     }
 
-    // Return only the first 32 bytes (without x-coordinate)
-    let secret_32_bytes = secret[..32].to_vec();
+    // Return the reconstructed secret as-is (32 bytes)
+    let secret_32_bytes = secret;
     info!("  📊 Final secret (32 bytes): {} bytes = {:?}", secret_32_bytes.len(), &secret_32_bytes[..std::cmp::min(8, secret_32_bytes.len())]);
+    info!("  📊 Final secret (full hex): {}", hex::encode(&secret_32_bytes));
 
     Ok(secret_32_bytes)
 }
