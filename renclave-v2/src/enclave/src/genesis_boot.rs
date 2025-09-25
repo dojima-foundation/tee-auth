@@ -172,6 +172,7 @@ impl GenesisBootFlow {
     }
 
     /// Step 5: TEE waits for share reconstruction
+    #[allow(dead_code)]
     async fn wait_for_share_reconstruction(&self) -> Result<WaitingState> {
         debug!("⏳ Starting TEE waiting for share reconstruction");
 

@@ -6,7 +6,7 @@ use tokio::net::UnixStream;
 use tokio::time::{sleep, timeout};
 
 use renclave_shared::{
-    EnclaveOperation, EnclaveRequest, EnclaveResponse, EncryptedQuorumKey, DecryptedShare,
+    DecryptedShare, EnclaveOperation, EnclaveRequest, EnclaveResponse, EncryptedQuorumKey,
     ManifestEnvelope, QuorumMember,
 };
 
@@ -251,7 +251,7 @@ impl EnclaveClient {
         info!("📤 Requesting quorum key export");
 
         let operation = EnclaveOperation::ExportQuorumKey {
-            new_manifest_envelope,
+            new_manifest_envelope: Box::new(new_manifest_envelope),
             cose_sign1_attestation_document,
         };
         self.send_request(operation).await
@@ -271,6 +271,7 @@ impl EnclaveClient {
     }
 
     /// Execute Genesis Boot flow
+    #[allow(clippy::too_many_arguments)]
     pub async fn genesis_boot(
         &self,
         namespace_name: String,
@@ -345,7 +346,7 @@ impl EnclaveClient {
             namespace_nonce,
             shares,
         };
-        
+
         info!("📡 Sending share injection operation to enclave...");
         let result = self.send_request(operation).await;
         match &result {

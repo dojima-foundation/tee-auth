@@ -14,6 +14,7 @@ use renclave_shared::{
 };
 
 /// Generate a manifest envelope with the quorum public key
+#[allow(clippy::too_many_arguments)]
 pub fn generate_manifest_with_quorum_key(
     namespace_name: &str,
     namespace_nonce: u64,

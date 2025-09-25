@@ -4,9 +4,7 @@
 use anyhow::{anyhow, Result};
 use borsh::{BorshDeserialize, BorshSerialize};
 use log::info;
-use p256::{
-    ecdsa::{Signature, SigningKey, VerifyingKey},
-};
+use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use rand::{rngs::OsRng, Rng};
 use sha2::{Digest, Sha256, Sha512};
 use std::fmt;
@@ -109,9 +107,7 @@ impl P256Pair {
 
     /// Get the public key
     pub fn public_key(&self) -> P256Public {
-        P256Public {
-            key: self.public.clone(),
-        }
+        P256Public { key: self.public }
     }
 
     /// Get the private key bytes
@@ -125,11 +121,13 @@ impl P256Pair {
     }
 
     /// Get the master seed as hex string
+    #[allow(dead_code)]
     pub fn to_master_seed_hex(&self) -> String {
         hex::encode(self.to_master_seed())
     }
 
     /// Create P256Pair from master seed hex string
+    #[allow(dead_code)]
     pub fn from_master_seed_hex(hex_str: &str) -> Result<Self> {
         let bytes = hex::decode(hex_str)?;
         if bytes.len() != MASTER_SEED_LEN {
@@ -149,23 +147,35 @@ impl P256Pair {
     /// Decrypt data using ECDH
     pub fn decrypt(&self, encrypted_data: &[u8]) -> Result<Vec<u8>> {
         info!("🔓 DEBUG: P256Pair::decrypt() called");
-        info!("🔓 DEBUG: Encrypted data length: {} bytes", encrypted_data.len());
-        info!("🔓 DEBUG: Encrypted data (first 10 bytes): {:?}", &encrypted_data[..encrypted_data.len().min(10)]);
-        
+        info!(
+            "🔓 DEBUG: Encrypted data length: {} bytes",
+            encrypted_data.len()
+        );
+        info!(
+            "🔓 DEBUG: Encrypted data (first 10 bytes): {:?}",
+            &encrypted_data[..encrypted_data.len().min(10)]
+        );
+
         // Deserialize the envelope
         let _envelope: Envelope = borsh::from_slice(encrypted_data)
             .map_err(|e| anyhow!("Failed to deserialize envelope: {}", e))?;
         info!("🔓 DEBUG: Successfully deserialized envelope");
-        
+
         // Create the decryptor using the quorum key
         let decryptor = P256EncryptPair::from_bytes(&self.secret.to_bytes())?;
         info!("🔓 DEBUG: Created P256EncryptPair from quorum secret");
-        
+
         // Decrypt using the same key pair
         let decrypted = decryptor.decrypt(encrypted_data)?;
-        info!("🔓 DEBUG: Decryption successful, length: {} bytes", decrypted.len());
-        info!("🔓 DEBUG: Decrypted data (first 10 bytes): {:?}", &decrypted[..decrypted.len().min(10)]);
-        
+        info!(
+            "🔓 DEBUG: Decryption successful, length: {} bytes",
+            decrypted.len()
+        );
+        info!(
+            "🔓 DEBUG: Decrypted data (first 10 bytes): {:?}",
+            &decrypted[..decrypted.len().min(10)]
+        );
+
         Ok(decrypted)
     }
 }
@@ -184,6 +194,7 @@ impl P256Public {
     }
 
     /// Verify a signature
+    #[allow(dead_code)]
     pub fn verify(&self, data: &[u8], signature: &[u8]) -> Result<()> {
         use p256::ecdsa::signature::Verifier;
         let sig = p256::ecdsa::Signature::from_der(signature)
@@ -207,6 +218,7 @@ impl P256Public {
 
 impl GenesisOutput {
     /// Calculate the hash of this genesis output
+    #[allow(dead_code)]
     pub fn qos_hash(&self) -> [u8; 32] {
         // For now, use a simple hash of the quorum key
         // In a real implementation, this would use proper serialization
@@ -240,11 +252,18 @@ pub fn shares_generate(
     threshold: usize,
 ) -> Result<Vec<Vec<u8>>> {
     info!("🔧 SSS Generation Debug (using vsss-rs like QoS):");
-    info!("  📊 Secret: {} bytes = {:?}", secret.len(), &secret[..std::cmp::min(8, secret.len())]);
-    info!("  📊 Share count: {}, Threshold: {}", share_count, threshold);
+    info!(
+        "  📊 Secret: {} bytes = {:?}",
+        secret.len(),
+        &secret[..std::cmp::min(8, secret.len())]
+    );
+    info!(
+        "  📊 Share count: {}, Threshold: {}",
+        share_count, threshold
+    );
     info!("  📊 Secret (full hex): {}", hex::encode(secret));
 
-    // Implement the exact same approach as vsss-rs used by QoS  
+    // Implement the exact same approach as vsss-rs used by QoS
     // Generate one polynomial per byte, but with consistent coefficients
     let mut shares = vec![Vec::new(); share_count];
     let mut rng = OsRng;
@@ -256,36 +275,46 @@ pub fn shares_generate(
         for _ in 1..threshold {
             coefficients.push(rng.gen::<u8>());
         }
-        
+
         if byte_idx < 4 {
-            info!("🧮 Byte {}: secret={}, coefficients={:?}", byte_idx + 1, secret_byte, coefficients);
+            info!(
+                "🧮 Byte {}: secret={}, coefficients={:?}",
+                byte_idx + 1,
+                secret_byte,
+                coefficients
+            );
         }
 
         // Evaluate polynomial at each x point
         for x in 1..=share_count {
             let mut result = 0u8;
             let mut x_power = 1u8;
-            
+
             for &coeff in &coefficients {
                 result ^= gf256_mul(coeff, x_power);
                 x_power = gf256_mul(x_power, x as u8);
             }
-            
+
             // Add x-coordinate as first byte for vsss-rs compatibility
             if shares[x - 1].is_empty() {
                 shares[x - 1].push(x as u8);
             }
             shares[x - 1].push(result);
-            
+
             if byte_idx < 4 {
                 info!("    x={}: result={}", x, result);
             }
         }
     }
-    
+
     info!("✅ SSS Generation completed (vsss-rs):");
     for (i, share) in shares.iter().enumerate() {
-        info!("  📋 Generated share {}: {} bytes = {:?}", i + 1, share.len(), &share[..std::cmp::min(8, share.len())]);
+        info!(
+            "  📋 Generated share {}: {} bytes = {:?}",
+            i + 1,
+            share.len(),
+            &share[..std::cmp::min(8, share.len())]
+        );
     }
 
     Ok(shares)
@@ -297,37 +326,52 @@ pub fn shares_reconstruct<B: AsRef<[Vec<u8>]>>(shares: B) -> Result<Vec<u8>> {
     let shares = shares.as_ref();
     info!("🔧 SSS Reconstruction Debug (using vsss-rs like QoS):");
     info!("  📊 Share count: {}", shares.len());
-    
+
     for (i, share) in shares.iter().enumerate() {
-        info!("  📋 Share {}: {} bytes = {:?}", i + 1, share.len(), &share[..std::cmp::min(8, share.len())]);
+        info!(
+            "  📋 Share {}: {} bytes = {:?}",
+            i + 1,
+            share.len(),
+            &share[..std::cmp::min(8, share.len())]
+        );
         info!("  📋 Share {} (full hex): {}", i + 1, hex::encode(share));
     }
 
     // Extract x-coordinates and share data (vsss-rs format compatibility)
     let mut x_coords = Vec::new();
     let mut share_data = Vec::new();
-    
+
     for share in shares {
         if share.is_empty() {
             return Err(anyhow!("Empty share provided"));
         }
-        
+
         let x_coord = share[0];
         let data = &share[1..];
-        
+
         x_coords.push(x_coord);
         share_data.push(data.to_vec());
-        
-        info!("  📋 Share x={}: {} bytes = {:?}", x_coord, data.len(), &data[..std::cmp::min(8, data.len())]);
+
+        info!(
+            "  📋 Share x={}: {} bytes = {:?}",
+            x_coord,
+            data.len(),
+            &data[..std::cmp::min(8, data.len())]
+        );
     }
-    
+
     let share_count = shares.len();
     let secret_len = share_data[0].len();
-    
+
     // Verify all shares have the same length
     for (i, share) in share_data.iter().enumerate() {
         if share.len() != secret_len {
-            return Err(anyhow!("Share {} has length {} but expected {}", i, share.len(), secret_len));
+            return Err(anyhow!(
+                "Share {} has length {} but expected {}",
+                i,
+                share.len(),
+                secret_len
+            ));
         }
     }
 
@@ -336,7 +380,7 @@ pub fn shares_reconstruct<B: AsRef<[Vec<u8>]>>(shares: B) -> Result<Vec<u8>> {
     // For each byte position, reconstruct using Lagrange interpolation
     for byte_idx in 0..secret_len {
         let mut reconstructed_byte = 0u8;
-        
+
         if byte_idx < 4 {
             info!("🧮 Reconstructing byte {}/{}", byte_idx + 1, secret_len);
         }
@@ -348,11 +392,10 @@ pub fn shares_reconstruct<B: AsRef<[Vec<u8>]>>(shares: B) -> Result<Vec<u8>> {
 
             // Calculate Lagrange basis polynomial Li(0)
             let mut li = 1u8;
-            for j in 0..share_count {
+            for (j, &xj) in x_coords.iter().enumerate().take(share_count) {
                 if i != j {
-                    let xj = x_coords[j];
-                    let numerator = 0u8 ^ xj;  // In GF(256), -xj = xj
-                    let denominator = xi ^ xj;  // In GF(256), subtraction is XOR
+                    let numerator = xj; // In GF(256), -xj = xj
+                    let denominator = xi ^ xj; // In GF(256), subtraction is XOR
 
                     if denominator != 0 {
                         let inv_denom = gf256_inverse(denominator);
@@ -363,32 +406,60 @@ pub fn shares_reconstruct<B: AsRef<[Vec<u8>]>>(shares: B) -> Result<Vec<u8>> {
 
             let contribution = gf256_mul(yi, li);
             reconstructed_byte ^= contribution;
-            
+
             if byte_idx < 4 {
-                info!("    Point x{}: y{}={}, Li(0)={}, contribution={}", xi, i+1, yi, li, contribution);
+                info!(
+                    "    Point x{}: y{}={}, Li(0)={}, contribution={}",
+                    xi,
+                    i + 1,
+                    yi,
+                    li,
+                    contribution
+                );
             }
         }
-        
+
         if byte_idx < 4 {
-            info!("    📊 Reconstructed byte {}: {}", byte_idx + 1, reconstructed_byte);
+            info!(
+                "    📊 Reconstructed byte {}: {}",
+                byte_idx + 1,
+                reconstructed_byte
+            );
         }
 
         secret.push(reconstructed_byte);
     }
-    
+
     info!("✅ SSS Reconstruction completed (vsss-rs):");
-    info!("  📊 Reconstructed secret: {} bytes = {:?}", secret.len(), &secret[..std::cmp::min(8, secret.len())]);
-    info!("  📊 Reconstructed secret (full hex): {}", hex::encode(&secret));
+    info!(
+        "  📊 Reconstructed secret: {} bytes = {:?}",
+        secret.len(),
+        &secret[..std::cmp::min(8, secret.len())]
+    );
+    info!(
+        "  📊 Reconstructed secret (full hex): {}",
+        hex::encode(&secret)
+    );
 
     // The secret should be 32 bytes (the original secret length)
     if secret.len() != 32 {
-        return Err(anyhow!("Reconstructed secret has invalid length: {} bytes (expected 32)", secret.len()));
+        return Err(anyhow!(
+            "Reconstructed secret has invalid length: {} bytes (expected 32)",
+            secret.len()
+        ));
     }
 
     // Return the reconstructed secret as-is (32 bytes)
     let secret_32_bytes = secret;
-    info!("  📊 Final secret (32 bytes): {} bytes = {:?}", secret_32_bytes.len(), &secret_32_bytes[..std::cmp::min(8, secret_32_bytes.len())]);
-    info!("  📊 Final secret (full hex): {}", hex::encode(&secret_32_bytes));
+    info!(
+        "  📊 Final secret (32 bytes): {} bytes = {:?}",
+        secret_32_bytes.len(),
+        &secret_32_bytes[..std::cmp::min(8, secret_32_bytes.len())]
+    );
+    info!(
+        "  📊 Final secret (full hex): {}",
+        hex::encode(&secret_32_bytes)
+    );
 
     Ok(secret_32_bytes)
 }
@@ -421,7 +492,7 @@ fn gf256_inverse(a: u8) -> u8 {
             return i as u8;
         }
     }
-    
+
     0
 }
 
@@ -463,7 +534,7 @@ pub async fn boot_genesis(
                 // Encrypt the share to the member's public key
                 let personal_pub = P256Public::from_bytes(&share_set_member.pub_key)?;
                 let encrypted_quorum_key_share = personal_pub.encrypt(&share)?;
-                
+
                 info!(
                     "🔒 Encrypted share for member '{}' (share size: {} bytes, encrypted size: {} bytes)",
                     share_set_member.alias,
@@ -533,6 +604,7 @@ pub fn sha_512(data: &[u8]) -> [u8; 64] {
 }
 
 /// SHA-256 hash function
+#[allow(dead_code)]
 pub fn sha_256(data: &[u8]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(data);
@@ -543,6 +615,7 @@ pub fn sha_256(data: &[u8]) -> [u8; 32] {
 mod hex_serde {
     use serde::{Deserialize, Deserializer, Serializer};
 
+    #[allow(dead_code)]
     pub fn serialize<S>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -550,6 +623,7 @@ mod hex_serde {
         serializer.serialize_str(&hex::encode(data))
     }
 
+    #[allow(dead_code)]
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where
         D: Deserializer<'de>,
@@ -596,7 +670,9 @@ mod tests {
         // Use regular storage and clear it to avoid permission issues
         let test_storage = crate::TeeStorage::new();
         let _ = test_storage.clear_all(); // Clear any existing files
-        let output = boot_genesis(&genesis_set, None, Some(&test_storage)).await.unwrap();
+        let output = boot_genesis(&genesis_set, None, Some(&test_storage))
+            .await
+            .unwrap();
 
         // Verify we can reconstruct the quorum key from shares
         let zipped = std::iter::zip(output.member_outputs, member_pairs);
@@ -667,19 +743,22 @@ mod tests {
         let secret = b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
         let n = 3;
         let k = 2;
-        
+
         let shares = shares_generate(secret, n, k).unwrap();
 
         // Setting is 2-out-of-3. Let's try 3 ways like QoS does.
-        let reconstructed1 = shares_reconstruct(vec![shares[0].clone(), shares[1].clone()]).unwrap();
-        let reconstructed2 = shares_reconstruct(vec![shares[1].clone(), shares[2].clone()]).unwrap();
-        let reconstructed3 = shares_reconstruct(vec![shares[0].clone(), shares[2].clone()]).unwrap();
+        let reconstructed1 =
+            shares_reconstruct(vec![shares[0].clone(), shares[1].clone()]).unwrap();
+        let reconstructed2 =
+            shares_reconstruct(vec![shares[1].clone(), shares[2].clone()]).unwrap();
+        let reconstructed3 =
+            shares_reconstruct(vec![shares[0].clone(), shares[2].clone()]).unwrap();
 
         // Regardless of the combination we should get the same secret
         assert_eq!(reconstructed1, secret.to_vec());
         assert_eq!(reconstructed2, secret.to_vec());
         assert_eq!(reconstructed3, secret.to_vec());
-        
+
         println!("✅ QoS hardcoded shares test PASSED!");
         println!("Our implementation exactly matches QoS vsss-rs behavior");
     }
@@ -838,7 +917,7 @@ mod tests {
         // Test with wrong length seed (current implementation doesn't validate this)
         let _invalid_seed = [1u8; 16]; // Too short
         let invalid_seed_array: [u8; 32] = [1u8; 32]; // Convert to correct size
-        // This might succeed or fail depending on the implementation
+                                                      // This might succeed or fail depending on the implementation
         let _ = P256Pair::from_master_seed(&invalid_seed_array);
 
         // Test with all zeros seed (might be invalid)
@@ -904,4 +983,3 @@ mod tests {
         assert_eq!(hash1, hash2);
     }
 }
-

@@ -1,5 +1,3 @@
-use anyhow::anyhow;
-use hex;
 use log::{debug, error, info, warn};
 use std::sync::{Arc, Mutex};
 use tokio::fs;
@@ -136,9 +134,9 @@ impl NitroEnclave {
                                 info!("📞 Host connected to enclave: {:?}", addr);
 
                                 // Clone references for this connection
-                                let seed_generator = Arc::clone(&self.seed_generator);
-                                let network_manager = Arc::clone(&self.network_manager);
-                                let enclave_id = self.enclave_id.clone();
+                                let _seed_generator = Arc::clone(&self.seed_generator);
+                                let _network_manager = Arc::clone(&self.network_manager);
+                                let _enclave_id = self.enclave_id.clone();
 
                                 // Handle client in a separate task
                                 let enclave = self.clone();
@@ -334,7 +332,7 @@ impl NitroEnclave {
                                 match quorum_public_key {
                                     Ok(quorum_pub_bytes) => {
                                         match encryption_service.encrypt_data(
-                                            &seed_result.phrase.as_bytes(),
+                                            seed_result.phrase.as_bytes(),
                                             &quorum_pub_bytes,
                                         ) {
                                             Ok(encrypted_seed) => {
@@ -580,7 +578,7 @@ impl NitroEnclave {
                         EnclaveResult::GenesisBootCompleted {
                             quorum_public_key: genesis_output.quorum_key,
                             ephemeral_key: vec![], // Not used in this flow
-                            manifest_envelope,
+                            manifest_envelope: Box::new(manifest_envelope),
                             waiting_state: "GenesisBooted".to_string(),
                             encrypted_shares: genesis_output.member_outputs,
                         }

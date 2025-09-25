@@ -31,6 +31,7 @@ pub enum ApplicationPhase {
 
 impl ApplicationPhase {
     /// Get a human-readable description of the phase.
+    #[allow(dead_code)]
     pub fn description(&self) -> &'static str {
         match self {
             ApplicationPhase::UnrecoverableError => {
@@ -104,6 +105,7 @@ impl ApplicationState {
 
     /// Get the current phase.
     /// Following QoS ProtocolState::get_phase() exactly.
+    #[allow(dead_code)]
     pub fn get_phase(&self) -> ApplicationPhase {
         self.phase
     }
@@ -222,6 +224,7 @@ impl ApplicationState {
 
     /// Remove application data.
     /// Following QoS patterns for data management.
+    #[allow(dead_code)]
     pub fn remove_data(&mut self, key: &str) -> Result<()> {
         if !self.phase.allows_operations() {
             return Err(anyhow!("Cannot remove data in phase {:?}", self.phase));
@@ -233,16 +236,19 @@ impl ApplicationState {
     }
 
     /// Get all application data keys.
+    #[allow(dead_code)]
     pub fn get_data_keys(&self) -> Vec<String> {
         self.application_data.keys().cloned().collect()
     }
 
     /// Get application metadata.
+    #[allow(dead_code)]
     pub fn get_metadata(&self) -> &ApplicationMetadata {
         &self.metadata
     }
 
     /// Update application metadata.
+    #[allow(dead_code)]
     pub fn update_metadata(&mut self, name: Option<String>, version: Option<String>) {
         if let Some(name) = name {
             self.metadata.name = name;
@@ -323,6 +329,7 @@ impl ApplicationStateManager {
     }
 
     /// Check if the application is ready for operations.
+    #[allow(dead_code)]
     pub fn is_ready(&self) -> bool {
         self.state.phase == ApplicationPhase::ApplicationReady && self.state.has_quorum_key()
     }

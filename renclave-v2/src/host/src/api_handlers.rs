@@ -589,6 +589,7 @@ pub async fn derive_address(
 }
 
 /// Generate quorum key using Shamir Secret Sharing
+#[allow(dead_code)]
 pub async fn generate_quorum_key(
     State(state): State<AppState>,
     Json(request): Json<GenerateQuorumKeyRequest>,
@@ -696,6 +697,7 @@ pub async fn generate_quorum_key(
 }
 
 /// Export quorum key
+#[allow(dead_code)]
 pub async fn export_quorum_key(
     State(state): State<AppState>,
     Json(request): Json<ExportQuorumKeyRequest>,
@@ -759,6 +761,7 @@ pub async fn export_quorum_key(
 }
 
 /// Inject quorum key
+#[allow(dead_code)]
 pub async fn inject_quorum_key(
     State(state): State<AppState>,
     Json(request): Json<InjectQuorumKeyRequest>,
@@ -921,7 +924,7 @@ pub async fn genesis_boot(
                 Ok(Json(GenesisBootResponse {
                     quorum_public_key,
                     ephemeral_key,
-                    manifest_envelope,
+                    manifest_envelope: *manifest_envelope,
                     waiting_state,
                     encrypted_shares,
                 }))
@@ -1220,7 +1223,7 @@ pub async fn encrypt_data(
                     StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                     Json(ErrorResponse {
                         error: "Data encryption failed".to_string(),
-                        code: code,
+                        code,
                         request_id: Some(request_id),
                     }),
                 ))
@@ -1286,7 +1289,7 @@ pub async fn decrypt_data(
                     StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                     Json(ErrorResponse {
                         error: "Data decryption failed".to_string(),
-                        code: code,
+                        code,
                         request_id: Some(request_id),
                     }),
                 ))
@@ -1356,7 +1359,7 @@ pub async fn sign_transaction(
                     StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                     Json(ErrorResponse {
                         error: "Transaction signing failed".to_string(),
-                        code: code,
+                        code,
                         request_id: Some(request_id),
                     }),
                 ))
@@ -1422,7 +1425,7 @@ pub async fn sign_message(
                     StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                     Json(ErrorResponse {
                         error: "Message signing failed".to_string(),
-                        code: code,
+                        code,
                         request_id: Some(request_id),
                     }),
                 ))
@@ -1493,7 +1496,7 @@ pub async fn get_application_status(
                     StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                     Json(ErrorResponse {
                         error: "Application status retrieval failed".to_string(),
-                        code: code,
+                        code,
                         request_id: Some(request_id),
                     }),
                 ))
@@ -1557,7 +1560,7 @@ pub async fn store_application_data(
                     StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                     Json(ErrorResponse {
                         error: "Application data storage failed".to_string(),
-                        code: code,
+                        code,
                         request_id: Some(request_id),
                     }),
                 ))
@@ -1624,7 +1627,7 @@ pub async fn get_application_data(
                     StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                     Json(ErrorResponse {
                         error: "Application data retrieval failed".to_string(),
-                        code: code,
+                        code,
                         request_id: Some(request_id),
                     }),
                 ))
@@ -1699,7 +1702,7 @@ pub async fn reset_enclave(
                     StatusCode::from_u16(code as u16).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
                     Json(ErrorResponse {
                         error: "Enclave reset failed".to_string(),
-                        code: code,
+                        code,
                         request_id: Some(request_id),
                     }),
                 ))

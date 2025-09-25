@@ -1,14 +1,21 @@
+#[allow(unused_imports)]
 use renclave_enclave::data_encryption::DataEncryption;
+#[allow(unused_imports)]
 use renclave_enclave::quorum::{boot_genesis, shares_reconstruct, GenesisSet, P256Pair};
 use renclave_enclave::seed_generator::SeedGenerator;
+#[allow(unused_imports)]
 use renclave_enclave::storage::TeeStorage;
+#[allow(unused_imports)]
 use renclave_enclave::tee_communication::TeeCommunicationManager;
 use renclave_network::{NetworkConfig, NetworkManager};
+#[allow(unused_imports)]
 use renclave_shared::{EnclaveOperation, EnclaveRequest, EnclaveResponse, EnclaveResult};
 use renclave_shared::{
     Manifest, ManifestEnvelope, ManifestSet, NitroConfig, PivotConfig, QuorumMember, ShareSet,
 };
+#[allow(unused_imports)]
 use std::collections::HashSet;
+#[allow(unused_imports)]
 use std::sync::Arc;
 
 /// Integration tests for renclave components
@@ -800,6 +807,7 @@ async fn test_tee_communication_workflow_integration() {
 }
 
 // Helper functions for integration tests
+#[allow(dead_code)]
 fn create_test_genesis_set(member_count: usize, threshold: u32) -> (GenesisSet, Vec<P256Pair>) {
     let mut members = Vec::new();
     let mut pairs = Vec::new();
@@ -818,6 +826,7 @@ fn create_test_genesis_set(member_count: usize, threshold: u32) -> (GenesisSet, 
     (genesis_set, pairs)
 }
 
+#[allow(dead_code)]
 fn create_test_manifest_envelope() -> ManifestEnvelope {
     let quorum_key = P256Pair::generate().unwrap();
     let manifest = Manifest {
@@ -856,12 +865,14 @@ fn create_test_manifest_envelope() -> ManifestEnvelope {
     }
 }
 
+#[allow(dead_code)]
 async fn create_test_seed_generator() -> SeedGenerator {
     SeedGenerator::new()
         .await
         .expect("Failed to create test generator")
 }
 
+#[allow(dead_code)]
 async fn create_test_network_manager() -> NetworkManager {
     let config = NetworkConfig::default();
     NetworkManager::new(config)

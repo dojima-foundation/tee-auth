@@ -2,7 +2,6 @@ use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::sec1::ToEncodedPoint;
 use p256::PublicKey;
 use rand::rngs::OsRng;
-use serde_json;
 use std::env;
 
 fn main() {

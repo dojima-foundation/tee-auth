@@ -1,7 +1,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use sha2::{Digest, Sha256};
+use uuid::Uuid;
 
 /// Quorum member with alias and public key
 #[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
@@ -78,8 +78,11 @@ pub struct PivotConfig {
 }
 
 /// Restart policy
-#[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, PartialEq, Eq, Default,
+)]
 pub enum RestartPolicy {
+    #[default]
     Always,
     Never,
     OnFailure,
@@ -158,23 +161,17 @@ pub struct EncryptedQuorumKey {
     pub signature: Vec<u8>,
 }
 
-impl Default for RestartPolicy {
-    fn default() -> Self {
-        RestartPolicy::Always
-    }
-}
-
 impl Manifest {
     /// Calculate the QoS hash of this manifest
     pub fn qos_hash(&self) -> Vec<u8> {
         // Create a deterministic hash of the manifest
         let mut hasher = Sha256::new();
-        
+
         // Hash namespace info
-        hasher.update(&self.namespace.nonce.to_le_bytes());
+        hasher.update(self.namespace.nonce.to_le_bytes());
         hasher.update(self.namespace.name.as_bytes());
         hasher.update(&self.namespace.quorum_key);
-        
+
         // Hash enclave config
         hasher.update(&self.enclave.pcr0);
         hasher.update(&self.enclave.pcr1);
@@ -182,9 +179,9 @@ impl Manifest {
         hasher.update(&self.enclave.pcr3);
         hasher.update(&self.enclave.aws_root_certificate);
         hasher.update(self.enclave.qos_commit.as_bytes());
-        
+
         // Hash pivot config
-        hasher.update(&self.pivot.hash);
+        hasher.update(self.pivot.hash);
         // Convert RestartPolicy to string manually
         let restart_str = match self.pivot.restart {
             RestartPolicy::Always => "Always",
@@ -195,21 +192,21 @@ impl Manifest {
         for arg in &self.pivot.args {
             hasher.update(arg.as_bytes());
         }
-        
+
         // Hash manifest set
-        hasher.update(&self.manifest_set.threshold.to_le_bytes());
+        hasher.update(self.manifest_set.threshold.to_le_bytes());
         for member in &self.manifest_set.members {
             hasher.update(member.alias.as_bytes());
             hasher.update(&member.pub_key);
         }
-        
+
         // Hash share set
-        hasher.update(&self.share_set.threshold.to_le_bytes());
+        hasher.update(self.share_set.threshold.to_le_bytes());
         for member in &self.share_set.members {
             hasher.update(member.alias.as_bytes());
             hasher.update(&member.pub_key);
         }
-        
+
         hasher.finalize().to_vec()
     }
 }
@@ -246,7 +243,7 @@ pub enum EnclaveOperation {
         dr_key: Option<Vec<u8>>,
     },
     ExportQuorumKey {
-        new_manifest_envelope: ManifestEnvelope,
+        new_manifest_envelope: Box<ManifestEnvelope>,
         cose_sign1_attestation_document: Vec<u8>,
     },
     InjectQuorumKey {
@@ -387,7 +384,7 @@ pub enum EnclaveResult {
     GenesisBootCompleted {
         quorum_public_key: Vec<u8>,
         ephemeral_key: Vec<u8>,
-        manifest_envelope: ManifestEnvelope,
+        manifest_envelope: Box<ManifestEnvelope>,
         waiting_state: String,
         encrypted_shares: Vec<GenesisMemberOutput>,
     },

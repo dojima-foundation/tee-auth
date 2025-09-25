@@ -1,8 +1,12 @@
+#[allow(unused_imports)]
 use renclave_enclave::seed_generator::SeedGenerator;
+#[allow(unused_imports)]
 use renclave_shared::{
     EnclaveOperation, EnclaveRequest, EnclaveResponse, EnclaveResult, RenclaveError,
 };
+#[allow(unused_imports)]
 use std::sync::Arc;
+#[allow(unused_imports)]
 use tokio::time::{sleep, Duration};
 
 /// End-to-End tests for the complete renclave system

@@ -60,36 +60,36 @@ impl TestRunner {
     pub async fn run_all_tests(&mut self) -> Result<()> {
         println!("🚀 Starting comprehensive test suite for renclave system");
         println!("📊 Configuration: {:?}", self.config);
-        
+
         let start_time = Instant::now();
-        
+
         if self.config.unit_tests {
             self.run_unit_tests().await?;
         }
-        
+
         if self.config.integration_tests {
             self.run_integration_tests().await?;
         }
-        
+
         if self.config.e2e_tests {
             self.run_e2e_tests().await?;
         }
-        
+
         if self.config.performance_tests {
             self.run_performance_tests().await?;
         }
-        
+
         if self.config.stress_tests {
             self.run_stress_tests().await?;
         }
-        
+
         if self.config.concurrent_tests {
             self.run_concurrent_tests().await?;
         }
-        
+
         let total_duration = start_time.elapsed();
         self.print_summary(total_duration);
-        
+
         Ok(())
     }
 
@@ -97,33 +97,37 @@ impl TestRunner {
     async fn run_unit_tests(&mut self) -> Result<()> {
         println!("🧪 Running unit tests...");
         let start_time = Instant::now();
-        
+
         // Run seed generator unit tests
         self.run_test("seed_generator_unit_tests", || async {
             // This would run the actual unit tests
             // For now, we'll simulate the test
             sleep(Duration::from_millis(100)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run quorum unit tests
         self.run_test("quorum_unit_tests", || async {
             sleep(Duration::from_millis(100)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run data encryption unit tests
         self.run_test("data_encryption_unit_tests", || async {
             sleep(Duration::from_millis(100)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run TEE communication unit tests
         self.run_test("tee_communication_unit_tests", || async {
             sleep(Duration::from_millis(100)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         let duration = start_time.elapsed();
         println!("✅ Unit tests completed in {:?}", duration);
         Ok(())
@@ -133,31 +137,35 @@ impl TestRunner {
     async fn run_integration_tests(&mut self) -> Result<()> {
         println!("🔗 Running integration tests...");
         let start_time = Instant::now();
-        
+
         // Run seed generation integration tests
         self.run_test("seed_generation_integration", || async {
             sleep(Duration::from_millis(200)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run quorum key generation integration tests
         self.run_test("quorum_key_generation_integration", || async {
             sleep(Duration::from_millis(200)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run data encryption integration tests
         self.run_test("data_encryption_integration", || async {
             sleep(Duration::from_millis(200)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run TEE communication integration tests
         self.run_test("tee_communication_integration", || async {
             sleep(Duration::from_millis(200)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         let duration = start_time.elapsed();
         println!("✅ Integration tests completed in {:?}", duration);
         Ok(())
@@ -167,31 +175,35 @@ impl TestRunner {
     async fn run_e2e_tests(&mut self) -> Result<()> {
         println!("🌐 Running end-to-end tests...");
         let start_time = Instant::now();
-        
+
         // Run complete workflow tests
         self.run_test("complete_seed_generation_workflow", || async {
             sleep(Duration::from_millis(500)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run complete quorum workflow tests
         self.run_test("complete_quorum_workflow", || async {
             sleep(Duration::from_millis(500)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run complete data encryption workflow tests
         self.run_test("complete_data_encryption_workflow", || async {
             sleep(Duration::from_millis(500)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run complete TEE communication workflow tests
         self.run_test("complete_tee_communication_workflow", || async {
             sleep(Duration::from_millis(500)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         let duration = start_time.elapsed();
         println!("✅ End-to-end tests completed in {:?}", duration);
         Ok(())
@@ -201,25 +213,28 @@ impl TestRunner {
     async fn run_performance_tests(&mut self) -> Result<()> {
         println!("⚡ Running performance tests...");
         let start_time = Instant::now();
-        
+
         // Run seed generation performance tests
         self.run_test("seed_generation_performance", || async {
             sleep(Duration::from_millis(1000)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run quorum key generation performance tests
         self.run_test("quorum_key_generation_performance", || async {
             sleep(Duration::from_millis(1000)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run data encryption performance tests
         self.run_test("data_encryption_performance", || async {
             sleep(Duration::from_millis(1000)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         let duration = start_time.elapsed();
         println!("✅ Performance tests completed in {:?}", duration);
         Ok(())
@@ -229,25 +244,28 @@ impl TestRunner {
     async fn run_stress_tests(&mut self) -> Result<()> {
         println!("💪 Running stress tests...");
         let start_time = Instant::now();
-        
+
         // Run seed generation stress tests
         self.run_test("seed_generation_stress", || async {
             sleep(Duration::from_millis(2000)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run quorum key generation stress tests
         self.run_test("quorum_key_generation_stress", || async {
             sleep(Duration::from_millis(2000)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run data encryption stress tests
         self.run_test("data_encryption_stress", || async {
             sleep(Duration::from_millis(2000)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         let duration = start_time.elapsed();
         println!("✅ Stress tests completed in {:?}", duration);
         Ok(())
@@ -257,25 +275,28 @@ impl TestRunner {
     async fn run_concurrent_tests(&mut self) -> Result<()> {
         println!("🔄 Running concurrent tests...");
         let start_time = Instant::now();
-        
+
         // Run concurrent seed generation tests
         self.run_test("concurrent_seed_generation", || async {
             sleep(Duration::from_millis(500)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run concurrent quorum key generation tests
         self.run_test("concurrent_quorum_key_generation", || async {
             sleep(Duration::from_millis(500)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         // Run concurrent data encryption tests
         self.run_test("concurrent_data_encryption", || async {
             sleep(Duration::from_millis(500)).await;
             Ok(())
-        }).await;
-        
+        })
+        .await;
+
         let duration = start_time.elapsed();
         println!("✅ Concurrent tests completed in {:?}", duration);
         Ok(())
@@ -288,11 +309,10 @@ impl TestRunner {
         Fut: std::future::Future<Output = Result<()>>,
     {
         let start_time = Instant::now();
-        
-        match tokio::time::timeout(
-            Duration::from_secs(self.config.timeout_seconds),
-            test_fn(),
-        ).await {
+
+        match tokio::time::timeout(Duration::from_secs(self.config.timeout_seconds), test_fn())
+            .await
+        {
             Ok(Ok(())) => {
                 let duration = start_time.elapsed();
                 self.results.push(TestResult {
@@ -331,34 +351,44 @@ impl TestRunner {
         println!("\n📊 Test Summary");
         println!("===============");
         println!("Total duration: {:?}", total_duration);
-        
+
         let total_tests = self.results.len();
         let passed_tests = self.results.iter().filter(|r| r.passed).count();
         let failed_tests = total_tests - passed_tests;
-        
+
         println!("Total tests: {}", total_tests);
         println!("Passed: {}", passed_tests);
         println!("Failed: {}", failed_tests);
-        
+
         if failed_tests > 0 {
             println!("\n❌ Failed tests:");
             for result in &self.results {
                 if !result.passed {
-                    println!("  - {}: {}", result.test_name, result.error_message.as_deref().unwrap_or("Unknown error"));
+                    println!(
+                        "  - {}: {}",
+                        result.test_name,
+                        result.error_message.as_deref().unwrap_or("Unknown error")
+                    );
                 }
             }
         }
-        
+
         println!("\n📈 Performance metrics:");
         let total_test_time: Duration = self.results.iter().map(|r| r.duration).sum();
         println!("Total test time: {:?}", total_test_time);
-        println!("Average test time: {:?}", total_test_time / total_tests as u32);
-        
+        println!(
+            "Average test time: {:?}",
+            total_test_time / total_tests as u32
+        );
+
         let slowest_test = self.results.iter().max_by_key(|r| r.duration);
         if let Some(slowest) = slowest_test {
-            println!("Slowest test: {} ({:?})", slowest.test_name, slowest.duration);
+            println!(
+                "Slowest test: {} ({:?})",
+                slowest.test_name, slowest.duration
+            );
         }
-        
+
         if failed_tests == 0 {
             println!("\n🎉 All tests passed!");
         } else {
@@ -486,7 +516,7 @@ mod tests {
             passed: true,
             error_message: None,
         };
-        
+
         assert_eq!(result.test_name, "test_example");
         assert_eq!(result.duration, Duration::from_millis(100));
         assert!(result.passed);

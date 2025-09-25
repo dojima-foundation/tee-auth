@@ -7,8 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use renclave_enclave::{
     attestation::{
-        AttestationDoc, AttestationManager, BootKeyForwardRequest, BootKeyForwardResponse,
-        ExportKeyRequest, ExportKeyResponse, InjectKeyRequest, InjectKeyResponse,
+        BootKeyForwardRequest, BootKeyForwardResponse, ExportKeyRequest, InjectKeyRequest,
     },
     quorum::P256Pair,
     tee_communication::TeeCommunicationManager,
@@ -35,7 +34,7 @@ fn main() -> Result<()> {
     let manifest_envelope = create_mock_manifest_envelope()?;
 
     {
-        let mut tee1_guard = tee1.lock().unwrap();
+        let tee1_guard = tee1.lock().unwrap();
         tee1_guard.set_quorum_key(quorum_key)?;
         tee1_guard.set_manifest_envelope(manifest_envelope)?;
     }
@@ -85,7 +84,7 @@ fn main() -> Result<()> {
         signature: export_response.signature,
     };
 
-    let inject_response = {
+    let _inject_response = {
         let tee2_guard = tee2.lock().unwrap();
         tee2_guard.handle_inject_key(inject_request)?
     };

@@ -47,6 +47,7 @@ impl P256SignPair {
     /// Get the public key of this pair.
     /// Following QoS P256SignPair::public_key() exactly.
     #[must_use]
+    #[allow(dead_code)]
     pub fn public_key(&self) -> P256SignPublic {
         P256SignPublic {
             public: VerifyingKey::from(&self.private),
@@ -55,6 +56,7 @@ impl P256SignPair {
 
     /// Deserialize key from raw scalar byte slice.
     /// Following QoS P256SignPair::from_bytes() exactly.
+    #[allow(dead_code)]
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         Ok(Self {
             private: SigningKey::from_bytes(bytes).map_err(|_| anyhow!("Failed to read secret"))?,
@@ -64,6 +66,7 @@ impl P256SignPair {
     /// Serialize key to raw scalar byte slice.
     /// Following QoS P256SignPair::to_bytes() exactly.
     #[must_use]
+    #[allow(dead_code)]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.private.to_bytes().to_vec()
     }
@@ -78,6 +81,7 @@ pub struct P256SignPublic {
 impl P256SignPublic {
     /// Verify a signature and message against this public key.
     /// Following QoS P256SignPublic::verify() exactly.
+    #[allow(dead_code)]
     pub fn verify(&self, message: &[u8], signature: &[u8]) -> Result<()> {
         let signature =
             Signature::from_der(signature).map_err(|_| anyhow!("Invalid signature format"))?;
@@ -88,11 +92,13 @@ impl P256SignPublic {
     }
 
     /// Get the public key bytes.
+    #[allow(dead_code)]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.public.to_encoded_point(false).as_ref().to_vec()
     }
 
     /// Create from bytes.
+    #[allow(dead_code)]
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         let public = VerifyingKey::from_sec1_bytes(bytes)
             .map_err(|_| anyhow!("Invalid public key format"))?;
@@ -114,6 +120,7 @@ pub struct EthereumTransaction {
 
 /// Signed Ethereum transaction result.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SignedEthereumTransaction {
     pub transaction: EthereumTransaction,
     pub signature: Vec<u8>, // ECDSA signature (65 bytes)
@@ -138,6 +145,7 @@ impl TransactionSigner {
     }
 
     /// Create a new transaction signer with existing sign pair.
+    #[allow(dead_code)]
     pub fn with_sign_pair(quorum_key: P256Pair, sign_pair: P256SignPair) -> Self {
         Self {
             quorum_key,
@@ -147,6 +155,7 @@ impl TransactionSigner {
 
     /// Sign an Ethereum transaction.
     /// Following QoS signing patterns with Ethereum-specific handling.
+    #[allow(dead_code)]
     pub fn sign_ethereum_transaction(
         &self,
         tx: &EthereumTransaction,
@@ -178,6 +187,7 @@ impl TransactionSigner {
 
     /// Verify a signature against a message.
     /// Following QoS P256SignPublic::verify() exactly.
+    #[allow(dead_code)]
     pub fn verify_signature(&self, message: &[u8], signature: &[u8]) -> bool {
         self.sign_pair
             .public_key()
@@ -186,17 +196,20 @@ impl TransactionSigner {
     }
 
     /// Get the signing public key.
+    #[allow(dead_code)]
     pub fn signing_public_key(&self) -> P256SignPublic {
         self.sign_pair.public_key()
     }
 
     /// Get the signing public key bytes.
+    #[allow(dead_code)]
     pub fn signing_public_key_bytes(&self) -> Vec<u8> {
         self.sign_pair.public_key().to_bytes()
     }
 
     /// Create Ethereum transaction hash for signing.
     /// Following Ethereum EIP-155 transaction hashing.
+    #[allow(dead_code)]
     fn create_ethereum_transaction_hash(&self, tx: &EthereumTransaction) -> Result<Vec<u8>> {
         use sha2::{Digest, Sha256};
 
@@ -240,12 +253,14 @@ impl TransactionSigner {
 
     /// Sign a message with the quorum key directly.
     /// Following QoS P256Pair::sign() patterns.
+    #[allow(dead_code)]
     pub fn sign_with_quorum_key(&self, message: &[u8]) -> Result<Vec<u8>> {
         self.quorum_key.sign(message)
     }
 
     /// Verify a signature with the quorum public key.
     /// Following QoS P256Public::verify() patterns.
+    #[allow(dead_code)]
     pub fn verify_with_quorum_key(&self, message: &[u8], signature: &[u8]) -> bool {
         // This would need to be implemented in the P256Public struct
         // For now, we'll use the sign_pair verification
@@ -260,6 +275,7 @@ pub struct BatchTransactionSigner {
 
 impl BatchTransactionSigner {
     /// Create a new batch transaction signer.
+    #[allow(dead_code)]
     pub fn new(quorum_key: P256Pair) -> Self {
         Self {
             signer: TransactionSigner::new(quorum_key),
@@ -267,6 +283,7 @@ impl BatchTransactionSigner {
     }
 
     /// Sign multiple Ethereum transactions.
+    #[allow(dead_code)]
     pub fn sign_multiple_transactions(
         &self,
         transactions: &[EthereumTransaction],
@@ -282,6 +299,7 @@ impl BatchTransactionSigner {
     }
 
     /// Sign multiple raw messages.
+    #[allow(dead_code)]
     pub fn sign_multiple_messages(&self, messages: &[Vec<u8>]) -> Result<Vec<Vec<u8>>> {
         let mut signatures = Vec::new();
 

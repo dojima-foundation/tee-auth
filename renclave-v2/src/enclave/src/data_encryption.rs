@@ -232,6 +232,7 @@ impl P256EncryptPair {
     /// Get the public key.
     /// Following QoS P256EncryptPair::public_key() exactly.
     #[must_use]
+    #[allow(dead_code)]
     pub fn public_key(&self) -> P256EncryptPublic {
         P256EncryptPublic {
             public: self.private.public_key(),
@@ -248,6 +249,7 @@ impl P256EncryptPair {
     }
 
     /// Create P256EncryptPair from private key
+    #[allow(dead_code)]
     pub fn from_private_key(private_key: &SecretKey) -> Result<Self> {
         Ok(Self {
             private: private_key.clone(),
@@ -255,6 +257,7 @@ impl P256EncryptPair {
     }
 
     /// Create P256EncryptPair from public key (for encryption)
+    #[allow(dead_code)]
     pub fn from_public_key(_public_key: &PublicKey) -> Result<Self> {
         // For encryption, we need to create a temporary pair
         // This is used when we have the recipient's public key
@@ -267,6 +270,7 @@ impl P256EncryptPair {
     /// Serialize key to raw scalar byte slice.
     /// Following QoS P256EncryptPair::to_bytes() exactly.
     #[must_use]
+    #[allow(dead_code)]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.private.to_be_bytes().to_vec()
     }
@@ -281,12 +285,14 @@ pub struct P256EncryptPublic {
 
 impl P256EncryptPublic {
     /// Create a new P256EncryptPublic from a PublicKey
+    #[allow(dead_code)]
     pub fn new(public: PublicKey) -> Self {
         Self { public }
     }
 
     /// Encrypt a message to this public key.
     /// Following QoS P256EncryptPublic::encrypt() exactly.
+    #[allow(dead_code)]
     pub fn encrypt(&self, message: &[u8]) -> Result<Vec<u8>> {
         info!("🔐 DEBUG: P256EncryptPublic::encrypt() called");
         info!("🔐 DEBUG: Message length: {} bytes", message.len());
@@ -382,6 +388,7 @@ impl P256EncryptPublic {
 
     /// Decrypt a message encoded to this pair's public key.
     /// Following QoS P256EncryptPublic::decrypt_from_shared_secret() exactly.
+    #[allow(dead_code)]
     pub fn decrypt_from_shared_secret(
         &self,
         serialized_envelope: &[u8],
@@ -443,12 +450,14 @@ impl AesGcm256Secret {
 
     /// Create from bytes.
     /// Following QoS AesGcm256Secret::from_bytes() exactly.
+    #[allow(dead_code)]
     pub fn from_bytes(bytes: [u8; AES256_KEY_LEN]) -> Result<Self> {
         Ok(Self { secret: bytes })
     }
 
     /// Encrypt a message with this secret.
     /// Following QoS AesGcm256Secret::encrypt() exactly.
+    #[allow(dead_code)]
     pub fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>> {
         let cipher = Aes256Gcm::new_from_slice(&self.secret)
             .map_err(|_| anyhow!("Failed to create AES-GCM cipher"))?;
@@ -476,6 +485,7 @@ impl AesGcm256Secret {
 
     /// Decrypt a message with this secret.
     /// Following QoS AesGcm256Secret::decrypt() exactly.
+    #[allow(dead_code)]
     pub fn decrypt(&self, serialized_envelope: &[u8]) -> Result<Vec<u8>> {
         let Envelope {
             nonce,
@@ -597,17 +607,20 @@ impl DataEncryption {
 
     /// Encrypt data using symmetric encryption.
     /// Following QoS symmetric encryption patterns.
+    #[allow(dead_code)]
     pub fn encrypt_symmetric(&self, data: &[u8]) -> Result<Vec<u8>> {
         self.symmetric_secret.encrypt(data)
     }
 
     /// Decrypt data using symmetric encryption.
     /// Following QoS symmetric decryption patterns.
+    #[allow(dead_code)]
     pub fn decrypt_symmetric(&self, encrypted_envelope: &[u8]) -> Result<Vec<u8>> {
         self.symmetric_secret.decrypt(encrypted_envelope)
     }
 
     /// Get the ephemeral public key for key exchange.
+    #[allow(dead_code)]
     pub fn ephemeral_public_key(&self) -> Vec<u8> {
         self.ephemeral_key
             .public_key()
