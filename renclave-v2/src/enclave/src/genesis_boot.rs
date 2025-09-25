@@ -137,7 +137,12 @@ impl GenesisBootFlow {
         };
 
         // Perform the genesis ceremony
-        let genesis_output = boot_genesis(&genesis_set, self.config.dr_key.clone()).await?;
+        let genesis_output = boot_genesis(
+            &genesis_set,
+            self.config.dr_key.clone(),
+            Some(&self.storage),
+        )
+        .await?;
 
         // Clear master seed from memory (it's already cleared in boot_genesis)
         debug!("🧹 Master seed cleared from memory");
@@ -201,32 +206,19 @@ impl GenesisBootFlow {
 
 /// Create a default Genesis Boot configuration for testing
 pub fn create_default_genesis_boot_config() -> GenesisBootConfig {
-    // Generate proper P256 key pairs for testing
-    let pair1 = P256Pair::generate().unwrap();
-    let pair2 = P256Pair::generate().unwrap();
-
-    let test_member1 = QuorumMember {
-        alias: "test_member_1".to_string(),
-        pub_key: pair1.public_key().to_bytes(),
-    };
-    let test_member2 = QuorumMember {
-        alias: "test_member_2".to_string(),
-        pub_key: pair2.public_key().to_bytes(),
-    };
-
     GenesisBootConfig {
         namespace_name: "renclave-test".to_string(),
         namespace_nonce: 1,
-        manifest_members: vec![test_member1.clone(), test_member2.clone()],
-        manifest_threshold: 2,
-        share_members: vec![test_member1, test_member2],
-        share_threshold: 2,
+        manifest_members: vec![],
+        manifest_threshold: 1,
+        share_members: vec![],
+        share_threshold: 1,
         pivot_hash: [0u8; 32],
         pivot_args: vec![],
         waiting_config: WaitingConfig {
             max_wait_time: 300,      // 5 minutes for production
             check_interval_ms: 1000, // 1 second for production
-            min_shares: 2,
+            min_shares: 1,
         },
         dr_key: None,
     }
@@ -305,9 +297,8 @@ mod tests {
             config.share_members.len()
         );
 
-        // Create a test flow with temporary storage
-        let test_storage = TeeStorage::new();
-        test_storage.clear_all().unwrap(); // Clear for testing
+        // Create a test flow with temporary storage using unique paths
+        let test_storage = TeeStorage::new_for_testing();
         let mut flow = GenesisBootFlow::new_with_storage(config, test_storage);
 
         // The flow should complete successfully
@@ -331,10 +322,14 @@ mod tests {
     #[tokio::test]
     async fn test_genesis_boot_flow_with_members() {
         let config = create_test_genesis_boot_config();
-        let mut flow = GenesisBootFlow::new(config);
+        let test_storage = TeeStorage::new_for_testing(); // Use unique test paths
+        let mut flow = GenesisBootFlow::new_with_storage(config, test_storage);
 
         // The flow should complete successfully
         let result = flow.execute().await;
+        if let Err(e) = &result {
+            println!("🧪 Genesis boot flow failed: {}", e);
+        }
         assert!(result.is_ok());
 
         let result = result.unwrap();
@@ -355,8 +350,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_genesis_boot_storage_state() {
-        let config = create_default_genesis_boot_config();
-        let mut flow = GenesisBootFlow::new(config);
+        let config = create_test_genesis_boot_config(); // Use test config with members
+        let test_storage = TeeStorage::new_for_testing(); // Use unique test paths
+        let mut flow = GenesisBootFlow::new_with_storage(config, test_storage);
 
         // Initially should not be complete
         assert!(!flow.is_complete());

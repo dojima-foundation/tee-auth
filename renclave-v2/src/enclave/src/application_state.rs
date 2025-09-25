@@ -375,6 +375,9 @@ mod tests {
         let quorum_key = P256Pair::generate().unwrap();
         assert!(state.set_quorum_key(quorum_key).is_err());
 
+        // Follow proper state transition sequence (QoS protocol)
+        state.transition(ApplicationPhase::GenesisBooted).unwrap();
+
         // Transition to provisioned phase
         state
             .transition(ApplicationPhase::QuorumKeyProvisioned)
@@ -393,7 +396,13 @@ mod tests {
         // Cannot store data in initial phase
         assert!(state.store_data("key".to_string(), vec![1, 2, 3]).is_err());
 
-        // Transition to ready phase
+        // Follow proper state transition sequence (QoS protocol)
+        state.transition(ApplicationPhase::GenesisBooted).unwrap();
+
+        state
+            .transition(ApplicationPhase::QuorumKeyProvisioned)
+            .unwrap();
+
         state
             .transition(ApplicationPhase::ApplicationReady)
             .unwrap();
@@ -409,9 +418,24 @@ mod tests {
 
         assert!(!manager.is_ready());
 
+        // Follow proper state transition sequence (QoS protocol)
+        manager
+            .get_state_mut()
+            .transition(ApplicationPhase::GenesisBooted)
+            .unwrap();
+        manager
+            .get_state_mut()
+            .transition(ApplicationPhase::QuorumKeyProvisioned)
+            .unwrap();
+
         // Provision quorum key
         let quorum_key = P256Pair::generate().unwrap();
         manager.provision_quorum_key(quorum_key).unwrap();
+
+        manager
+            .get_state_mut()
+            .transition(ApplicationPhase::ApplicationReady)
+            .unwrap();
 
         assert!(manager.is_ready());
         assert!(manager.get_state().has_quorum_key());

@@ -1,16 +1,16 @@
 //! Manifest generation and management
-//! 
+//!
 //! This module handles creating and managing manifests with quorum public keys
 //! for the Genesis Boot flow.
 
 use anyhow::Result;
-use log::{info, debug};
+use log::{debug, info};
 use sha2::{Digest, Sha256};
 
 use crate::quorum::P256Public;
 use renclave_shared::{
-    ManifestEnvelope, Manifest, Namespace, NitroConfig, PivotConfig, 
-    ManifestSet, ShareSet, RestartPolicy, QuorumMember
+    Manifest, ManifestEnvelope, ManifestSet, Namespace, NitroConfig, PivotConfig, QuorumMember,
+    RestartPolicy, ShareSet,
 };
 
 /// Generate a manifest envelope with the quorum public key
@@ -36,10 +36,10 @@ pub fn generate_manifest_with_quorum_key(
 
     // Create nitro config (placeholder values for now)
     let nitro_config = NitroConfig {
-        pcr0: vec![0; 32], // Placeholder
-        pcr1: vec![1; 32], // Placeholder
-        pcr2: vec![2; 32], // Placeholder
-        pcr3: vec![3; 32], // Placeholder
+        pcr0: vec![0; 32],            // Placeholder
+        pcr1: vec![1; 32],            // Placeholder
+        pcr2: vec![2; 32],            // Placeholder
+        pcr3: vec![3; 32],            // Placeholder
         aws_root_certificate: vec![], // Placeholder
         qos_commit: "renclave-v2".to_string(),
     };
@@ -80,9 +80,18 @@ pub fn generate_manifest_with_quorum_key(
     };
 
     info!("✅ Manifest generated successfully");
-    debug!("Manifest namespace: {}", manifest_envelope.manifest.namespace.name);
-    debug!("Manifest nonce: {}", manifest_envelope.manifest.namespace.nonce);
-    debug!("Quorum key: {}", hex::encode(&manifest_envelope.manifest.namespace.quorum_key));
+    debug!(
+        "Manifest namespace: {}",
+        manifest_envelope.manifest.namespace.name
+    );
+    debug!(
+        "Manifest nonce: {}",
+        manifest_envelope.manifest.namespace.nonce
+    );
+    debug!(
+        "Quorum key: {}",
+        hex::encode(&manifest_envelope.manifest.namespace.quorum_key)
+    );
 
     Ok(manifest_envelope)
 }
@@ -91,12 +100,12 @@ pub fn generate_manifest_with_quorum_key(
 pub fn calculate_manifest_hash(manifest: &Manifest) -> Result<[u8; 32]> {
     // Serialize the manifest to bytes
     let manifest_bytes = serde_json::to_vec(manifest)?;
-    
+
     // Calculate SHA-256 hash
     let mut hasher = Sha256::new();
     hasher.update(&manifest_bytes);
     let hash: [u8; 32] = hasher.finalize().into();
-    
+
     Ok(hash)
 }
 
@@ -109,8 +118,12 @@ pub fn validate_manifest_envelope(manifest_envelope: &ManifestEnvelope) -> Resul
         return Err(anyhow::anyhow!("Manifest set threshold cannot be zero"));
     }
 
-    if manifest_envelope.manifest.manifest_set.threshold as usize > manifest_envelope.manifest.manifest_set.members.len() {
-        return Err(anyhow::anyhow!("Manifest set threshold cannot be greater than member count"));
+    if manifest_envelope.manifest.manifest_set.threshold as usize
+        > manifest_envelope.manifest.manifest_set.members.len()
+    {
+        return Err(anyhow::anyhow!(
+            "Manifest set threshold cannot be greater than member count"
+        ));
     }
 
     // Check that share set threshold is valid
@@ -118,8 +131,12 @@ pub fn validate_manifest_envelope(manifest_envelope: &ManifestEnvelope) -> Resul
         return Err(anyhow::anyhow!("Share set threshold cannot be zero"));
     }
 
-    if manifest_envelope.manifest.share_set.threshold as usize > manifest_envelope.manifest.share_set.members.len() {
-        return Err(anyhow::anyhow!("Share set threshold cannot be greater than member count"));
+    if manifest_envelope.manifest.share_set.threshold as usize
+        > manifest_envelope.manifest.share_set.members.len()
+    {
+        return Err(anyhow::anyhow!(
+            "Share set threshold cannot be greater than member count"
+        ));
     }
 
     // Check that namespace name is not empty
@@ -143,9 +160,15 @@ pub fn create_default_manifest(
 ) -> Result<ManifestEnvelope> {
     info!("📋 Creating default manifest for development");
 
-    // Create default members (empty for now)
-    let manifest_members = vec![];
-    let share_members = vec![];
+    // Create default members for testing
+    let manifest_members = vec![QuorumMember {
+        alias: "default_member".to_string(),
+        pub_key: quorum_public_key.to_bytes(),
+    }];
+    let share_members = vec![QuorumMember {
+        alias: "default_share_member".to_string(),
+        pub_key: quorum_public_key.to_bytes(),
+    }];
 
     // Create default pivot hash (all zeros for development)
     let pivot_hash = [0u8; 32];
@@ -196,11 +219,15 @@ mod tests {
             2,
             [0u8; 32],
             vec!["arg1".to_string()],
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(manifest.manifest.namespace.name, "test-namespace");
         assert_eq!(manifest.manifest.namespace.nonce, 1);
-        assert_eq!(manifest.manifest.namespace.quorum_key, public_key.to_bytes());
+        assert_eq!(
+            manifest.manifest.namespace.quorum_key,
+            public_key.to_bytes()
+        );
         assert_eq!(manifest.manifest.manifest_set.threshold, 2);
         assert_eq!(manifest.manifest.manifest_set.members.len(), 2);
         assert_eq!(manifest.manifest.share_set.threshold, 2);
@@ -258,11 +285,12 @@ mod tests {
 
         assert_eq!(manifest.manifest.namespace.name, "test-namespace");
         assert_eq!(manifest.manifest.namespace.nonce, 1);
-        assert_eq!(manifest.manifest.namespace.quorum_key, public_key.to_bytes());
+        assert_eq!(
+            manifest.manifest.namespace.quorum_key,
+            public_key.to_bytes()
+        );
         assert_eq!(manifest.manifest.manifest_set.threshold, 1);
         assert_eq!(manifest.manifest.share_set.threshold, 1);
         assert_eq!(manifest.manifest.pivot.args.len(), 0);
     }
 }
-
-

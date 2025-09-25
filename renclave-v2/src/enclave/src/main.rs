@@ -523,7 +523,7 @@ impl NitroEnclave {
                     threshold: share_threshold,
                 };
 
-                match boot_genesis(&genesis_set, dr_key).await {
+                match boot_genesis(&genesis_set, dr_key, None).await {
                     Ok(genesis_output) => {
                         info!("✅ Genesis Boot completed successfully");
                         debug!("🔍 Genesis Boot results:");

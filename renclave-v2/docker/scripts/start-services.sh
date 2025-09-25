@@ -5,7 +5,7 @@ echo "🚀 Starting renclave-v2 services"
 
 # Configuration
 ENCLAVE_SOCKET="/tmp/enclave.sock"
-HOST_PORT="3000"
+HOST_PORT="8080"
 
 # Function to cleanup processes
 cleanup() {
