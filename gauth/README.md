@@ -2,6 +2,17 @@
 
 A modern, secure authentication and organization management service built in Go, inspired by [Turnkey's architecture](https://whitepaper.turnkey.com/architecture/). This service provides robust user management, policy-based authorization, and secure communication with trusted execution environments.
 
+## 📚 Comprehensive Documentation
+
+**NEW**: Complete documentation suite available in [`../docs/`](../docs/)!
+
+### Key Documentation Links:
+- **[📖 Complete Documentation Overview](../docs/README.md)** - Start here for navigation
+- **[🏗️ System Architecture](../docs/architecture.md)** - Complete system overview and component relationships
+- **[📋 API Reference](../docs/api-reference.md)** - Complete API documentation with examples
+- **[🧪 Testing Guide](../docs/testing-guide.md)** - Comprehensive testing procedures
+- **[🔗 TEE Integration](../docs/tee-to-tee-sharing.md)** - Secure TEE communication patterns
+
 ## 🏗️ Architecture
 
 The service follows Turnkey's proven patterns for secure key management and authentication:

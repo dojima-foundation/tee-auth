@@ -1,57 +1,44 @@
-# TEE Auth Documentation
+# Renclave Documentation
 
-This folder contains the Mintlify documentation for the TEE Auth project.
+This documentation covers the comprehensive architecture, processes, and implementation details of the Renclave Trusted Execution Environment (TEE) system.
 
-## Local Development
+## Table of Contents
 
-To run the documentation locally, follow these steps:
+### Core Documentation
+1. [Genesis Boot Process](./genesis-boot.md) - Complete guide to initializing TEE instances
+2. [TEE Instance Management](./tee-instances.md) - Single and multi-instance TEE setup
+3. [Key Management](./key-management.md) - All key types and their purposes
+4. [TEE-to-TEE Key Sharing](./tee-to-tee-sharing.md) - Secure key sharing between TEEs
+5. [Encryption & Decryption](./encryption-decryption.md) - Untrusted data handling
 
-1. Install the Mintlify CLI:
+### Technical Documentation
+6. [Architecture Overview](./architecture.md) - System architecture and file structure
+7. [API Reference](./api-reference.md) - Complete API documentation
+8. [Testing Guide](./testing-guide.md) - Comprehensive testing procedures
 
-```bash
-npm i -g mintlify
-```
+### Key Features Covered
+- **Genesis Boot**: Quorum-based key initialization with configurable thresholds (2-out-of-3, 7-out-of-7, etc.)
+- **TEE Instances**: Single and multi-instance TEE management with Docker containers
+- **Key Types**: Quorum keys, member keys, ephemeral keys, attestation keys, and seed generation keys
+- **Key Sharing**: Secure TEE-to-TEE communication with manifest sharing, attestation, and key transfer
+- **Encryption**: ECIES, AES-256-GCM, HKDF, and P-256 digital signatures for untrusted data
+- **Architecture**: Complete system overview with file structure and component relationships
 
-2. Run the development server:
+## Quick Start
 
-```bash
-mintlify dev
-```
+For a quick overview of the system:
+- Start with [Architecture Overview](./architecture.md) to understand the system
+- Read [Genesis Boot Process](./genesis-boot.md) for initial setup
+- Follow [TEE Instance Management](./tee-instances.md) for multi-instance scenarios
+- Use [API Reference](./api-reference.md) for implementation details
 
-This will start a local server at http://localhost:3000.
+## System Requirements
 
-## Structure
+- Docker and Docker Compose
+- Rust 1.70+ 
+- Linux environment with KVM support
+- Hardware TEE support (Intel SGX or AMD SEV)
 
-- `mint.json` - Main configuration file
-- `introduction.mdx` - Home page
-- `quickstart.mdx` - Getting started guide
-- `api-reference/` - API documentation
-  - `authentication.mdx` - Authentication documentation
-  - `endpoint/` - Endpoint-specific documentation
-- `openapi.json` - OpenAPI specification for API playground
-- `logo/` - Logo assets
+## Contributing
 
-## Deployment
-
-The documentation is automatically deployed when changes are pushed to the main branch.
-
-## Version Support
-
-Current version: 0.1.0
-
-## API Playground
-
-The API playground allows you to try out the API endpoints directly from the documentation. To use it:
-
-1. Navigate to any API endpoint page
-2. Enter your API key in the authentication field
-3. Fill in the required parameters
-4. Click "Try it" to send the request
-
-## Customization
-
-To customize the documentation:
-
-1. Edit `mint.json` to change the configuration
-2. Update the MDX files to change the content
-3. Modify `openapi.json` to update the API specification
+When updating this documentation, ensure all examples are tested and reflect the current implementation.

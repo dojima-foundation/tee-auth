@@ -324,7 +324,21 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📚 Documentation
 
-- [API Documentation](docs/api.md)
-- [Architecture Guide](docs/architecture.md)
-- [Deployment Guide](docs/deployment.md)
-- [Security Model](docs/security.md)
+**NEW**: Comprehensive documentation suite available in [`../docs/`](../docs/)!
+
+### Key Documentation Links:
+- **[📖 Complete Documentation Overview](../docs/README.md)** - Start here for navigation
+- **[🚀 Genesis Boot Process](../docs/genesis-boot.md)** - Initialize TEE instances with quorum-based keys
+- **[🔗 TEE-to-TEE Key Sharing](../docs/tee-to-tee-sharing.md)** - Secure communication between TEE instances  
+- **[🏗️ System Architecture](../docs/architecture.md)** - Complete system overview and file structure
+- **[🔑 Key Management](../docs/key-management.md)** - All key types and cryptographic operations
+- **[🛡️ Encryption & Decryption](../docs/encryption-decryption.md)** - Untrusted data handling
+- **[📋 API Reference](../docs/api-reference.md)** - Complete API documentation with examples
+- **[🧪 Testing Guide](../docs/testing-guide.md)** - Comprehensive testing procedures
+
+### Advanced Features Documented:
+- ✅ **Genesis Boot**: Quorum-based key initialization (2-out-of-3, 7-out-of-7, etc.)
+- ✅ **TEE Instances**: Single and multi-instance TEE management with Docker
+- ✅ **Key Sharing**: Secure TEE-to-TEE communication with manifest sharing
+- ✅ **Encryption**: ECIES, AES-256-GCM, HKDF, and P-256 digital signatures
+- ✅ **Architecture**: Complete file structure and component relationships
