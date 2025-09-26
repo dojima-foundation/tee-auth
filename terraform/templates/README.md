@@ -1,14 +1,15 @@
-# GitHub Actions Runner Tools Installation Scripts
+# GitHub Actions Runner Templates
 
-This directory contains scripts to install all required development tools on GitHub Actions runner instances for the tee-auth project.
+This directory contains all templates and scripts for GitHub Actions runner setup and management.
 
-## Scripts Overview
+## Files Overview
 
-### 1. `install_tools.sh` - Complete Installation Script
-A comprehensive script that installs all required tools with detailed logging and verification.
+### 1. `user_data.sh` - Complete Runner Setup Script
+A comprehensive Terraform user data script that sets up the entire runner environment.
 
 **Features:**
-- ✅ System packages (curl, wget, git, build-essential, etc.)
+- ✅ Complete system setup with all development tools
+- ✅ GitHub Actions runner installation and configuration
 - ✅ Docker with proper configuration
 - ✅ Go 1.23.0 with development tools
 - ✅ Rust 1.82.0 with Cargo and security tools
@@ -16,28 +17,43 @@ A comprehensive script that installs all required tools with detailed logging an
 - ✅ PostgreSQL and Redis client tools
 - ✅ Playwright with browsers (Chromium, Firefox, WebKit)
 - ✅ Additional CI/CD tools (GitHub CLI, kubectl, terraform, etc.)
-- ✅ Utility scripts for testing and monitoring
-- ✅ Comprehensive verification and logging
-- ✅ **Fixed PATH configuration for GitHub Actions**
-- ✅ **Fixed cache permission issues**
-- ✅ **Configured both ubuntu and runner users**
+- ✅ Built-in utility scripts for monitoring and management
+- ✅ Health monitoring and status pages
+- ✅ Comprehensive logging and verification
 
-### 2. `quick_install_tools.sh` - Quick Installation Script
-A simplified version for faster installation with essential tools only.
+### 2. `user_data_simple.sh` - Simplified Runner Setup Script
+A streamlined version for faster setup with essential tools only.
 
 **Features:**
-- ✅ Essential system packages
+- ✅ Essential system packages and tools
+- ✅ GitHub Actions runner installation and configuration
 - ✅ Docker
 - ✅ Go 1.23.0 with development tools
 - ✅ Rust 1.82.0
 - ✅ Node.js 20.x with Playwright
-- ✅ Basic verification
-- ✅ **Fixed PATH configuration for GitHub Actions**
-- ✅ **Fixed cache permission issues**
-- ✅ **Configured both ubuntu and runner users**
+- ✅ Basic monitoring and utility scripts
+- ✅ Health monitoring and status pages
 
-### 3. `user_data.sh` - Terraform User Data Script
-The original user data script used by Terraform for initial runner setup.
+### 3. `install_tools.sh` - Standalone Tools Installation Script
+A comprehensive script for installing development tools on existing runners.
+
+**Features:**
+- ✅ Complete development environment setup
+- ✅ All tools from user_data.sh without runner configuration
+- ✅ Detailed logging and verification
+- ✅ Utility scripts for testing and monitoring
+
+### 4. `quick_install_tools.sh` - Quick Tools Installation Script
+A simplified version for faster tool installation.
+
+### 5. `check_runner_logs.sh` - Remote Runner Monitoring Script
+A script for checking runner logs and status remotely via SSH.
+
+### 6. `runner_usage_guide.md` - Comprehensive Usage Guide
+Complete documentation for using and managing the self-hosted runners.
+
+### 7. `workflow-examples.yml` - GitHub Actions Workflow Examples
+Comprehensive examples of GitHub Actions workflows for different organizations and repositories.
 
 ## Usage
 
@@ -117,11 +133,77 @@ make install-tools
 - **Google Cloud CLI**
 - **Docker Compose**
 
-### Utility Scripts
-- **test-postgres-connection** - Test PostgreSQL connectivity
-- **test-redis-connection** - Test Redis connectivity
-- **db-monitor** - Monitor database services
-- **runner-info** - Display runner information
+### Built-in Utility Scripts
+Each runner comes with comprehensive utility scripts installed in `/usr/local/bin/`:
+
+#### Core Utilities
+- **`runner-monitor`** - Check runner status and health
+- **`runner-info`** - Display comprehensive system information
+- **`runner-reconfigure`** - Reconfigure runner for different org/repo
+
+#### Database Testing Utilities
+- **`test-postgres-connection`** - Test PostgreSQL connectivity
+- **`test-redis-connection`** - Test Redis connectivity
+- **`db-monitor`** - Monitor database services status
+
+#### Usage Examples
+```bash
+# SSH into runner
+ssh -i runner_private_key.pem ubuntu@<runner-ip>
+
+# Check runner status
+runner-monitor
+
+# View comprehensive system information
+runner-info
+
+# Setup multi-organization support
+setup-multi-org-runners <github_token>
+
+# Reconfigure for organization
+runner-reconfigure <github_token> org dojima-foundation
+runner-reconfigure <github_token> org dojimanetwork
+
+# Reconfigure for repository
+runner-reconfigure <github_token> repo bhaagiKenpachi/spark-park-cricket
+runner-reconfigure <github_token> repo dojima-foundation/tee-auth
+
+# Test database connections
+test-postgres-connection [host] [port] [user] [password] [database]
+test-redis-connection [host] [port] [password]
+db-monitor
+```
+
+## Workflow Examples
+
+The `workflow-examples.yml` file contains comprehensive examples for different organizations and repositories:
+
+### Supported Organizations
+- **dojima-foundation**: Organization-level workflows
+- **dojimanetwork**: Organization-level workflows  
+- **bhaagiKenpachi**: User account workflows
+- **spark-park-cricket**: Repository-specific workflows
+
+### Workflow Labels
+Use these labels in your GitHub Actions workflows:
+
+**Organization-level runners:**
+```yaml
+runs-on: [self-hosted, ovh, ubuntu-22.04, dojima-foundation]
+runs-on: [self-hosted, ovh, ubuntu-22.04, dojimanetwork]
+```
+
+**Repository-level runners:**
+```yaml
+runs-on: [self-hosted, ovh, ubuntu-22.04, bhaagiKenpachi]
+runs-on: [self-hosted, ovh, ubuntu-22.04, dojima-foundation]
+```
+
+### Quick Setup
+1. Copy the appropriate workflow from `workflow-examples.yml`
+2. Place it in your repository's `.github/workflows/` directory
+3. Modify the workflow to match your specific needs
+4. Ensure your runner is configured with the correct labels
 
 ## Environment Variables
 

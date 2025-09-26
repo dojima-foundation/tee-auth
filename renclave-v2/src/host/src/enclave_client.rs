@@ -1,13 +1,17 @@
 use anyhow::{anyhow, Context, Result};
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::UnixStream;
 use tokio::time::{sleep, timeout};
 
-use renclave_shared::{EnclaveOperation, EnclaveRequest, EnclaveResponse};
+use renclave_shared::{
+    DecryptedShare, EnclaveOperation, EnclaveRequest, EnclaveResponse, EncryptedQuorumKey,
+    ManifestEnvelope, QuorumMember,
+};
 
 /// Client for communicating with the Nitro Enclave
+#[derive(Debug)]
 pub struct EnclaveClient {
     socket_path: String,
 }
@@ -63,10 +67,16 @@ impl EnclaveClient {
 
     /// Send request to enclave and get response
     pub async fn send_request(&self, operation: EnclaveOperation) -> Result<EnclaveResponse> {
+        let operation_discriminant = std::mem::discriminant(&operation);
         let request = EnclaveRequest::new(operation);
-        debug!("📤 Sending request to enclave: {}", request.id);
+        info!(
+            "📤 Sending request to enclave: {} (operation: {:?})",
+            request.id, operation_discriminant
+        );
+        debug!("🔍 Socket path: {}", self.socket_path);
 
         // Connect to enclave with timeout
+        info!("🔗 Connecting to enclave socket...");
         let stream = timeout(
             Duration::from_secs(5),
             UnixStream::connect(&self.socket_path),
@@ -74,8 +84,10 @@ impl EnclaveClient {
         .await
         .context("Timeout connecting to enclave")?
         .context("Failed to connect to enclave socket")?;
+        info!("✅ Connected to enclave socket successfully");
 
         // Send request with timeout
+        info!("📡 Sending request to enclave with 30s timeout...");
         let response = timeout(
             Duration::from_secs(30),
             self.send_request_internal(stream, request),
@@ -83,7 +95,11 @@ impl EnclaveClient {
         .await
         .context("Timeout waiting for enclave response")??;
 
-        debug!("📨 Received response from enclave: {}", response.id);
+        info!("📨 Received response from enclave: {}", response.id);
+        debug!(
+            "🔍 Response result: {:?}",
+            std::mem::discriminant(&response.result)
+        );
         Ok(response)
     }
 
@@ -203,6 +219,149 @@ impl EnclaveClient {
             curve,
         };
         self.send_request(operation).await
+    }
+
+    /// Generate quorum key via enclave
+    pub async fn generate_quorum_key(
+        &self,
+        members: Vec<QuorumMember>,
+        threshold: u32,
+        dr_key: Option<Vec<u8>>,
+    ) -> Result<EnclaveResponse> {
+        info!(
+            "🔐 Requesting quorum key generation (members: {}, threshold: {})",
+            members.len(),
+            threshold
+        );
+
+        let operation = EnclaveOperation::GenerateQuorumKey {
+            members,
+            threshold,
+            dr_key,
+        };
+        self.send_request(operation).await
+    }
+
+    /// Export quorum key via enclave
+    pub async fn export_quorum_key(
+        &self,
+        new_manifest_envelope: ManifestEnvelope,
+        cose_sign1_attestation_document: Vec<u8>,
+    ) -> Result<EnclaveResponse> {
+        info!("📤 Requesting quorum key export");
+
+        let operation = EnclaveOperation::ExportQuorumKey {
+            new_manifest_envelope: Box::new(new_manifest_envelope),
+            cose_sign1_attestation_document,
+        };
+        self.send_request(operation).await
+    }
+
+    /// Inject quorum key via enclave
+    pub async fn inject_quorum_key(
+        &self,
+        encrypted_quorum_key: EncryptedQuorumKey,
+    ) -> Result<EnclaveResponse> {
+        info!("📥 Requesting quorum key injection");
+
+        let operation = EnclaveOperation::InjectQuorumKey {
+            encrypted_quorum_key,
+        };
+        self.send_request(operation).await
+    }
+
+    /// Execute Genesis Boot flow
+    #[allow(clippy::too_many_arguments)]
+    pub async fn genesis_boot(
+        &self,
+        namespace_name: String,
+        namespace_nonce: u64,
+        manifest_members: Vec<QuorumMember>,
+        manifest_threshold: u32,
+        share_members: Vec<QuorumMember>,
+        share_threshold: u32,
+        pivot_hash: [u8; 32],
+        pivot_args: Vec<String>,
+        dr_key: Option<Vec<u8>>,
+    ) -> Result<EnclaveResponse> {
+        info!("🌱 Requesting Genesis Boot flow execution");
+        debug!("🔍 Genesis Boot parameters:");
+        debug!("  - namespace_name: {}", namespace_name);
+        debug!("  - namespace_nonce: {}", namespace_nonce);
+        debug!("  - manifest_members: {} members", manifest_members.len());
+        debug!("  - manifest_threshold: {}", manifest_threshold);
+        debug!("  - share_members: {} members", share_members.len());
+        debug!("  - share_threshold: {}", share_threshold);
+        debug!("  - pivot_hash: {:?}", pivot_hash);
+        debug!("  - pivot_args: {:?}", pivot_args);
+        debug!(
+            "  - dr_key: {}",
+            if dr_key.is_some() { "provided" } else { "none" }
+        );
+
+        let operation = EnclaveOperation::GenesisBoot {
+            namespace_name,
+            namespace_nonce,
+            manifest_members,
+            manifest_threshold,
+            share_members,
+            share_threshold,
+            pivot_hash,
+            pivot_args,
+            dr_key,
+        };
+
+        info!("📡 Sending Genesis Boot operation to enclave...");
+        let result = self.send_request(operation).await;
+        match &result {
+            Ok(response) => {
+                info!("✅ Genesis Boot operation completed successfully");
+                debug!(
+                    "🔍 Response result type: {:?}",
+                    std::mem::discriminant(&response.result)
+                );
+            }
+            Err(e) => {
+                error!("❌ Genesis Boot operation failed: {}", e);
+            }
+        }
+        result
+    }
+
+    /// Inject shares to complete Genesis Boot
+    pub async fn inject_shares(
+        &self,
+        namespace_name: String,
+        namespace_nonce: u64,
+        shares: Vec<DecryptedShare>,
+    ) -> Result<EnclaveResponse> {
+        info!("🔐 Requesting share injection for Genesis Boot completion");
+        debug!("🔍 Share injection parameters:");
+        debug!("  - namespace_name: {}", namespace_name);
+        debug!("  - namespace_nonce: {}", namespace_nonce);
+        debug!("  - shares: {} shares", shares.len());
+
+        let operation = EnclaveOperation::InjectShares {
+            namespace_name,
+            namespace_nonce,
+            shares,
+        };
+
+        info!("📡 Sending share injection operation to enclave...");
+        let result = self.send_request(operation).await;
+        match &result {
+            Ok(response) => {
+                info!("✅ Share injection operation completed successfully");
+                debug!(
+                    "🔍 Response result type: {:?}",
+                    std::mem::discriminant(&response.result)
+                );
+            }
+            Err(e) => {
+                error!("❌ Share injection operation failed: {}", e);
+            }
+        }
+        result
     }
 
     /// Check enclave health

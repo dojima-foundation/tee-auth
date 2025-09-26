@@ -82,6 +82,40 @@ impl QemuHost {
             .route("/network/status", get(api_handlers::network_status))
             .route("/network/test", post(api_handlers::test_connectivity))
             .route("/enclave/info", get(api_handlers::enclave_info))
+            .route("/enclave/genesis-boot", post(api_handlers::genesis_boot))
+            .route("/enclave/inject-shares", post(api_handlers::inject_shares))
+            .route("/enclave/encrypt-data", post(api_handlers::encrypt_data))
+            .route("/enclave/decrypt-data", post(api_handlers::decrypt_data))
+            .route(
+                "/enclave/sign-transaction",
+                post(api_handlers::sign_transaction),
+            )
+            .route("/enclave/sign-message", post(api_handlers::sign_message))
+            .route(
+                "/enclave/application-status",
+                get(api_handlers::get_application_status),
+            )
+            .route(
+                "/enclave/store-data",
+                post(api_handlers::store_application_data),
+            )
+            .route("/enclave/get-data", get(api_handlers::get_application_data))
+            .route("/enclave/reset", post(api_handlers::reset_enclave))
+            // TEE-to-TEE Communication endpoints
+            .route(
+                "/enclave/boot-key-forward",
+                post(api_handlers::boot_key_forward),
+            )
+            .route("/enclave/export-key", post(api_handlers::export_key))
+            .route("/enclave/inject-key", post(api_handlers::inject_key))
+            .route(
+                "/enclave/generate-attestation",
+                post(api_handlers::generate_attestation),
+            )
+            .route(
+                "/enclave/share-manifest",
+                post(api_handlers::share_manifest),
+            )
             .with_state(app_state);
 
         info!("✅ HTTP router configured with all endpoints");
@@ -122,7 +156,7 @@ async fn main() -> anyhow::Result<()> {
     let host = QemuHost::new().await?;
 
     // Start HTTP server on all interfaces
-    let bind_addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let bind_addr = SocketAddr::from(([0, 0, 0, 0], 8080));
     host.start(bind_addr).await?;
 
     Ok(())

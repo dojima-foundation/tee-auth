@@ -1,0 +1,497 @@
+---
+title: 'Key Management'
+description: 'All key types and their purposes in the Renclave system'
+---
+
+# Key Management
+
+This document provides a comprehensive overview of all key types used in the Renclave system, their purposes, generation processes, and security characteristics.
+
+## Overview
+
+The Renclave system employs a sophisticated multi-layered key management architecture that ensures secure cryptographic operations while providing fault tolerance through quorum-based mechanisms.
+
+## Key Types and Hierarchy
+
+### 1. Quorum Public Key
+**Purpose**: Master cryptographic key for the entire TEE instance
+**Size**: 32 bytes (256-bit)
+**Algorithm**: P-256 (secp256r1) Elliptic Curve
+**Generation**: During Genesis Boot process
+**Usage**: 
+- Encrypting sensitive data within TEE
+- Generating seed phrases
+- Signing cryptographic operations
+- TEE-to-TEE key sharing
+
+**Characteristics**:
+- **Master Key**: All other operations derive from this key
+- **Quorum-Based**: Split into shares using Shamir Secret Sharing
+- **Threshold-Dependent**: Requires minimum threshold shares to reconstruct
+- **Persistent**: Stored in manifest envelope
+
+```rust
+// Quorum key structure
+pub struct QuorumKey {
+    pub public_key: [u8; 32],    // 32-byte P-256 public key
+    pub threshold: usize,         // Minimum shares required
+    pub total_shares: usize,      // Total number of shares
+}
+```
+
+### 2. Quorum Key Shares
+**Purpose**: Individual shares of the quorum public key
+**Size**: Variable (includes x-coordinate + y-value)
+**Algorithm**: Shamir Secret Sharing (SSS)
+**Generation**: During Genesis Boot process
+**Usage**:
+- Reconstructing the quorum public key
+- Fault tolerance and security distribution
+- Member-specific access control
+
+**Characteristics**:
+- **Distributed**: Each share held by different members
+- **Threshold**: Minimum number required for reconstruction
+- **Encrypted**: Each share encrypted with member's public key
+- **Unique**: Each share contains unique x-coordinate
+
+```rust
+// Share structure
+pub struct QuorumKeyShare {
+    pub member_alias: String,           // Member identifier
+    pub encrypted_share: Vec<u8>,       // Encrypted share data
+    pub x_coordinate: u8,               // X-coordinate for SSS
+    pub y_value: Vec<u8>,               // Y-value from polynomial
+}
+```
+
+### 3. Member Public Keys
+**Purpose**: Individual member keys for share encryption/decryption
+**Size**: 65 bytes (uncompressed P-256)
+**Algorithm**: P-256 (secp256r1) Elliptic Curve
+**Generation**: External key generation tools
+**Usage**:
+- Encrypting shares during Genesis Boot
+- Decrypting shares during reconstruction
+- Member authentication
+- Secure communication with TEE
+
+**Characteristics**:
+- **Individual**: Each member has unique key pair
+- **Asymmetric**: Public key for encryption, private key for decryption
+- **Standard**: P-256 standard for interoperability
+- **Persistent**: Stored with member identity
+
+```rust
+// Member key structure
+pub struct MemberKey {
+    pub alias: String,                  // Member identifier
+    pub public_key: Vec<u8>,            // 65-byte uncompressed public key
+    pub key_type: KeyType,              // P-256 specification
+}
+```
+
+### 4. Ephemeral Key Pairs
+**Purpose**: Temporary keys for TEE-to-TEE communication
+**Size**: 32 bytes (private) + 65 bytes (public)
+**Algorithm**: P-256 (secp256r1) Elliptic Curve
+**Generation**: During TEE-to-TEE communication setup
+**Usage**:
+- Encrypting quorum keys for transfer
+- Establishing secure communication channels
+- One-time use for key sharing operations
+- Protecting against replay attacks
+
+**Characteristics**:
+- **Temporary**: Generated per communication session
+- **Session-Specific**: Unique for each TEE-to-TEE interaction
+- **Disposable**: Discarded after use
+- **Secure**: Generated within TEE environment
+
+```rust
+// Ephemeral key structure
+pub struct EphemeralKeyPair {
+    pub private_key: [u8; 32],          // 32-byte private key
+    pub public_key: [u8; 65],           // 65-byte public key
+    pub session_id: String,             // Unique session identifier
+}
+```
+
+### 5. Attestation Keys
+**Purpose**: Keys for generating and verifying attestation documents
+**Size**: Variable (depends on attestation scheme)
+**Algorithm**: COSE Sign1 with P-256
+**Generation**: During TEE initialization
+**Usage**:
+- Signing attestation documents
+- Proving TEE identity and integrity
+- Establishing trust between TEEs
+- Verifying TEE state and configuration
+
+**Characteristics**:
+- **Identity**: Proves TEE identity and integrity
+- **Integrity**: Ensures attestation document authenticity
+- **Verification**: Allows other TEEs to verify attestation
+- **Hardware-Bound**: Tied to specific TEE hardware
+
+### 6. Seed Generation Keys
+**Purpose**: Keys derived from quorum key for seed generation
+**Size**: 32 bytes (256-bit)
+**Algorithm**: HKDF (HMAC-based Key Derivation Function)
+**Generation**: Derived from quorum key + seed type + seed data
+**Usage**:
+- Generating cryptographic seeds
+- Creating deterministic but unique seeds
+- Supporting different seed types
+- Ensuring seed uniqueness and security
+
+**Characteristics**:
+- **Derived**: Generated from quorum key and context
+- **Deterministic**: Same inputs produce same seed
+- **Unique**: Different contexts produce different seeds
+- **Secure**: Cryptographically strong derivation
+
+```rust
+// Seed generation process
+pub fn generate_seed_key(
+    quorum_key: &[u8; 32],
+    seed_type: &str,
+    seed_data: &str
+) -> [u8; 32] {
+    let mut context = Vec::new();
+    context.extend_from_slice(seed_type.as_bytes());
+    context.extend_from_slice(seed_data.as_bytes());
+    
+    hkdf::Hkdf::<sha2::Sha256>::new(None, quorum_key)
+        .expand(&context, &mut derived_key)
+        .expect("HKDF expansion failed");
+    
+    derived_key
+}
+```
+
+## Key Generation Processes
+
+### Genesis Boot Key Generation
+
+#### 1. Master Secret Generation
+```rust
+// Generate 32-byte random master secret
+let mut master_secret = [0u8; 32];
+thread_rng().fill_bytes(&mut master_secret);
+
+// Ensure non-zero secret
+if master_secret.iter().all(|&b| b == 0) {
+    // Regenerate if all zeros
+    thread_rng().fill_bytes(&mut master_secret);
+}
+```
+
+#### 2. Shamir Secret Sharing
+```rust
+// Create polynomial of degree (threshold - 1)
+let polynomial = Polynomial::new(master_secret, threshold - 1);
+
+// Generate shares for each member
+let mut shares = Vec::new();
+for (i, member) in members.iter().enumerate() {
+    let x_coordinate = (i + 1) as u8;
+    let y_value = polynomial.evaluate(x_coordinate);
+    
+    let share = QuorumKeyShare {
+        member_alias: member.alias.clone(),
+        x_coordinate,
+        y_value,
+    };
+    shares.push(share);
+}
+```
+
+#### 3. Share Encryption
+```rust
+// Encrypt each share with member's public key
+for share in &mut shares {
+    let encrypted_data = encrypt_share(
+        &share.y_value,
+        &member.public_key
+    );
+    share.encrypted_share = encrypted_data;
+}
+```
+
+### TEE-to-TEE Key Generation
+
+#### 1. Ephemeral Key Generation
+```rust
+// Generate ephemeral key pair for communication
+let ephemeral_private = generate_p256_private_key();
+let ephemeral_public = derive_public_key(&ephemeral_private);
+
+let ephemeral_key_pair = EphemeralKeyPair {
+    private_key: ephemeral_private,
+    public_key: ephemeral_public,
+    session_id: generate_session_id(),
+};
+```
+
+#### 2. Key Encryption for Transfer
+```rust
+// Encrypt quorum key with ephemeral public key
+let encrypted_quorum_key = ecies_encrypt(
+    &quorum_key,
+    &ephemeral_public_key
+);
+
+// Sign the encrypted key
+let signature = sign_with_quorum_key(
+    &encrypted_quorum_key,
+    &quorum_private_key
+);
+```
+
+### Seed Generation Key Derivation
+
+#### 1. Context Preparation
+```rust
+// Prepare derivation context
+let mut context = Vec::new();
+context.extend_from_slice(seed_type.as_bytes());
+context.extend_from_slice(seed_data.as_bytes());
+context.extend_from_slice(&timestamp.to_be_bytes());
+```
+
+#### 2. Key Derivation
+```rust
+// Derive seed key using HKDF
+let mut seed_key = [0u8; 32];
+let hkdf = Hkdf::<Sha256>::new(None, quorum_key);
+hkdf.expand(&context, &mut seed_key)
+    .expect("HKDF expansion failed");
+```
+
+## Key Storage and Security
+
+### In-Memory Storage
+```rust
+// Keys stored in secure memory within TEE
+pub struct SecureKeyStorage {
+    quorum_key: Option<[u8; 32]>,           // Master quorum key
+    ephemeral_keys: HashMap<String, EphemeralKeyPair>, // Session keys
+    derived_keys: HashMap<String, [u8; 32]>, // Derived seed keys
+}
+```
+
+### Security Measures
+- **Memory Protection**: Keys stored in TEE-protected memory
+- **Access Control**: Keys only accessible within TEE
+- **Encryption**: Sensitive keys encrypted at rest
+- **Zeroization**: Keys cleared when no longer needed
+
+## Key Usage Patterns
+
+### 1. Single TEE Operations
+```rust
+// Use quorum key directly for operations
+let seed_key = derive_seed_key(&quorum_key, "wallet", "user123");
+let encrypted_data = encrypt_with_key(&data, &seed_key);
+```
+
+### 2. Multi-TEE Operations
+```rust
+// Generate ephemeral keys for communication
+let ephemeral_key = generate_ephemeral_key_pair();
+let encrypted_quorum = encrypt_for_transfer(&quorum_key, &ephemeral_key.public);
+
+// Transfer encrypted key to another TEE
+transfer_encrypted_key(&encrypted_quorum, target_tee);
+```
+
+### 3. Threshold Operations
+```rust
+// Require minimum threshold for operations
+if available_shares.len() < threshold {
+    return Err("Insufficient shares for operation");
+}
+
+// Reconstruct quorum key from shares
+let reconstructed_key = reconstruct_quorum_key(&available_shares)?;
+```
+
+## Key Rotation and Management
+
+### Key Rotation Process
+1. **Generate New Keys**: Create new quorum key and shares
+2. **Distribute Shares**: Send new shares to all members
+3. **Verify Reconstruction**: Ensure new key can be reconstructed
+4. **Update Manifest**: Update manifest with new key
+5. **Migrate Data**: Re-encrypt existing data with new key
+
+### Key Backup and Recovery
+1. **Share Backup**: Backup encrypted shares securely
+2. **Manifest Backup**: Backup manifest envelope
+3. **Recovery Process**: Restore from backup shares
+4. **Verification**: Verify key reconstruction
+
+## Security Considerations
+
+### Key Security Properties
+- **Confidentiality**: Keys protected within TEE
+- **Integrity**: Keys verified through attestation
+- **Availability**: Fault tolerance through threshold scheme
+- **Authenticity**: Keys bound to specific TEE instances
+
+### Threat Mitigation
+- **Compromise Resistance**: Threshold prevents single point of failure
+- **Replay Protection**: Ephemeral keys prevent replay attacks
+- **Forward Secrecy**: Ephemeral keys provide forward secrecy
+- **Hardware Security**: Keys protected by TEE hardware
+
+## Key Validation and Verification
+
+### Quorum Key Validation
+```rust
+// Validate reconstructed key matches manifest
+if reconstructed_key != manifest_quorum_key {
+    return Err("Key mismatch: reconstructed key doesn't match manifest");
+}
+
+// Verify key format and properties
+validate_key_format(&reconstructed_key)?;
+validate_key_properties(&reconstructed_key)?;
+```
+
+### Share Validation
+```rust
+// Validate share format and membership
+for share in &shares {
+    validate_share_format(share)?;
+    validate_member_membership(&share.member_alias)?;
+    validate_share_encryption(share)?;
+}
+```
+
+### Attestation Verification
+```rust
+// Verify attestation document signature
+verify_attestation_signature(&attestation_doc)?;
+
+// Verify attestation content
+verify_attestation_content(&attestation_doc, &expected_manifest)?;
+```
+
+## Performance Characteristics
+
+### Key Generation Performance
+- **Genesis Boot**: ~2-3 seconds for 7-member setup
+- **Share Generation**: ~100ms per share
+- **Key Reconstruction**: ~50ms for 7 shares
+- **Ephemeral Generation**: ~10ms per key pair
+
+### Memory Usage
+- **Quorum Key**: 32 bytes
+- **Ephemeral Keys**: ~100 bytes per session
+- **Share Storage**: ~200 bytes per share
+- **Derived Keys**: 32 bytes per derivation
+
+## Testing and Validation
+
+### Key Generation Tests
+```bash
+# Test different threshold configurations
+./test_key_generation.sh --threshold 2,3,5,7
+
+# Test key reconstruction
+./test_key_reconstruction.sh --shares 3,5,7
+
+# Test key derivation
+./test_key_derivation.sh --types wallet,seed,backup
+```
+
+### Security Tests
+```bash
+# Test key isolation
+./test_key_isolation.sh
+
+# Test key zeroization
+./test_key_zeroization.sh
+
+# Test key validation
+./test_key_validation.sh
+```
+
+## Integration Examples
+
+### Application Integration
+```rust
+// Initialize TEE with quorum key
+let tee = TEE::new(quorum_config)?;
+
+// Generate application-specific key
+let app_key = tee.derive_key("application", "user123")?;
+
+// Use key for application operations
+let encrypted_data = app_key.encrypt(&sensitive_data)?;
+```
+
+### Multi-TEE Integration
+```rust
+// Set up TEE-to-TEE communication
+let comm_channel = TEECommunication::new(source_tee, target_tee)?;
+
+// Share quorum key securely
+comm_channel.share_quorum_key(&quorum_key)?;
+
+// Verify key sharing success
+assert!(target_tee.has_quorum_key());
+```
+
+## Troubleshooting
+
+### Common Key Issues
+1. **Key Mismatch**: Reconstructed key doesn't match manifest
+2. **Insufficient Shares**: Not enough shares for threshold
+3. **Invalid Format**: Key format doesn't match expected structure
+4. **Decryption Failure**: Cannot decrypt shares or encrypted data
+
+### Debug Tools
+```bash
+# Key validation tool
+cargo run --bin key_validator -- --key-file key.json
+
+# Share analysis tool
+cargo run --bin share_analyzer -- --shares shares.json
+
+# Key derivation test
+cargo run --bin key_derivation_test -- --context test
+```
+
+## Best Practices
+
+### Key Management Best Practices
+1. **Secure Generation**: Use cryptographically secure random number generators
+2. **Proper Storage**: Store keys in TEE-protected memory
+3. **Regular Rotation**: Implement key rotation policies
+4. **Backup Strategy**: Maintain secure backups of shares
+5. **Access Control**: Implement proper access controls
+6. **Monitoring**: Monitor key usage and access patterns
+
+### Security Best Practices
+1. **Threshold Selection**: Choose appropriate threshold for use case
+2. **Member Management**: Carefully manage member identities and keys
+3. **Attestation Verification**: Always verify attestation documents
+4. **Ephemeral Key Usage**: Use ephemeral keys for temporary operations
+5. **Key Zeroization**: Properly zeroize keys when no longer needed
+
+## Next Steps
+
+After understanding key management:
+1. **Implementation**: Implement key management in your application
+2. **Testing**: Thoroughly test key operations
+3. **Security Review**: Conduct security review of key handling
+4. **Monitoring**: Set up monitoring for key operations
+5. **Documentation**: Document key management procedures
+
+For more details, see:
+- [TEE-to-TEE Key Sharing](./tee-to-tee-sharing.md)
+- [Encryption & Decryption](./encryption-decryption.md)
+- [Architecture Overview](./architecture.md)

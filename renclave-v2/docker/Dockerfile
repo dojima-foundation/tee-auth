@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for QEMU Nitro Enclave testing
-FROM rust:1.81-bookworm AS builder
+FROM rust:1.82-bookworm AS builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \

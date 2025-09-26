@@ -2,6 +2,28 @@
 
 TEE-Auth is a secure authentication and key management system leveraging trusted execution environments (TEEs) for cryptographic operations. It consists of two main components: `gauth` (Go Authentication Service) and `renclave-v2` (Rust-based Enclave for seed generation).
 
+## 📚 Comprehensive Documentation
+
+**NEW**: Complete documentation suite now available in the [`docs/`](./docs/) folder!
+
+### Quick Links to Key Documentation:
+- **[📖 Documentation Overview](./docs/README.md)** - Start here for navigation
+- **[🚀 Genesis Boot Process](./docs/genesis-boot.md)** - Initialize TEE instances with quorum-based keys
+- **[🔗 TEE-to-TEE Key Sharing](./docs/tee-to-tee-sharing.md)** - Secure communication between TEE instances
+- **[🏗️ System Architecture](./docs/architecture.md)** - Complete system overview and file structure
+- **[🔑 Key Management](./docs/key-management.md)** - All key types and cryptographic operations
+- **[🛡️ Encryption & Decryption](./docs/encryption-decryption.md)** - Untrusted data handling
+- **[📋 API Reference](./docs/api-reference.md)** - Complete API documentation
+- **[🧪 Testing Guide](./docs/testing-guide.md)** - Comprehensive testing procedures
+
+### Key Features Documented:
+- ✅ **Genesis Boot**: Quorum-based key initialization (2-out-of-3, 7-out-of-7, etc.)
+- ✅ **TEE Instances**: Single and multi-instance TEE management
+- ✅ **Key Sharing**: Secure TEE-to-TEE communication with manifest sharing
+- ✅ **Encryption**: ECIES, AES-256-GCM, HKDF, and P-256 digital signatures
+- ✅ **Architecture**: Complete file structure and component relationships
+- ✅ **Testing**: Unit, integration, performance, and security testing
+
 
 
 

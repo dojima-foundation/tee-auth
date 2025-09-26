@@ -1,0 +1,78 @@
+[package]
+name = "renclave-tests"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "integration_tests"
+path = "integration_tests.rs"
+
+[[bin]]
+name = "integration_tests_enhanced"
+path = "integration_tests_enhanced.rs"
+
+[[bin]]
+name = "e2e_tests"
+path = "e2e_tests.rs"
+
+[[bin]]
+name = "e2e_tests_enhanced"
+path = "e2e_tests_enhanced.rs"
+
+[[bin]]
+name = "test_runner"
+path = "test_runner.rs"
+
+[dependencies]
+renclave-enclave = { path = "../src/enclave" }
+renclave-host = { path = "../src/host" }
+renclave-shared = { path = "../src/shared" }
+renclave-network = { path = "../src/network" }
+
+# Async runtime
+tokio = { version = "1.0", features = ["full", "test-util"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+# Cryptography and BIP39
+bip39 = "2.0"
+rand = "0.8"
+bitcoin = "0.32"
+secp256k1 = "0.29"
+
+# HTTP server (for host)
+axum = "0.7"
+hyper = { version = "1.0", features = ["full"] }
+tower = { version = "0.4", features = ["timeout"] }
+
+# Networking
+nix = "0.27"
+
+# Utilities
+hex = "0.4"
+uuid = { version = "1.0", features = ["v4"] }
+
+# Testing dependencies
+reqwest = { version = "0.11", features = ["json"] }
+tokio-test = "0.4"
+futures = "0.3"
+
+# Quorum key generation dependencies
+p256 = { version = "0.12.0", default-features = false, features = ["ecdsa", "ecdh", "arithmetic"] }
+aes-gcm = { version = "0.10.3", features = ["aes", "alloc"], default-features = false }
+hmac = { version = "0.12", default-features = false }
+hkdf = { version = "0.12", default-features = false }
+sha2 = { version = "0.10", default-features = false }
+zeroize = { version = "1.4", default-features = false }
+borsh = { version = "1.0", features = ["std", "derive"], default-features = false }
+serde_bytes = "0.11"

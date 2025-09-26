@@ -60,6 +60,24 @@
             ]
         },
         {
+            "group": "Core Documentation",
+            "pages": [
+                "genesis-boot",
+                "tee-instances",
+                "key-management",
+                "tee-to-tee-sharing",
+                "encryption-decryption"
+            ]
+        },
+        {
+            "group": "Technical Documentation",
+            "pages": [
+                "architecture",
+                "api-reference",
+                "testing-guide"
+            ]
+        },
+        {
             "group": "Concepts",
             "pages": [
                 "concepts/architecture-overview",

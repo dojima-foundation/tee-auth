@@ -1,0 +1,8 @@
+---
+description: Common project rules that apply to all files
+alwaysApply: true
+---
+
+# Common Project Rules
+
+**No debugging scripts allowed** - Do not create any debugging scripts, console.log statements for debugging, or temporary debugging code in any language. All code should be production-ready and properly tested without relying on debugging utilities. **Run server in backgroud process** - Always run server in background process for api testing. **Add debugger logs for issue** - when issue or bug is reported, add debugger logs to pinpoint issue. **No code implementation for questions** - when something is asked as a question, do not implement code. e.g like architecture, implementation plan. **write unit, integration, e2e tests for bugs reported** - Write units,integration,e2e tests for any issue that is fixed.**no md files other than readme** - Do not create extra md files for convinience. Need permission for extra md files

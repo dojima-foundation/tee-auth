@@ -1,0 +1,18 @@
+[package]
+name = "tools"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "genesis_key_generator"
+path = "genesis_key_generator.rs"
+
+[[bin]]
+name = "share_injector"
+path = "share_injector.rs"
+
+[dependencies]
+p256 = { version = "0.8", default-features = false, features = ["ecdsa", "ecdh", "arithmetic"] }
+rand = "0.8"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }

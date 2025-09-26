@@ -423,7 +423,7 @@ log "Setting up final configurations..."
 # Set proper permissions
 chown -R github-runner:github-runner /home/github-runner
 
-# Create a simple monitoring script
+# Create a comprehensive monitoring script
 cat > /usr/local/bin/runner-monitor << 'EOF'
 #!/bin/bash
 
@@ -438,11 +438,223 @@ EOF
 
 chmod +x /usr/local/bin/runner-monitor
 
-# Create system information script
+# Create runner reconfiguration script
+cat > /usr/local/bin/runner-reconfigure << 'EOF'
+#!/bin/bash
+
+# GitHub Actions Runner Reconfiguration Script
+# Usage: runner-reconfigure <github_token> <target_type> <target_name> [labels]
+
+set -e
+
+GITHUB_TOKEN="$1"
+TARGET_TYPE="$2"  # "org" or "repo"
+TARGET_NAME="$3"  # organization or repository name
+LABELS="${4:-ovh,self-hosted,ubuntu-22.04}"
+
+if [ -z "$GITHUB_TOKEN" ] || [ -z "$TARGET_TYPE" ] || [ -z "$TARGET_NAME" ]; then
+    echo "Usage: $0 <github_token> <target_type> <target_name> [labels]"
+    echo "  target_type: 'org' for organization or 'repo' for repository"
+    echo "  target_name: organization name (e.g., 'dojima-foundation') or repo name (e.g., 'user/repo')"
+    echo "  labels: comma-separated labels (default: ovh,self-hosted,ubuntu-22.04)"
+    echo ""
+    echo "Examples:"
+    echo "  $0 <token> org dojima-foundation"
+    echo "  $0 <token> org dojimanetwork"
+    echo "  $0 <token> repo bhaagiKenpachi/spark-park-cricket"
+    echo "  $0 <token> repo dojima-foundation/tee-auth"
+    exit 1
+fi
+
+echo "Reconfiguring runner for $TARGET_TYPE: $TARGET_NAME"
+
+# Get registration token
+if [ "$TARGET_TYPE" = "org" ]; then
+    RUNNER_URL="https://github.com/$TARGET_NAME"
+    RUNNER_TOKEN=$(curl -s -X POST \
+        -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github.v3+json" \
+        "https://api.github.com/orgs/$TARGET_NAME/actions/runners/registration-token" | \
+        jq -r '.token')
+else
+    RUNNER_URL="https://github.com/$TARGET_NAME"
+    RUNNER_TOKEN=$(curl -s -X POST \
+        -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github.v3+json" \
+        "https://api.github.com/repos/$TARGET_NAME/actions/runners/registration-token" | \
+        jq -r '.token')
+fi
+
+if [ "$RUNNER_TOKEN" = "null" ] || [ -z "$RUNNER_TOKEN" ]; then
+    echo "Failed to get registration token for $RUNNER_URL"
+    echo "Please check:"
+    echo "  1. GitHub token has correct permissions"
+    echo "  2. Target organization/repository exists"
+    echo "  3. Token has access to the target"
+    exit 1
+fi
+
+# Stop current service
+systemctl stop github-runner || true
+
+# Remove current configuration
+cd /home/github-runner
+./config.sh remove --unattended --token "$GITHUB_TOKEN" || true
+
+# Configure for new target
+./config.sh \
+    --url "$RUNNER_URL" \
+    --token "$RUNNER_TOKEN" \
+    --name "$(hostname)-$(date +%s)" \
+    --labels "$LABELS" \
+    --unattended \
+    --replace
+
+# Start service
+systemctl start github-runner
+
+echo "Runner reconfigured successfully for $RUNNER_URL"
+echo "Labels: $LABELS"
+echo "Service status: $(systemctl is-active github-runner)"
+EOF
+
+chmod +x /usr/local/bin/runner-reconfigure
+
+# Create multi-organization setup script
+cat > /usr/local/bin/setup-multi-org-runners << 'EOF'
+#!/bin/bash
+
+# Multi-Organization GitHub Actions Runner Setup Script
+# This script helps configure runners for multiple organizations and repositories
+
+set -e
+
+GITHUB_TOKEN="${1:-$GITHUB_TOKEN}"
+
+if [ -z "$GITHUB_TOKEN" ]; then
+    echo "Usage: $0 <github_token>"
+    echo "  github_token: GitHub Personal Access Token with appropriate permissions"
+    echo ""
+    echo "Required token permissions:"
+    echo "  - admin:org (for organization-level runners)"
+    echo "  - repo (for repository-level runners)"
+    echo "  - actions:write (for runner management)"
+    exit 1
+fi
+
+echo "=== Multi-Organization Runner Setup ==="
+echo "Setting up runners for multiple organizations and repositories"
+echo ""
+
+# Function to test GitHub API access
+test_github_access() {
+    local target="$1"
+    local target_type="$2"
+    
+    echo "Testing access to $target_type: $target"
+    
+    if [ "$target_type" = "org" ]; then
+        response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/orgs/$target")
+    else
+        response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$target")
+    fi
+    
+    if echo "$response" | jq -e '.message' > /dev/null 2>&1; then
+        echo "❌ Access denied or not found: $target"
+        return 1
+    else
+        echo "✅ Access confirmed: $target"
+        return 0
+    fi
+}
+
+# Function to get registration token
+get_registration_token() {
+    local target="$1"
+    local target_type="$2"
+    
+    if [ "$target_type" = "org" ]; then
+        curl -s -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/orgs/$target/actions/runners/registration-token" | \
+            jq -r '.token'
+    else
+        curl -s -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$target/actions/runners/registration-token" | \
+            jq -r '.token'
+    fi
+}
+
+# Test access to supported organizations and repositories
+echo "=== Testing GitHub API Access ==="
+
+# Test organizations
+test_github_access "dojima-foundation" "org"
+test_github_access "dojimanetwork" "org"
+
+# Test user repositories
+test_github_access "bhaagiKenpachi" "org" || echo "Note: bhaagiKenpachi is a user account, not an organization"
+
+# Test specific repositories
+test_github_access "bhaagiKenpachi/spark-park-cricket" "repo"
+test_github_access "dojima-foundation/tee-auth" "repo"
+
+echo ""
+echo "=== Available Configuration Options ==="
+echo ""
+echo "1. Organization-level runners (recommended for multiple repos):"
+echo "   - dojima-foundation: All repos in the organization can use the runner"
+echo "   - dojimanetwork: All repos in the organization can use the runner"
+echo ""
+echo "2. Repository-level runners (for specific repos):"
+echo "   - bhaagiKenpachi/spark-park-cricket: Dedicated runner for this repo"
+echo "   - dojima-foundation/tee-auth: Dedicated runner for this repo"
+echo ""
+echo "=== Configuration Commands ==="
+echo ""
+echo "To configure for organization-level access:"
+echo "  runner-reconfigure $GITHUB_TOKEN org dojima-foundation 'ovh,self-hosted,ubuntu-22.04,dojima-foundation'"
+echo "  runner-reconfigure $GITHUB_TOKEN org dojimanetwork 'ovh,self-hosted,ubuntu-22.04,dojimanetwork'"
+echo ""
+echo "To configure for repository-level access:"
+echo "  runner-reconfigure $GITHUB_TOKEN repo bhaagiKenpachi/spark-park-cricket 'ovh,self-hosted,ubuntu-22.04,bhaagiKenpachi'"
+echo "  runner-reconfigure $GITHUB_TOKEN repo dojima-foundation/tee-auth 'ovh,self-hosted,ubuntu-22.04,dojima-foundation'"
+echo ""
+echo "=== Workflow Configuration ==="
+echo ""
+echo "For organization-level runners, use these labels in your workflows:"
+echo "  runs-on: [self-hosted, ovh, ubuntu-22.04, dojima-foundation]"
+echo "  runs-on: [self-hosted, ovh, ubuntu-22.04, dojimanetwork]"
+echo ""
+echo "For repository-level runners, use these labels:"
+echo "  runs-on: [self-hosted, ovh, ubuntu-22.04, bhaagiKenpachi]"
+echo "  runs-on: [self-hosted, ovh, ubuntu-22.04, dojima-foundation]"
+echo ""
+echo "=== Current Runner Status ==="
+echo "Service Status: $(systemctl is-active github-runner)"
+echo "Runner Configuration: $(cat /home/github-runner/.runner 2>/dev/null | jq -r '.url // "Not configured"' 2>/dev/null || echo "Not configured")"
+echo ""
+echo "=== Next Steps ==="
+echo "1. Choose your configuration approach (organization vs repository level)"
+echo "2. Run the appropriate runner-reconfigure command"
+echo "3. Update your workflow files to use the correct labels"
+echo "4. Test the setup with a simple workflow"
+EOF
+
+chmod +x /usr/local/bin/setup-multi-org-runners
+
+# Create comprehensive system information script
 cat > /usr/local/bin/runner-info << 'EOF'
 #!/bin/bash
 
-echo "=== System Information ==="
+echo "=== GitHub Actions Runner Information ==="
 echo "Hostname: $(hostname)"
 echo "OS: $(lsb_release -d | cut -f2)"
 echo "Kernel: $(uname -r)"
@@ -451,10 +663,188 @@ echo "CPU: $(nproc) cores"
 echo "Memory: $(free -h | awk '/^Mem:/{print $2}')"
 echo "Disk: $(df -h / | awk 'NR==2{print $4}') available"
 echo "Uptime: $(uptime -p)"
-echo "========================="
+echo "Docker Version: $(docker --version 2>/dev/null || echo 'Not installed')"
+echo "Runner Service: $(systemctl is-active actions.runner.* 2>/dev/null || echo 'Not running')"
+echo ""
+echo "=== Development Tools ==="
+echo "Go Version: $(go version 2>/dev/null || echo 'Not installed')"
+echo "protoc-gen-go: $(protoc-gen-go --version 2>/dev/null || echo 'Not installed')"
+echo "protoc-gen-go-grpc: $(protoc-gen-go-grpc --version 2>/dev/null || echo 'Not installed')"
+echo "Rust Version: $(rustc --version 2>/dev/null || echo 'Not installed')"
+echo "Node.js Version: $(node --version 2>/dev/null || echo 'Not installed')"
+echo "NPM Version: $(npm --version 2>/dev/null || echo 'Not installed')"
+echo ""
+echo "=== Database Tools ==="
+echo "PostgreSQL Client: $(psql --version 2>/dev/null || echo 'Not installed')"
+echo "Redis CLI: $(redis-cli --version 2>/dev/null || echo 'Not installed')"
+echo "Migration Tool: $(migrate -version 2>/dev/null || echo 'Not installed')"
+echo ""
+echo "=== Build Tools ==="
+echo "Make: $(make --version 2>/dev/null | head -n1 || echo 'Not installed')"
+echo "CMake: $(cmake --version 2>/dev/null | head -n1 || echo 'Not installed')"
+echo "GCC: $(gcc --version 2>/dev/null | head -n1 || echo 'Not installed')"
+echo "Python: $(python3 --version 2>/dev/null || echo 'Not installed')"
+echo ""
+echo "=== Performance & Testing Tools ==="
+echo "Lighthouse: $(lighthouse --version 2>/dev/null || echo 'Not installed')"
+echo "Lighthouse CI: $(lhci --version 2>/dev/null || echo 'Not installed')"
+echo "Playwright: $(npx playwright --version 2>/dev/null || echo 'Not installed')"
+echo ""
+echo "=== CI/CD Tools ==="
+echo "GitHub CLI: $(gh --version 2>/dev/null | head -n1 || echo 'Not installed')"
+echo "Kubernetes CLI: $(kubectl version --client --short 2>/dev/null || echo 'Not installed')"
+echo "Terraform: $(terraform version 2>/dev/null | head -n1 || echo 'Not installed')"
+echo "AWS CLI: $(aws --version 2>/dev/null || echo 'Not installed')"
+echo "Docker Compose: $(docker-compose --version 2>/dev/null || echo 'Not installed')"
+echo "========================================="
 EOF
 
 chmod +x /usr/local/bin/runner-info
+
+# Create database connection testing scripts
+cat > /usr/local/bin/test-postgres-connection << 'EOF'
+#!/bin/bash
+# PostgreSQL connection test script
+
+HOST=${1:-localhost}
+PORT=${2:-5432}
+USER=${3:-gauth}
+PASSWORD=${4:-password}
+DATABASE=${5:-postgres}
+
+echo "Testing PostgreSQL connection to $HOST:$PORT..."
+echo "User: $USER, Database: $DATABASE"
+
+# Test with pg_isready
+if command -v pg_isready &> /dev/null; then
+    if pg_isready -h "$HOST" -p "$PORT" -U "$USER"; then
+        echo "✅ PostgreSQL server is ready (pg_isready)"
+    else
+        echo "❌ PostgreSQL server is not ready (pg_isready)"
+        exit 1
+    fi
+else
+    echo "⚠️  pg_isready not available, using alternative test"
+fi
+
+# Test with psql
+if command -v psql &> /dev/null; then
+    if PGPASSWORD="$PASSWORD" psql -h "$HOST" -p "$PORT" -U "$USER" -d "$DATABASE" -c "SELECT 1;" &> /dev/null; then
+        echo "✅ PostgreSQL connection successful (psql)"
+    else
+        echo "❌ PostgreSQL connection failed (psql)"
+        exit 1
+    fi
+else
+    echo "⚠️  psql not available"
+fi
+
+# Test with netcat as fallback
+if command -v nc &> /dev/null; then
+    if nc -z "$HOST" "$PORT"; then
+        echo "✅ PostgreSQL port is open (netcat)"
+    else
+        echo "❌ PostgreSQL port is not accessible (netcat)"
+        exit 1
+    fi
+else
+    echo "⚠️  netcat not available"
+fi
+
+echo "✅ All PostgreSQL connection tests passed!"
+EOF
+
+cat > /usr/local/bin/test-redis-connection << 'EOF'
+#!/bin/bash
+# Redis connection test script
+
+HOST=${1:-localhost}
+PORT=${2:-6379}
+PASSWORD=${3:-}
+
+echo "Testing Redis connection to $HOST:$PORT..."
+
+# Test with redis-cli
+if command -v redis-cli &> /dev/null; then
+    if [ -n "$PASSWORD" ]; then
+        if redis-cli -h "$HOST" -p "$PORT" -a "$PASSWORD" ping | grep -q "PONG"; then
+            echo "✅ Redis connection successful (redis-cli with auth)"
+        else
+            echo "❌ Redis connection failed (redis-cli with auth)"
+            exit 1
+        fi
+    else
+        if redis-cli -h "$HOST" -p "$PORT" ping | grep -q "PONG"; then
+            echo "✅ Redis connection successful (redis-cli)"
+        else
+            echo "❌ Redis connection failed (redis-cli)"
+            exit 1
+        fi
+    fi
+else
+    echo "⚠️  redis-cli not available"
+fi
+
+# Test with netcat as fallback
+if command -v nc &> /dev/null; then
+    if nc -z "$HOST" "$PORT"; then
+        echo "✅ Redis port is open (netcat)"
+    else
+        echo "❌ Redis port is not accessible (netcat)"
+        exit 1
+    fi
+else
+    echo "⚠️  netcat not available"
+fi
+
+echo "✅ All Redis connection tests passed!"
+EOF
+
+cat > /usr/local/bin/db-monitor << 'EOF'
+#!/bin/bash
+# Database monitoring script
+
+echo "=== Database Services Status ==="
+echo "PostgreSQL:"
+if command -v pg_isready &> /dev/null; then
+    pg_isready -h localhost -p 5432 2>/dev/null && echo "  ✅ PostgreSQL (localhost:5432) is ready" || echo "  ❌ PostgreSQL (localhost:5432) is not ready"
+else
+    echo "  ⚠️  pg_isready not available"
+fi
+
+echo "Redis:"
+if command -v redis-cli &> /dev/null; then
+    redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q "PONG" && echo "  ✅ Redis (localhost:6379) is ready" || echo "  ❌ Redis (localhost:6379) is not ready"
+else
+    echo "  ⚠️  redis-cli not available"
+fi
+
+echo ""
+echo "=== Network Connectivity ==="
+echo "PostgreSQL port 5432:"
+nc -z localhost 5432 2>/dev/null && echo "  ✅ Port 5432 is open" || echo "  ❌ Port 5432 is closed"
+
+echo "Redis port 6379:"
+nc -z localhost 6379 2>/dev/null && echo "  ✅ Port 6379 is open" || echo "  ❌ Port 6379 is closed"
+
+echo ""
+echo "=== Available Tools ==="
+echo "PostgreSQL tools:"
+command -v psql &> /dev/null && echo "  ✅ psql" || echo "  ❌ psql"
+command -v pg_isready &> /dev/null && echo "  ✅ pg_isready" || echo "  ❌ pg_isready"
+
+echo "Redis tools:"
+command -v redis-cli &> /dev/null && echo "  ✅ redis-cli" || echo "  ❌ redis-cli"
+
+echo "Network tools:"
+command -v nc &> /dev/null && echo "  ✅ netcat" || echo "  ❌ netcat"
+command -v telnet &> /dev/null && echo "  ✅ telnet" || echo "  ❌ telnet"
+EOF
+
+# Make database scripts executable
+chmod +x /usr/local/bin/test-postgres-connection
+chmod +x /usr/local/bin/test-redis-connection
+chmod +x /usr/local/bin/db-monitor
 
 log "GitHub Actions runner setup completed successfully!"
 log "Runner name: $RUNNER_NAME"
@@ -468,4 +858,31 @@ echo "Runner URL: $RUNNER_URL"
 echo "Service Status: $(systemctl is-active github-runner)"
 echo "Health Check: Every 5 minutes"
 echo "Status Page: http://$(curl -s ifconfig.me)/runner-status.html"
+echo ""
+echo "=== Available Utility Scripts ==="
+echo "runner-monitor: Check runner status and health"
+echo "runner-info: Display comprehensive system information"
+echo "runner-reconfigure: Reconfigure runner for different org/repo"
+echo "setup-multi-org-runners: Setup runners for multiple organizations"
+echo "test-postgres-connection: Test PostgreSQL connectivity"
+echo "test-redis-connection: Test Redis connectivity"
+echo "db-monitor: Monitor database services status"
+echo ""
+echo "=== Usage Examples ==="
+echo "Check runner status: runner-monitor"
+echo "View system info: runner-info"
+echo "Setup multi-org support: setup-multi-org-runners <github_token>"
+echo "Reconfigure for org: runner-reconfigure <token> org dojima-foundation"
+echo "Reconfigure for repo: runner-reconfigure <token> repo bhaagiKenpachi/spark-park-cricket"
+echo "Test PostgreSQL: test-postgres-connection [host] [port] [user] [password] [database]"
+echo "Test Redis: test-redis-connection [host] [port] [password]"
+echo "Monitor databases: db-monitor"
+echo ""
+echo "=== Multi-Organization Support ==="
+echo "This runner supports the following organizations and repositories:"
+echo "  - dojima-foundation (organization)"
+echo "  - dojimanetwork (organization)"
+echo "  - bhaagiKenpachi (user account with repositories)"
+echo ""
+echo "Use 'setup-multi-org-runners <token>' to configure for multiple targets"
 echo "======================"
