@@ -23,6 +23,14 @@ path = "e2e_tests_enhanced.rs"
 name = "test_runner"
 path = "test_runner.rs"
 
+[[bin]]
+name = "entropy_validation_security_tests"
+path = "entropy_validation_security_tests.rs"
+
+[[bin]]
+name = "api_entropy_validation_tests"
+path = "api_entropy_validation_tests.rs"
+
 [dependencies]
 renclave-enclave = { path = "../src/enclave" }
 renclave-host = { path = "../src/host" }

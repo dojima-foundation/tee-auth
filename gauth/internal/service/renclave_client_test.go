@@ -28,7 +28,7 @@ func TestRenclaveClient_GenerateSeed(t *testing.T) {
 			strength:   256,
 			passphrase: nil,
 			serverResponse: GenerateSeedResponse{
-				SeedPhrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+				SeedPhrase: "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
 				Entropy:    "00000000000000000000000000000000",
 				Strength:   256,
 				WordCount:  24,
@@ -41,7 +41,7 @@ func TestRenclaveClient_GenerateSeed(t *testing.T) {
 			strength:   128,
 			passphrase: stringPtr("test passphrase"),
 			serverResponse: GenerateSeedResponse{
-				SeedPhrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+				SeedPhrase: "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
 				Entropy:    "00000000000000000000000000000000",
 				Strength:   128,
 				WordCount:  12,

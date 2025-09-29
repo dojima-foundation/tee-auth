@@ -57,7 +57,7 @@ func (s *EnclaveService) RequestSeedGeneration(ctx context.Context, organization
 	}
 
 	response := &SeedGenerationResponse{
-		SeedPhrase: seedResp.SeedPhrase,
+		SeedPhrase: seedResp.SeedPhrase, // Contains encrypted seed data (hex-encoded)
 		Entropy:    seedResp.Entropy,
 		Strength:   seedResp.Strength,
 		WordCount:  seedResp.WordCount,

@@ -67,9 +67,9 @@ func TestEnclaveService_StrengthValidation(t *testing.T) {
 func TestEnclaveService_SeedPhraseValidation(t *testing.T) {
 	// Test seed phrase validation logic
 	validSeedPhrases := []string{
-		"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-		"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon",
-		"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon",
+		"encrypted_seed_hex_data_placeholder_1", // Mock encrypted seed data
+		"encrypted_seed_hex_data_placeholder_2", // Mock encrypted seed data
+		"encrypted_seed_hex_data_placeholder_3", // Mock encrypted seed data
 	}
 
 	invalidSeedPhrases := []string{

@@ -2,7 +2,7 @@
     "info": {
         "_postman_id": "gauth-rest-api-collection",
         "name": "GAuth REST API",
-        "description": "Complete REST API collection for the GAuth service - HTTP endpoints that communicate with gRPC internally. Includes all organization, user, wallet, private key, activity, authentication, and renclave integration endpoints.",
+        "description": "Complete REST API collection for the GAuth service - HTTP endpoints that communicate with gRPC internally. Includes all organization, user, wallet, private key, activity, authentication, and renclave integration endpoints. Updated to support encrypted seed phrases and entropy validation from renclave-v2 with quorum key security.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
@@ -376,7 +376,7 @@
                                 "wallets"
                             ]
                         },
-                        "description": "Create a new wallet with accounts"
+                        "description": "Create a new wallet with accounts. The seed phrase will be generated as encrypted data and stored securely. Addresses will be derived during wallet creation."
                     },
                     "response": []
                 },
@@ -814,7 +814,7 @@
             "description": "Authentication and authorization endpoints"
         },
         {
-            "name": "Renclave Integration",
+            "name": "Renclave Integration (Enhanced with Entropy Validation)",
             "item": [
                 {
                     "name": "Get Enclave Info",
@@ -874,7 +874,7 @@
                                 "generate"
                             ]
                         },
-                        "description": "Request seed phrase generation from renclave-v2"
+                        "description": "Request encrypted seed phrase generation from renclave-v2. Returns encrypted seed data (hex-encoded) and encrypted entropy (hex-encoded) that should be stored securely in the database. All sensitive data is encrypted with quorum keys for maximum security."
                     },
                     "response": []
                 },
@@ -890,7 +890,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\"\n}",
+                            "raw": "{\n  \"seed_phrase\": \"{{encrypted_seed_phrase}}\",\n  \"encrypted_entropy\": \"{{encrypted_entropy}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -910,18 +910,162 @@
                                 "validate"
                             ]
                         },
-                        "description": "Validate a seed phrase"
+                        "description": "Validate an encrypted seed phrase (hex-encoded) with optional entropy validation. Supports both plain BIP39 seeds and quorum-key encrypted seeds. When encrypted_entropy is provided, validates that the entropy matches the seed phrase using BIP39 derivation."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Generate Seed Example",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"strength\": 256,\n  \"passphrase\": \"optional-secure-passphrase\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/renclave/seed/generate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "renclave",
+                                "seed",
+                                "generate"
+                            ]
+                        },
+                        "description": "Example: Generate a new encrypted seed phrase with entropy. Returns encrypted seed_phrase and encrypted entropy that can be used for validation. This demonstrates the secure seed generation with quorum key encryption."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Validate Seed with Entropy",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"seed_phrase\": \"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about\",\n  \"encrypted_entropy\": \"af1adfb81e222380b9cb2dcc5407f6d4fea7ab14b713b17fb6b1f9e068176e32\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/renclave/seed/validate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "renclave",
+                                "seed",
+                                "validate"
+                            ]
+                        },
+                        "description": "Example: Validate a plain BIP39 seed phrase with entropy validation. This demonstrates the enhanced validate-seed API that can validate both encrypted and plain seeds, with optional entropy verification using BIP39 derivation."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Derive Address",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"seed_phrase\": \"{{encrypted_seed_phrase}}\",\n  \"path\": \"m/44'/60'/0'/0/0\",\n  \"curve\": \"CURVE_SECP256K1\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/renclave/derive/address",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "renclave",
+                                "derive",
+                                "address"
+                            ]
+                        },
+                        "description": "Derive an address from an encrypted seed phrase using BIP32 derivation path"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Derive Private Key",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"seed_phrase\": \"{{encrypted_seed_phrase}}\",\n  \"path\": \"m/44'/60'/0'/0/0\",\n  \"curve\": \"CURVE_SECP256K1\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/renclave/derive/key",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "renclave",
+                                "derive",
+                                "key"
+                            ]
+                        },
+                        "description": "Derive a private key from an encrypted seed phrase using BIP32 derivation path"
                     },
                     "response": []
                 }
             ],
-            "description": "Renclave-v2 integration endpoints"
+            "description": "Renclave-v2 integration endpoints for encrypted seed operations"
         }
     ],
     "variable": [
         {
             "key": "base_url",
-            "value": "http://localhost:8082",
+            "value": "http://localhost:8083",
             "type": "string"
         },
         {
@@ -1032,6 +1176,11 @@
         {
             "key": "test_seed_phrase",
             "value": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            "type": "string"
+        },
+        {
+            "key": "encrypted_seed_phrase",
+            "value": "d1dd7c6fd1cebe67cc940e8d04b2571a67bcc2de9d2ad16147d7a19049cf2596b7f480516f0545b8b65e7a019e2f0e3ebec466b0113dca945cbf3f9199ef1a857308c611385e261aa8c7b2376f5d0000007ebc98c2ad5edb61447061d633399c27a39d91a7dd4570bb05a0eff467c4d3d2d4f5367ca909942f79a1a0e67d322a3e4ac9ca7607fe39154bdedc27af0277c21e3ac830ed58d23f3ff47a8da1915cc5249fb480ee2151912c42ee0aea",
             "type": "string"
         }
     ]

@@ -1,0 +1,41 @@
+services:
+  geth-dev:
+    build: .
+    container_name: geth-dev-node
+    ports:
+      - "8545:8545" # HTTP JSON-RPC
+      - "8546:8546" # WebSocket JSON-RPC
+      - "30303:30303" # P2P port
+    volumes:
+      - geth-data:/blockchain/data
+      - ./scripts:/blockchain/scripts
+      - ./config:/blockchain/config
+    environment:
+      - GETH_HTTP_API=eth,web3,net,personal,txpool
+      - GETH_HTTP_CORS_DOMAIN=*
+    command: [ "--dev", "--http", "--http.addr", "0.0.0.0", "--http.port", "8545", "--http.api", "eth,web3,net,personal", "--http.corsdomain", "*", "--allow-insecure-unlock" ]
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8545" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  faucet:
+    build: .
+    container_name: geth-faucet
+    depends_on:
+      geth-dev:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/blockchain/scripts
+      - ./config:/blockchain/config
+    environment:
+      - FAUCET_PRIVATE_KEY=0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d
+      - FAUCET_AMOUNT=1000000000000000000000 # 1000 ETH in wei
+      - RPC_URL=http://geth-dev:8545
+    command: /blockchain/scripts/start-faucet.sh
+    restart: unless-stopped
+
+volumes:
+  geth-data:

@@ -337,14 +337,45 @@ impl NitroEnclave {
                                         ) {
                                             Ok(encrypted_seed) => {
                                                 info!("✅ Seed encrypted with quorum public key successfully");
-                                                info!("📝 Client should store encrypted seed in external database");
+                                                info!("🔐 Encrypting all response values with quorum key for security");
 
-                                                // Return actual encrypted seed data for database storage
+                                                // Encrypt entropy with quorum key
+                                                let entropy_bytes = seed_result.entropy.as_bytes();
+                                                let encrypted_entropy = match encryption_service
+                                                    .encrypt_data(entropy_bytes, &quorum_pub_bytes)
+                                                {
+                                                    Ok(encrypted) => hex::encode(encrypted),
+                                                    Err(e) => {
+                                                        error!(
+                                                            "❌ Failed to encrypt entropy: {}",
+                                                            e
+                                                        );
+                                                        return EnclaveResponse::new(
+                                                            request.id,
+                                                            EnclaveResult::Error {
+                                                                message: format!(
+                                                                    "Entropy encryption failed: {}",
+                                                                    e
+                                                                ),
+                                                                code: 500,
+                                                            },
+                                                        );
+                                                    }
+                                                };
+
+                                                // Note: strength and word_count are not encrypted as they are not sensitive data
+
+                                                info!(
+                                                    "✅ All response values encrypted successfully"
+                                                );
+                                                info!("📝 Client should store all encrypted values in external database");
+
+                                                // Return both encrypted and plain values
                                                 EnclaveResult::SeedGenerated {
-                                                    seed_phrase: hex::encode(&encrypted_seed), // Return encrypted data as hex
-                                                    entropy: seed_result.entropy,
-                                                    strength: seed_result.strength,
-                                                    word_count: seed_result.word_count,
+                                                    seed_phrase: hex::encode(&encrypted_seed), // Encrypted seed phrase
+                                                    entropy: encrypted_entropy, // Encrypted entropy
+                                                    strength: seed_result.strength, // Plain strength for client
+                                                    word_count: seed_result.word_count, // Plain word count for client
                                                 }
                                             }
                                             Err(e) => {
@@ -390,22 +421,403 @@ impl NitroEnclave {
                 }
             }
 
-            EnclaveOperation::ValidateSeed { seed_phrase } => {
+            EnclaveOperation::ValidateSeed {
+                seed_phrase,
+                encrypted_entropy,
+            } => {
                 info!("🔍 Validating seed phrase");
+                debug!("🔍 DEBUG: Starting validate-seed operation");
+                debug!("🔍 DEBUG: Seed phrase length: {}", seed_phrase.len());
+                debug!(
+                    "🔍 DEBUG: Seed phrase first 50 chars: {}",
+                    &seed_phrase[..seed_phrase.len().min(50)]
+                );
 
+                // First, try to validate as plain BIP39 mnemonic
+                info!("🔍 DEBUG: Attempting plain BIP39 validation");
                 match self.seed_generator.validate_seed(&seed_phrase).await {
                     Ok(is_valid) => {
-                        info!("✅ Seed phrase validation completed");
-                        EnclaveResult::SeedValidated {
-                            valid: is_valid,
-                            word_count: seed_phrase.split_whitespace().count(),
+                        debug!("🔍 DEBUG: Plain BIP39 validation result: {}", is_valid);
+                        if is_valid {
+                            info!("✅ Seed phrase validation completed (plain BIP39)");
+                            debug!("🔍 DEBUG: Returning valid result for plain BIP39");
+
+                            // Handle entropy validation if provided
+                            let (entropy_match, derived_entropy) = if let Some(enc_entropy) =
+                                encrypted_entropy
+                            {
+                                info!(
+                                    "🔍 DEBUG: Encrypted entropy provided, attempting validation"
+                                );
+                                match self.validate_entropy(&seed_phrase, &enc_entropy).await {
+                                    Ok((matches, derived)) => {
+                                        info!("✅ Entropy validation completed: match={}", matches);
+                                        (Some(matches), Some(derived))
+                                    }
+                                    Err(e) => {
+                                        error!("❌ Entropy validation failed: {}", e);
+                                        (Some(false), None)
+                                    }
+                                }
+                            } else {
+                                (None, None)
+                            };
+
+                            EnclaveResult::SeedValidated {
+                                valid: true,
+                                word_count: seed_phrase.split_whitespace().count(),
+                                entropy_match,
+                                derived_entropy,
+                            }
+                        } else {
+                            // Plain validation failed, try to decrypt using quorum key
+                            info!("🔍 DEBUG: Plain BIP39 validation failed, checking quorum key availability");
+                            let quorum_key_available = {
+                                let state_manager = self.state_manager.lock().unwrap();
+                                let status = state_manager.get_status();
+                                debug!("🔍 DEBUG: Quorum key status: {}", status.has_quorum_key);
+                                status.has_quorum_key
+                            };
+
+                            if !quorum_key_available {
+                                info!("❌ Quorum key not available, treating as invalid encrypted seed");
+                                debug!(
+                                    "🔍 DEBUG: No quorum key available, returning invalid result"
+                                );
+                                EnclaveResult::SeedValidated {
+                                    valid: false,
+                                    word_count: seed_phrase.split_whitespace().count(),
+                                    entropy_match: None,
+                                    derived_entropy: None,
+                                }
+                            } else {
+                                info!("🔍 DEBUG: Quorum key is available, attempting decryption");
+                                // Try to decrypt the seed phrase using quorum key
+                                debug!("🔍 DEBUG: Getting encryption service");
+                                let encryption_service =
+                                    self.data_encryption.lock().unwrap().clone();
+                                debug!("🔍 DEBUG: Encryption service obtained");
+                                match encryption_service {
+                                    Some(encryption_service) => {
+                                        info!(
+                                            "🔓 Attempting to decrypt seed phrase using quorum key"
+                                        );
+                                        debug!("🔍 DEBUG: Encryption service is available");
+
+                                        // Try to decode the seed phrase as hex (assuming it's encrypted data)
+                                        debug!("🔍 DEBUG: Attempting hex decode");
+                                        match hex::decode(&seed_phrase) {
+                                            Ok(encrypted_bytes) => {
+                                                debug!(
+                                                    "🔍 DEBUG: Hex decode successful, length: {}",
+                                                    encrypted_bytes.len()
+                                                );
+                                                match encryption_service
+                                                    .decrypt_data(&encrypted_bytes)
+                                                {
+                                                    Ok(decrypted_seed) => {
+                                                        debug!("🔍 DEBUG: Decryption successful, length: {}", decrypted_seed.len());
+                                                        // Convert decrypted bytes to string
+                                                        match String::from_utf8(decrypted_seed) {
+                                                            Ok(decrypted_seed_str) => {
+                                                                info!("🔓 Successfully decrypted seed phrase");
+                                                                debug!("🔍 DEBUG: Decrypted string: {}", &decrypted_seed_str[..decrypted_seed_str.len().min(100)]);
+
+                                                                // Validate the decrypted seed phrase
+                                                                match self
+                                                                    .seed_generator
+                                                                    .validate_seed(
+                                                                        &decrypted_seed_str,
+                                                                    )
+                                                                    .await
+                                                                {
+                                                                    Ok(is_valid) => {
+                                                                        if is_valid {
+                                                                            info!("✅ Decrypted seed phrase is valid BIP39 mnemonic");
+
+                                                                            // Handle entropy validation if provided
+                                                                            let (
+                                                                                entropy_match,
+                                                                                derived_entropy,
+                                                                            ) = if let Some(
+                                                                                enc_entropy,
+                                                                            ) =
+                                                                                encrypted_entropy
+                                                                            {
+                                                                                info!("🔍 DEBUG: Encrypted entropy provided for decrypted seed, attempting validation");
+                                                                                match self.validate_entropy(&decrypted_seed_str, &enc_entropy).await {
+                                                                                    Ok((matches, derived)) => {
+                                                                                        info!("✅ Entropy validation completed for decrypted seed: match={}", matches);
+                                                                                        (Some(matches), Some(derived))
+                                                                                    }
+                                                                                    Err(e) => {
+                                                                                        error!("❌ Entropy validation failed for decrypted seed: {}", e);
+                                                                                        (Some(false), None)
+                                                                                    }
+                                                                                }
+                                                                            } else {
+                                                                                (None, None)
+                                                                            };
+
+                                                                            EnclaveResult::SeedValidated {
+                                                                                valid: true,
+                                                                                word_count: decrypted_seed_str.split_whitespace().count(),
+                                                                                entropy_match,
+                                                                                derived_entropy,
+                                                                            }
+                                                                        } else {
+                                                                            info!("❌ Decrypted seed phrase is not valid BIP39 mnemonic");
+                                                                            EnclaveResult::SeedValidated {
+                                                                                valid: false,
+                                                                                word_count: seed_phrase.split_whitespace().count(),
+                                                                                entropy_match: None,
+                                                                                derived_entropy: None,
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    Err(e) => {
+                                                                        error!("❌ Failed to validate decrypted seed phrase: {}", e);
+                                                                        EnclaveResult::SeedValidated {
+                                                                        valid: false,
+                                                                        word_count: seed_phrase.split_whitespace().count(),
+                                                                        entropy_match: None,
+                                                                        derived_entropy: None,
+                                                                    }
+                                                                    }
+                                                                }
+                                                            }
+                                                            Err(e) => {
+                                                                error!("❌ Failed to convert decrypted bytes to string: {}", e);
+                                                                EnclaveResult::SeedValidated {
+                                                                    valid: false,
+                                                                    word_count: seed_phrase
+                                                                        .split_whitespace()
+                                                                        .count(),
+                                                                    entropy_match: None,
+                                                                    derived_entropy: None,
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    Err(e) => {
+                                                        debug!("🔍 Decryption failed (not encrypted with quorum key): {}", e);
+                                                        // Try as raw bytes
+                                                        match encryption_service
+                                                            .decrypt_data(seed_phrase.as_bytes())
+                                                        {
+                                                            Ok(decrypted_seed) => {
+                                                                match String::from_utf8(
+                                                                    decrypted_seed,
+                                                                ) {
+                                                                    Ok(decrypted_seed_str) => {
+                                                                        info!("🔓 Successfully decrypted seed phrase from raw bytes");
+
+                                                                        match self
+                                                                            .seed_generator
+                                                                            .validate_seed(
+                                                                                &decrypted_seed_str,
+                                                                            )
+                                                                            .await
+                                                                        {
+                                                                            Ok(is_valid) => {
+                                                                                if is_valid {
+                                                                                    info!("✅ Decrypted seed phrase is valid BIP39 mnemonic");
+
+                                                                                    // Handle entropy validation if provided
+                                                                                    let (entropy_match, derived_entropy) = if let Some(enc_entropy) = encrypted_entropy {
+                                                                                        info!("🔍 DEBUG: Encrypted entropy provided for decrypted seed, attempting validation");
+                                                                                        match self.validate_entropy(&decrypted_seed_str, &enc_entropy).await {
+                                                                                            Ok((matches, derived)) => {
+                                                                                                info!("✅ Entropy validation completed for decrypted seed: match={}", matches);
+                                                                                                (Some(matches), Some(derived))
+                                                                                            }
+                                                                                            Err(e) => {
+                                                                                                error!("❌ Entropy validation failed for decrypted seed: {}", e);
+                                                                                                (Some(false), None)
+                                                                                            }
+                                                                                        }
+                                                                                    } else {
+                                                                                        (None, None)
+                                                                                    };
+
+                                                                                    EnclaveResult::SeedValidated {
+                                                                                        valid: true,
+                                                                                        word_count: decrypted_seed_str.split_whitespace().count(),
+                                                                                        entropy_match,
+                                                                                        derived_entropy,
+                                                                                    }
+                                                                                } else {
+                                                                                    info!("❌ Decrypted seed phrase is invalid BIP39 mnemonic");
+                                                                                    EnclaveResult::SeedValidated {
+                                                                                        valid: false,
+                                                                                        word_count: decrypted_seed_str.split_whitespace().count(),
+                                                                                        entropy_match: None,
+                                                                                        derived_entropy: None,
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            Err(e) => {
+                                                                                error!("❌ Failed to validate decrypted seed phrase: {}", e);
+                                                                                EnclaveResult::SeedValidated {
+                                                                        valid: false,
+                                                                        word_count: seed_phrase.split_whitespace().count(),
+                                                                        entropy_match: None,
+                                                                        derived_entropy: None,
+                                                                    }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    Err(e) => {
+                                                                        error!("❌ Failed to convert decrypted bytes to string: {}", e);
+                                                                        EnclaveResult::SeedValidated {
+                                                                        valid: false,
+                                                                        word_count: seed_phrase.split_whitespace().count(),
+                                                                        entropy_match: None,
+                                                                        derived_entropy: None,
+                                                                    }
+                                                                    }
+                                                                }
+                                                            }
+                                                            Err(e) => {
+                                                                debug!("🔍 Raw bytes decryption failed: {}", e);
+                                                                EnclaveResult::SeedValidated {
+                                                                    valid: false,
+                                                                    word_count: seed_phrase
+                                                                        .split_whitespace()
+                                                                        .count(),
+                                                                    entropy_match: None,
+                                                                    derived_entropy: None,
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            Err(_) => {
+                                                // Not hex-encoded, try as raw bytes
+                                                debug!("🔍 Seed phrase is not hex-encoded, trying as raw bytes");
+
+                                                match encryption_service
+                                                    .decrypt_data(seed_phrase.as_bytes())
+                                                {
+                                                    Ok(decrypted_seed) => {
+                                                        match String::from_utf8(decrypted_seed) {
+                                                            Ok(decrypted_seed_str) => {
+                                                                info!("🔓 Successfully decrypted seed phrase from raw bytes");
+
+                                                                match self
+                                                                    .seed_generator
+                                                                    .validate_seed(
+                                                                        &decrypted_seed_str,
+                                                                    )
+                                                                    .await
+                                                                {
+                                                                    Ok(is_valid) => {
+                                                                        if is_valid {
+                                                                            info!("✅ Decrypted seed phrase is valid BIP39 mnemonic");
+
+                                                                            // Handle entropy validation if provided
+                                                                            let (
+                                                                                entropy_match,
+                                                                                derived_entropy,
+                                                                            ) = if let Some(
+                                                                                enc_entropy,
+                                                                            ) =
+                                                                                encrypted_entropy
+                                                                            {
+                                                                                info!("🔍 DEBUG: Encrypted entropy provided for decrypted seed, attempting validation");
+                                                                                match self.validate_entropy(&decrypted_seed_str, &enc_entropy).await {
+                                                                                    Ok((matches, derived)) => {
+                                                                                        info!("✅ Entropy validation completed for decrypted seed: match={}", matches);
+                                                                                        (Some(matches), Some(derived))
+                                                                                    }
+                                                                                    Err(e) => {
+                                                                                        error!("❌ Entropy validation failed for decrypted seed: {}", e);
+                                                                                        (Some(false), None)
+                                                                                    }
+                                                                                }
+                                                                            } else {
+                                                                                (None, None)
+                                                                            };
+
+                                                                            EnclaveResult::SeedValidated {
+                                                                                valid: true,
+                                                                                word_count: decrypted_seed_str.split_whitespace().count(),
+                                                                                entropy_match,
+                                                                                derived_entropy,
+                                                                            }
+                                                                        } else {
+                                                                            EnclaveResult::SeedValidated {
+                                                                                valid: false,
+                                                                                word_count: seed_phrase.split_whitespace().count(),
+                                                                                entropy_match: None,
+                                                                                derived_entropy: None,
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    Err(e) => {
+                                                                        error!("❌ Failed to validate decrypted seed phrase: {}", e);
+                                                                        EnclaveResult::SeedValidated {
+                                                                        valid: false,
+                                                                        word_count: seed_phrase.split_whitespace().count(),
+                                                                        entropy_match: None,
+                                                                        derived_entropy: None,
+                                                                    }
+                                                                    }
+                                                                }
+                                                            }
+                                                            Err(e) => {
+                                                                error!("❌ Failed to convert decrypted bytes to string: {}", e);
+                                                                EnclaveResult::SeedValidated {
+                                                                    valid: false,
+                                                                    word_count: seed_phrase
+                                                                        .split_whitespace()
+                                                                        .count(),
+                                                                    entropy_match: None,
+                                                                    derived_entropy: None,
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    Err(e) => {
+                                                        debug!(
+                                                            "🔍 Raw bytes decryption failed: {}",
+                                                            e
+                                                        );
+                                                        EnclaveResult::SeedValidated {
+                                                            valid: false,
+                                                            word_count: seed_phrase
+                                                                .split_whitespace()
+                                                                .count(),
+                                                            entropy_match: None,
+                                                            derived_entropy: None,
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    None => {
+                                        error!("❌ Data encryption service not available");
+                                        debug!("🔍 DEBUG: Encryption service is None");
+                                        EnclaveResult::Error {
+                                            message: "Data encryption service not initialized"
+                                                .to_string(),
+                                            code: 503,
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     Err(e) => {
-                        error!("❌ Failed to validate seed phrase: {}", e);
-                        EnclaveResult::Error {
-                            message: format!("Seed validation failed: {}", e),
-                            code: 500,
+                        debug!("🔍 Plain BIP39 validation failed: {}", e);
+                        debug!("🔍 DEBUG: Plain BIP39 validation returned error: {}", e);
+                        EnclaveResult::SeedValidated {
+                            valid: false,
+                            word_count: seed_phrase.split_whitespace().count(),
+                            entropy_match: None,
+                            derived_entropy: None,
                         }
                     }
                 }
@@ -1722,6 +2134,64 @@ impl NitroEnclave {
         };
 
         EnclaveResponse::new(request.id, result)
+    }
+
+    /// Validate entropy against a seed phrase
+    async fn validate_entropy(
+        &self,
+        seed_phrase: &str,
+        encrypted_entropy: &str,
+    ) -> anyhow::Result<(bool, String)> {
+        info!("🔍 DEBUG: Starting entropy validation");
+
+        // Get quorum key for decryption
+        let quorum_key_available = {
+            let state_manager = self.state_manager.lock().unwrap();
+            state_manager.get_status().has_quorum_key
+        };
+
+        if !quorum_key_available {
+            return Err(anyhow::anyhow!(
+                "Quorum key not available for entropy decryption"
+            ));
+        }
+
+        // Get encryption service
+        let encryption_service = {
+            let data_encryption = self.data_encryption.lock().unwrap();
+            data_encryption
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("Encryption service not available"))?
+                .clone()
+        };
+
+        // Decrypt the provided entropy
+        let entropy_bytes = hex::decode(encrypted_entropy)
+            .map_err(|e| anyhow::anyhow!("Failed to decode entropy hex: {}", e))?;
+
+        let decrypted_entropy_bytes = encryption_service
+            .decrypt_data(&entropy_bytes)
+            .map_err(|e| anyhow::anyhow!("Failed to decrypt entropy: {}", e))?;
+
+        let decrypted_entropy = String::from_utf8(decrypted_entropy_bytes)
+            .map_err(|e| anyhow::anyhow!("Failed to convert decrypted entropy to string: {}", e))?;
+
+        info!("🔍 DEBUG: Decrypted entropy: {}", decrypted_entropy);
+
+        // Derive entropy from the seed phrase using BIP39
+        let derived_entropy = self
+            .seed_generator
+            .derive_entropy_from_seed(seed_phrase)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to derive entropy from seed: {}", e))?;
+
+        info!("🔍 DEBUG: Derived entropy: {}", derived_entropy);
+
+        // Compare entropies
+        let matches = decrypted_entropy == derived_entropy;
+        info!("🔍 DEBUG: Entropy match: {}", matches);
+
+        Ok((matches, derived_entropy))
     }
 }
 

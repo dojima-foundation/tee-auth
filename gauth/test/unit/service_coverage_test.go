@@ -259,9 +259,9 @@ func TestServiceCoverage_EnclaveService(t *testing.T) {
 
 	// Test ValidateSeed method logic
 	validSeedPhrases := []string{
-		"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-		"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon",
-		"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon",
+		"encrypted_seed_hex_data_placeholder_1", // Mock encrypted seed data
+		"encrypted_seed_hex_data_placeholder_2", // Mock encrypted seed data
+		"encrypted_seed_hex_data_placeholder_3", // Mock encrypted seed data
 	}
 
 	invalidSeedPhrases := []string{
@@ -318,7 +318,7 @@ func TestServiceCoverage_PrivateKeyService(t *testing.T) {
 		ID:             walletID,
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
-		SeedPhrase:     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
 		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
@@ -512,7 +512,7 @@ func TestServiceCoverage_WalletService(t *testing.T) {
 		ID:             walletID,
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
-		SeedPhrase:     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
 		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,

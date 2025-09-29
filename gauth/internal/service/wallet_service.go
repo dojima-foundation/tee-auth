@@ -54,12 +54,12 @@ func (s *WalletService) CreateWallet(ctx context.Context, organizationID, name s
 
 	s.logger.Info("Seed generated successfully", "strength", seedResp.Strength, "word_count", seedResp.WordCount)
 
-	// Create wallet with the generated seed phrase
+	// Create wallet with the encrypted seed phrase
 	wallet := &models.Wallet{
 		ID:             uuid.New(),
 		OrganizationID: orgID,
 		Name:           name,
-		SeedPhrase:     seedResp.SeedPhrase, // Store the seed phrase
+		SeedPhrase:     seedResp.SeedPhrase, // Store the encrypted seed phrase (hex-encoded)
 		PublicKey:      "",                  // Will be set after deriving the first account
 		Tags:           tags,
 		IsActive:       true,
@@ -89,7 +89,7 @@ func (s *WalletService) CreateWallet(ctx context.Context, organizationID, name s
 			derivationPath = fmt.Sprintf("m/44'/60'/0'/0/%d", i) // Default to Ethereum
 		}
 
-		// Derive address from seed using enclave
+		// Derive address from encrypted seed using enclave
 		addressResp, err := s.renclave.DeriveAddress(ctx, seedResp.SeedPhrase, derivationPath, accounts[i].Curve)
 		if err != nil {
 			s.logger.Error("Failed to derive address from enclave", "error", err, "path", derivationPath)

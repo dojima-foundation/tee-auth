@@ -2,7 +2,7 @@
     "info": {
         "_postman_id": "renclave-v2-api-collection",
         "name": "Renclave-v2 API",
-        "description": "Complete API collection for the Renclave-v2 secure enclave service. Includes seed generation, validation, key derivation, address derivation, and enclave information endpoints.",
+        "description": "Complete API collection for the Renclave-v2 secure enclave service. Includes seed generation, validation, key derivation, address derivation, and enclave information endpoints. Enhanced with entropy validation capabilities and quorum key encryption for maximum security.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
@@ -117,7 +117,7 @@
                                 "generate-seed"
                             ]
                         },
-                        "description": "Generate a new BIP39 seed phrase with specified strength (128, 160, 192, 224, or 256 bits)"
+                        "description": "Generate a new BIP39 seed phrase with specified strength (128, 160, 192, 224, or 256 bits). Returns encrypted seed_phrase and encrypted entropy (hex-encoded) that should be stored securely. All sensitive data is encrypted with quorum keys for maximum security."
                     },
                     "response": []
                 },
@@ -137,7 +137,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\"\n}",
+                            "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\",\n  \"encrypted_entropy\": \"{{encrypted_entropy}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -153,12 +153,48 @@
                                 "validate-seed"
                             ]
                         },
-                        "description": "Validate a BIP39 seed phrase for correctness and checksum"
+                        "description": "Validate a BIP39 seed phrase for correctness and checksum. Enhanced with optional entropy validation - when encrypted_entropy is provided, validates that the entropy matches the seed phrase using BIP39 derivation. Supports both plain BIP39 seeds and quorum-key encrypted seeds."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Validate Seed with Entropy",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"seed_phrase\": \"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about\",\n  \"encrypted_entropy\": \"af1adfb81e222380b9cb2dcc5407f6d4fea7ab14b713b17fb6b1f9e068176e32\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{renclave_base_url}}/validate-seed",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "validate-seed"
+                            ]
+                        },
+                        "description": "Example: Validate a plain BIP39 seed phrase with entropy validation. This demonstrates the enhanced validate-seed API that can validate both encrypted and plain seeds, with optional entropy verification using BIP39 derivation."
                     },
                     "response": []
                 }
             ],
-            "description": "Seed phrase generation and validation endpoints"
+            "description": "Seed phrase generation and validation endpoints with enhanced entropy validation capabilities"
         },
         {
             "name": "Key Derivation",
@@ -350,18 +386,26 @@
                     "    pm.test(\"Seed generation response has required fields\", function () {",
                     "        const response = pm.response.json();",
                     "        pm.expect(response).to.have.property('seed_phrase');",
-                    "        pm.expect(response).to.have.property('entropy');",
+                    "        pm.expect(response).to.have.property('entropy'); // Now encrypted",
                     "        pm.expect(response).to.have.property('strength');",
                     "        pm.expect(response).to.have.property('word_count');",
+                    "        // Verify entropy is hex-encoded (encrypted)",
+                    "        pm.expect(response.entropy).to.match(/^[0-9a-fA-F]+$/);",
                     "    });",
                     "}",
                     "",
                     "if (pm.request.url.path.includes('validate-seed')) {",
                     "    pm.test(\"Seed validation response has required fields\", function () {",
                     "        const response = pm.response.json();",
-                    "        pm.expect(response).to.have.property('is_valid');",
+                    "        pm.expect(response).to.have.property('valid');",
                     "        pm.expect(response).to.have.property('word_count');",
-                    "        pm.expect(response).to.have.property('strength');",
+                    "        // Enhanced fields for entropy validation",
+                    "        if (response.entropy_match !== undefined) {",
+                    "            pm.expect(response).to.have.property('entropy_match');",
+                    "        }",
+                    "        if (response.derived_entropy !== undefined) {",
+                    "            pm.expect(response).to.have.property('derived_entropy');",
+                    "        }",
                     "    });",
                     "}",
                     "",

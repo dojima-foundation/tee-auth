@@ -26,7 +26,7 @@ func NewMockRenclaveClient() *MockRenclaveClient {
 // GenerateSeed returns a mock seed generation response
 func (m *MockRenclaveClient) GenerateSeed(ctx context.Context, strength int, passphrase *string) (*GenerateSeedResponse, error) {
 	return &GenerateSeedResponse{
-		SeedPhrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+		SeedPhrase: "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
 		Entropy:    "00000000000000000000000000000000",
 		Strength:   strength,
 		WordCount:  strength / 32 * 3, // 12 words for 128-bit, 24 words for 256-bit

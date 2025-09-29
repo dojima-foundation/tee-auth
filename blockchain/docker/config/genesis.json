@@ -1,0 +1,57 @@
+{
+    "config": {
+        "chainId": 1337,
+        "homesteadBlock": 0,
+        "daoForkBlock": null,
+        "daoForkSupport": false,
+        "eip150Block": 0,
+        "eip155Block": 0,
+        "eip158Block": 0,
+        "byzantiumBlock": 0,
+        "constantinopleBlock": 0,
+        "petersburgBlock": 0,
+        "istanbulBlock": 0,
+        "muirGlacierBlock": 0,
+        "berlinBlock": 0,
+        "londonBlock": 0,
+        "arrowGlacierBlock": null,
+        "grayGlacierBlock": null,
+        "mergeNetsplitBlock": null,
+        "shanghaiTime": null,
+        "cancunTime": null,
+        "terminalTotalDifficulty": "0x0",
+        "terminalTotalDifficultyPassed": true,
+        "ethash": {
+            "fixedDifficulty": "0x20000",
+            "minimumDifficulty": "0x1"
+        }
+    },
+    "alloc": {
+        "0x7Aa16266Ba3d309e3cb278B452b1A6307E52Fb62": {
+            "balance": "0x200000000000000000000000000000000000000000000000000000000000000"
+        },
+        "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d": {
+            "balance": "0x200000000000000000000000000000000000000000000000000000000000000"
+        },
+        "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1": {
+            "balance": "0x200000000000000000000000000000000000000000000000000000000000000"
+        },
+        "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0": {
+            "balance": "0x200000000000000000000000000000000000000000000000000000000000000"
+        },
+        "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b": {
+            "balance": "0x200000000000000000000000000000000000000000000000000000000000000"
+        }
+    },
+    "coinbase": "0x0000000000000000000000000000000000000000",
+    "difficulty": "0x20000",
+    "extraData": "0x",
+    "gasLimit": "0x1c9c380",
+    "gasUsed": "0x0",
+    "number": "0x0",
+    "timestamp": "0x0",
+    "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "nonce": "0x0000000000000042",
+    "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "baseFeePerGas": "0x3b9aca00"
+}

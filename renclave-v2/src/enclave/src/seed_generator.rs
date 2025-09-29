@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use bip39::{Language, Mnemonic};
 use bitcoin::bip32::{DerivationPath, Xpriv, Xpub};
+use hex;
 use log::{debug, info, warn};
 use rand::{RngCore, SeedableRng};
 use secp256k1::Secp256k1;
@@ -303,6 +304,22 @@ impl SeedGenerator {
 
         info!("✅ Address derivation successful");
         Ok(result)
+    }
+
+    /// Derive entropy from a seed phrase using BIP39
+    pub async fn derive_entropy_from_seed(&self, seed_phrase: &str) -> Result<String> {
+        info!("🔍 Deriving entropy from seed phrase");
+        
+        // Parse the mnemonic
+        let mnemonic = Mnemonic::parse(seed_phrase)
+            .map_err(|e| anyhow::anyhow!("Failed to parse mnemonic: {}", e))?;
+        
+        // Get the entropy from the mnemonic
+        let entropy = mnemonic.to_entropy();
+        let entropy_hex = hex::encode(entropy);
+        
+        info!("✅ Entropy derived successfully: {}", entropy_hex);
+        Ok(entropy_hex)
     }
 }
 

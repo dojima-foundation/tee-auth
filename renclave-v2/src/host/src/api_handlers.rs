@@ -171,23 +171,34 @@ pub async fn validate_seed(
     }
 
     debug!(
-        "📋 Request validated - seed phrase length: {}",
-        request.seed_phrase.len()
+        "📋 Request validated - seed phrase length: {}, encrypted_entropy: {:?}",
+        request.seed_phrase.len(),
+        request.encrypted_entropy
     );
 
     // Send request to enclave
     match state
         .enclave_client
-        .validate_seed(request.seed_phrase)
+        .validate_seed(request.seed_phrase, request.encrypted_entropy)
         .await
     {
         Ok(enclave_response) => match enclave_response.result {
-            EnclaveResult::SeedValidated { valid, word_count } => {
+            EnclaveResult::SeedValidated {
+                valid,
+                word_count,
+                entropy_match,
+                derived_entropy,
+            } => {
                 info!(
                     "✅ Seed validation completed (ID: {}, valid: {})",
                     request_id, valid
                 );
-                Ok(Json(ValidateSeedResponse { valid, word_count }))
+                Ok(Json(ValidateSeedResponse {
+                    valid,
+                    word_count,
+                    entropy_match,
+                    derived_entropy,
+                }))
             }
             EnclaveResult::Error { message, code } => {
                 error!("❌ Enclave error during seed validation: {}", message);

@@ -76,6 +76,7 @@ async fn test_seed_validation_workflow() {
     // Simulate validation request
     let operation = EnclaveOperation::ValidateSeed {
         seed_phrase: seed.phrase.clone(),
+        encrypted_entropy: None,
     };
 
     let request = EnclaveRequest {
@@ -92,6 +93,8 @@ async fn test_seed_validation_workflow() {
         result: EnclaveResult::SeedValidated {
             valid: is_valid,
             word_count: seed.word_count,
+            entropy_match: None,
+            derived_entropy: None,
         },
     };
 
@@ -106,6 +109,7 @@ async fn test_seed_validation_workflow() {
     // Test with invalid seed
     let invalid_operation = EnclaveOperation::ValidateSeed {
         seed_phrase: "invalid seed phrase".to_string(),
+        encrypted_entropy: None,
     };
 
     let invalid_request = EnclaveRequest {
@@ -122,6 +126,8 @@ async fn test_seed_validation_workflow() {
         result: EnclaveResult::SeedValidated {
             valid: is_invalid,
             word_count: 0,
+            entropy_match: None,
+            derived_entropy: None,
         },
     };
 
@@ -314,8 +320,8 @@ async fn test_network_connectivity_workflow() {
 
     // Test network initialization
     let config = NetworkConfig::default();
-    let network_manager = NetworkManager::new(config);
-    let connectivity_tester = ConnectivityTester::default();
+    let _network_manager = NetworkManager::new(config);
+    let _connectivity_tester = ConnectivityTester::default();
 
     // Test network status - this operation doesn't exist in the current API
     // We'll test a different operation instead

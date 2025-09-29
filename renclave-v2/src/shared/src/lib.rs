@@ -226,6 +226,7 @@ pub enum EnclaveOperation {
     },
     ValidateSeed {
         seed_phrase: String,
+        encrypted_entropy: Option<String>,
     },
     DeriveKey {
         seed_phrase: String,
@@ -342,14 +343,16 @@ pub struct EnclaveResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EnclaveResult {
     SeedGenerated {
-        seed_phrase: String,
-        entropy: String,
-        strength: u32,
-        word_count: usize,
+        seed_phrase: String, // Encrypted seed phrase (hex encoded)
+        entropy: String,     // Encrypted entropy (hex encoded)
+        strength: u32,       // Plain strength value for client
+        word_count: usize,   // Plain word count for client
     },
     SeedValidated {
         valid: bool,
         word_count: usize,
+        entropy_match: Option<bool>,
+        derived_entropy: Option<String>,
     },
     KeyDerived {
         private_key: String,
@@ -462,21 +465,24 @@ pub struct GenerateSeedRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenerateSeedResponse {
-    pub seed_phrase: String,
-    pub entropy: String,
-    pub strength: u32,
-    pub word_count: usize,
+    pub seed_phrase: String, // Encrypted seed phrase (hex encoded)
+    pub entropy: String,     // Encrypted entropy (hex encoded)
+    pub strength: u32,       // Plain strength value for client
+    pub word_count: usize,   // Plain word count for client
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ValidateSeedRequest {
     pub seed_phrase: String,
+    pub encrypted_entropy: Option<String>, // Optional encrypted entropy for validation
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ValidateSeedResponse {
     pub valid: bool,
     pub word_count: usize,
+    pub entropy_match: Option<bool>, // Whether provided entropy matches decrypted seed
+    pub derived_entropy: Option<String>, // Entropy derived from the seed (if decrypted)
 }
 
 #[derive(Debug, Serialize, Deserialize)]

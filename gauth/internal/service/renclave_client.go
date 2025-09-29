@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -53,7 +54,7 @@ type GenerateSeedRequest struct {
 }
 
 type GenerateSeedResponse struct {
-	SeedPhrase string `json:"seed_phrase"`
+	SeedPhrase string `json:"seed_phrase"` // Now contains encrypted seed data (hex-encoded)
 	Entropy    string `json:"entropy"`
 	Strength   int    `json:"strength"`
 	WordCount  int    `json:"word_count"`
@@ -85,9 +86,9 @@ type InfoResponse struct {
 
 // New request/response types for key derivation
 type DeriveKeyRequest struct {
-	SeedPhrase string `json:"seed_phrase"`
-	Path       string `json:"path"`  // BIP32 derivation path (e.g., "m/44'/60'/0'/0/0")
-	Curve      string `json:"curve"` // CURVE_SECP256K1, CURVE_ED25519
+	SeedPhrase string `json:"seed_phrase"` // Now contains encrypted seed data (hex-encoded)
+	Path       string `json:"path"`        // BIP32 derivation path (e.g., "m/44'/60'/0'/0/0")
+	Curve      string `json:"curve"`       // CURVE_SECP256K1, CURVE_ED25519
 }
 
 type DeriveKeyResponse struct {
@@ -99,9 +100,9 @@ type DeriveKeyResponse struct {
 }
 
 type DeriveAddressRequest struct {
-	SeedPhrase string `json:"seed_phrase"`
-	Path       string `json:"path"`  // BIP32 derivation path
-	Curve      string `json:"curve"` // CURVE_SECP256K1, CURVE_ED25519
+	SeedPhrase string `json:"seed_phrase"` // Now contains encrypted seed data (hex-encoded)
+	Path       string `json:"path"`        // BIP32 derivation path
+	Curve      string `json:"curve"`       // CURVE_SECP256K1, CURVE_ED25519
 }
 
 type DeriveAddressResponse struct {
@@ -126,7 +127,24 @@ func (c *RenclaveClient) GenerateSeed(ctx context.Context, strength int, passphr
 }
 
 // ValidateSeed requests seed validation from renclave-v2
+// Handles both encrypted seeds and plaintext mnemonics
 func (c *RenclaveClient) ValidateSeed(ctx context.Context, seedPhrase string) (*ValidateSeedResponse, error) {
+	// Check if the seed phrase is encrypted (hex-encoded) or plaintext mnemonic
+	// Encrypted seeds are typically long hex strings, while mnemonics are words separated by spaces
+	isEncrypted := len(seedPhrase) > 100 && !strings.Contains(seedPhrase, " ")
+
+	if isEncrypted {
+		// For encrypted seeds, we cannot validate directly as they need to be decrypted first
+		// Return a meaningful response indicating this limitation
+		return &ValidateSeedResponse{
+			IsValid:   false,
+			Strength:  0,
+			WordCount: 0,
+			Errors:    []string{},
+		}, fmt.Errorf("encrypted seed validation not supported: seed appears to be encrypted and requires decryption in renclave TEE before validation")
+	}
+
+	// For plaintext mnemonics, proceed with normal validation
 	req := ValidateSeedRequest{
 		SeedPhrase: seedPhrase,
 	}

@@ -441,7 +441,7 @@ func (suite *GRPCIntegrationTestSuite) TestRenclaveIntegration() {
 
 	// Test ValidateSeed with invalid seed
 	invalidValidateReq := &pb.SeedValidationRequest{
-		SeedPhrase: "invalid seed phrase",
+		SeedPhrase: "invalid_encrypted_seed_hex_data", // Mock invalid encrypted seed data
 	}
 
 	invalidValidateResp, err := suite.client.ValidateSeed(ctx, invalidValidateReq)

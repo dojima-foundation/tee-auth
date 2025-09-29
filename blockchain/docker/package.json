@@ -1,0 +1,25 @@
+{
+    "name": "geth-dev-faucet",
+    "version": "1.0.0",
+    "description": "Geth development environment with faucet service",
+    "main": "faucet-server.js",
+    "scripts": {
+        "start": "node scripts/faucet-server.js",
+        "test": "bash scripts/test-faucet.sh",
+        "create-account": "bash scripts/create-account.sh"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "web3": "^4.3.0",
+        "cors": "^2.8.5"
+    },
+    "keywords": [
+        "ethereum",
+        "geth",
+        "development",
+        "faucet",
+        "docker"
+    ],
+    "author": "TEE Auth Team",
+    "license": "MIT"
+}

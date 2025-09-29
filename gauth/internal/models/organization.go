@@ -111,7 +111,7 @@ type Wallet struct {
 	ID             uuid.UUID       `json:"id" db:"id" gorm:"type:uuid;primary_key"`
 	OrganizationID uuid.UUID       `json:"organizationId" db:"organization_id" gorm:"type:uuid;not null"`
 	Name           string          `json:"name" db:"name" gorm:"not null"`
-	SeedPhrase     string          `json:"seedPhrase" db:"seed_phrase" gorm:"type:text;not null"` // Encrypted seed phrase
+	SeedPhrase     string          `json:"seedPhrase" db:"seed_phrase" gorm:"type:text;not null"` // Encrypted seed phrase (hex-encoded)
 	PublicKey      string          `json:"publicKey" db:"public_key" gorm:"not null"`
 	Accounts       []WalletAccount `json:"accounts" db:"-" gorm:"foreignKey:WalletID"`
 	Tags           []string        `json:"tags" db:"-" gorm:"-"`

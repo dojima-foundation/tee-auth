@@ -514,7 +514,7 @@ func (suite *E2ETestSuite) TestErrorScenarios() {
 
 	// Test invalid seed phrase validation
 	validateResp, err := suite.client.ValidateSeed(ctx, &pb.SeedValidationRequest{
-		SeedPhrase: "invalid seed phrase with wrong words",
+		SeedPhrase: "invalid_encrypted_seed_hex_data", // Mock invalid encrypted seed data
 	})
 
 	if err == nil {

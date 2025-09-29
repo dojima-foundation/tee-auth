@@ -66,7 +66,7 @@ type mockEnclaveClient struct{}
 
 func (m *mockEnclaveClient) GenerateSeed(ctx context.Context, strength int, passphrase *string) (*service.GenerateSeedResponse, error) {
 	return &service.GenerateSeedResponse{
-		SeedPhrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+		SeedPhrase: "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
 		Entropy:    "0000000000000000",
 		Strength:   strength,
 		WordCount:  12,
@@ -390,7 +390,7 @@ func TestServiceMethodCoverage_EnclaveService(t *testing.T) {
 	assert.NotEmpty(t, seedResponse.RequestID)
 
 	// Test ValidateSeed - this should increase coverage
-	validSeedPhrase := "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+	validSeedPhrase := "encrypted_seed_hex_data_placeholder" // Mock encrypted seed data
 
 	validateResponse, err := svc.ValidateSeed(ctx, validSeedPhrase)
 	require.NoError(t, err)
@@ -420,7 +420,7 @@ func TestServiceMethodCoverage_PrivateKeyService(t *testing.T) {
 		ID:             walletID,
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
-		SeedPhrase:     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
 		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,

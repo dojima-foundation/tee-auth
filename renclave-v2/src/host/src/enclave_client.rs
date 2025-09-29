@@ -166,10 +166,17 @@ impl EnclaveClient {
     }
 
     /// Validate seed phrase via enclave
-    pub async fn validate_seed(&self, seed_phrase: String) -> Result<EnclaveResponse> {
+    pub async fn validate_seed(
+        &self,
+        seed_phrase: String,
+        encrypted_entropy: Option<String>,
+    ) -> Result<EnclaveResponse> {
         info!("🔍 Requesting seed validation");
 
-        let operation = EnclaveOperation::ValidateSeed { seed_phrase };
+        let operation = EnclaveOperation::ValidateSeed {
+            seed_phrase,
+            encrypted_entropy,
+        };
         self.send_request(operation).await
     }
 

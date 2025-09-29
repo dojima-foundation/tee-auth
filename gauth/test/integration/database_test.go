@@ -272,7 +272,7 @@ func (suite *DatabaseIntegrationTestSuite) TestActivityAuditTrail() {
 
 	// Update activity status
 	retrievedActivity.Status = "COMPLETED"
-	resultData := json.RawMessage(`{"seed_phrase": "test phrase", "entropy": "test entropy"}`)
+	resultData := json.RawMessage(`{"seed_phrase": "encrypted_test_seed_hex_data", "entropy": "test entropy"}`)
 	retrievedActivity.Result = resultData
 
 	err = db.WithContext(ctx).Save(&retrievedActivity).Error
