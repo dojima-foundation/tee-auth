@@ -229,12 +229,12 @@ pub enum EnclaveOperation {
         encrypted_entropy: Option<String>,
     },
     DeriveKey {
-        seed_phrase: String,
+        encrypted_seed_phrase: String,
         path: String,
         curve: String,
     },
     DeriveAddress {
-        seed_phrase: String,
+        encrypted_seed_phrase: String,
         path: String,
         curve: String,
     },
@@ -355,7 +355,7 @@ pub enum EnclaveResult {
         derived_entropy: Option<String>,
     },
     KeyDerived {
-        private_key: String,
+        private_key: String, // Encrypted private key (hex encoded)
         public_key: String,
         address: String,
         path: String,
@@ -487,7 +487,7 @@ pub struct ValidateSeedResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeriveKeyRequest {
-    pub seed_phrase: String,
+    pub encrypted_seed_phrase: String,
     pub path: String,
     pub curve: String,
 }
@@ -503,7 +503,7 @@ pub struct DeriveKeyResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeriveAddressRequest {
-    pub seed_phrase: String,
+    pub encrypted_seed_phrase: String,
     pub path: String,
     pub curve: String,
 }
@@ -885,14 +885,15 @@ mod tests {
             },
             EnclaveOperation::ValidateSeed {
                 seed_phrase: "test seed".to_string(),
+                encrypted_entropy: None,
             },
             EnclaveOperation::DeriveKey {
-                seed_phrase: "test seed".to_string(),
+                encrypted_seed_phrase: "test seed".to_string(),
                 path: "m/44'/0'/0'/0/0".to_string(),
                 curve: "secp256k1".to_string(),
             },
             EnclaveOperation::DeriveAddress {
-                seed_phrase: "test seed".to_string(),
+                encrypted_seed_phrase: "test seed".to_string(),
                 path: "m/44'/0'/0'/0/0".to_string(),
                 curve: "secp256k1".to_string(),
             },
@@ -923,6 +924,8 @@ mod tests {
             EnclaveResult::SeedValidated {
                 valid: true,
                 word_count: 12,
+                entropy_match: None,
+                derived_entropy: None,
             },
             EnclaveResult::KeyDerived {
                 private_key: "private".to_string(),
@@ -972,13 +975,14 @@ mod tests {
         // Test ValidateSeedRequest
         let validate_request = ValidateSeedRequest {
             seed_phrase: "test seed".to_string(),
+            encrypted_entropy: None,
         };
         let serialized = serde_json::to_string(&validate_request).unwrap();
         assert!(!serialized.is_empty());
 
         // Test DeriveKeyRequest
         let derive_key_request = DeriveKeyRequest {
-            seed_phrase: "test seed".to_string(),
+            encrypted_seed_phrase: "test seed".to_string(),
             path: "m/44'/0'/0'/0/0".to_string(),
             curve: "secp256k1".to_string(),
         };
@@ -987,7 +991,7 @@ mod tests {
 
         // Test DeriveAddressRequest
         let derive_address_request = DeriveAddressRequest {
-            seed_phrase: "test seed".to_string(),
+            encrypted_seed_phrase: "test seed".to_string(),
             path: "m/44'/0'/0'/0/0".to_string(),
             curve: "secp256k1".to_string(),
         };

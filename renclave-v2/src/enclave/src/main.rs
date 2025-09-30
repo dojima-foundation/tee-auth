@@ -426,21 +426,16 @@ impl NitroEnclave {
                 encrypted_entropy,
             } => {
                 info!("🔍 Validating seed phrase");
-                debug!("🔍 DEBUG: Starting validate-seed operation");
-                debug!("🔍 DEBUG: Seed phrase length: {}", seed_phrase.len());
                 debug!(
                     "🔍 DEBUG: Seed phrase first 50 chars: {}",
                     &seed_phrase[..seed_phrase.len().min(50)]
                 );
 
                 // First, try to validate as plain BIP39 mnemonic
-                info!("🔍 DEBUG: Attempting plain BIP39 validation");
                 match self.seed_generator.validate_seed(&seed_phrase).await {
                     Ok(is_valid) => {
-                        debug!("🔍 DEBUG: Plain BIP39 validation result: {}", is_valid);
                         if is_valid {
                             info!("✅ Seed phrase validation completed (plain BIP39)");
-                            debug!("🔍 DEBUG: Returning valid result for plain BIP39");
 
                             // Handle entropy validation if provided
                             let (entropy_match, derived_entropy) = if let Some(enc_entropy) =
@@ -471,11 +466,9 @@ impl NitroEnclave {
                             }
                         } else {
                             // Plain validation failed, try to decrypt using quorum key
-                            info!("🔍 DEBUG: Plain BIP39 validation failed, checking quorum key availability");
                             let quorum_key_available = {
                                 let state_manager = self.state_manager.lock().unwrap();
                                 let status = state_manager.get_status();
-                                debug!("🔍 DEBUG: Quorum key status: {}", status.has_quorum_key);
                                 status.has_quorum_key
                             };
 
@@ -491,21 +484,16 @@ impl NitroEnclave {
                                     derived_entropy: None,
                                 }
                             } else {
-                                info!("🔍 DEBUG: Quorum key is available, attempting decryption");
                                 // Try to decrypt the seed phrase using quorum key
-                                debug!("🔍 DEBUG: Getting encryption service");
                                 let encryption_service =
                                     self.data_encryption.lock().unwrap().clone();
-                                debug!("🔍 DEBUG: Encryption service obtained");
                                 match encryption_service {
                                     Some(encryption_service) => {
                                         info!(
                                             "🔓 Attempting to decrypt seed phrase using quorum key"
                                         );
-                                        debug!("🔍 DEBUG: Encryption service is available");
 
                                         // Try to decode the seed phrase as hex (assuming it's encrypted data)
-                                        debug!("🔍 DEBUG: Attempting hex decode");
                                         match hex::decode(&seed_phrase) {
                                             Ok(encrypted_bytes) => {
                                                 debug!(
@@ -516,12 +504,10 @@ impl NitroEnclave {
                                                     .decrypt_data(&encrypted_bytes)
                                                 {
                                                     Ok(decrypted_seed) => {
-                                                        debug!("🔍 DEBUG: Decryption successful, length: {}", decrypted_seed.len());
                                                         // Convert decrypted bytes to string
                                                         match String::from_utf8(decrypted_seed) {
                                                             Ok(decrypted_seed_str) => {
                                                                 info!("🔓 Successfully decrypted seed phrase");
-                                                                debug!("🔍 DEBUG: Decrypted string: {}", &decrypted_seed_str[..decrypted_seed_str.len().min(100)]);
 
                                                                 // Validate the decrypted seed phrase
                                                                 match self
@@ -544,7 +530,6 @@ impl NitroEnclave {
                                                                             ) =
                                                                                 encrypted_entropy
                                                                             {
-                                                                                info!("🔍 DEBUG: Encrypted entropy provided for decrypted seed, attempting validation");
                                                                                 match self.validate_entropy(&decrypted_seed_str, &enc_entropy).await {
                                                                                     Ok((matches, derived)) => {
                                                                                         info!("✅ Entropy validation completed for decrypted seed: match={}", matches);
@@ -625,7 +610,6 @@ impl NitroEnclave {
 
                                                                                     // Handle entropy validation if provided
                                                                                     let (entropy_match, derived_entropy) = if let Some(enc_entropy) = encrypted_entropy {
-                                                                                        info!("🔍 DEBUG: Encrypted entropy provided for decrypted seed, attempting validation");
                                                                                         match self.validate_entropy(&decrypted_seed_str, &enc_entropy).await {
                                                                                             Ok((matches, derived)) => {
                                                                                                 info!("✅ Entropy validation completed for decrypted seed: match={}", matches);
@@ -725,7 +709,6 @@ impl NitroEnclave {
                                                                             ) =
                                                                                 encrypted_entropy
                                                                             {
-                                                                                info!("🔍 DEBUG: Encrypted entropy provided for decrypted seed, attempting validation");
                                                                                 match self.validate_entropy(&decrypted_seed_str, &enc_entropy).await {
                                                                                     Ok((matches, derived)) => {
                                                                                         info!("✅ Entropy validation completed for decrypted seed: match={}", matches);
@@ -799,7 +782,6 @@ impl NitroEnclave {
                                     }
                                     None => {
                                         error!("❌ Data encryption service not available");
-                                        debug!("🔍 DEBUG: Encryption service is None");
                                         EnclaveResult::Error {
                                             message: "Data encryption service not initialized"
                                                 .to_string(),
@@ -812,7 +794,6 @@ impl NitroEnclave {
                     }
                     Err(e) => {
                         debug!("🔍 Plain BIP39 validation failed: {}", e);
-                        debug!("🔍 DEBUG: Plain BIP39 validation returned error: {}", e);
                         EnclaveResult::SeedValidated {
                             valid: false,
                             word_count: seed_phrase.split_whitespace().count(),
@@ -844,7 +825,7 @@ impl NitroEnclave {
             }
 
             EnclaveOperation::DeriveKey {
-                seed_phrase,
+                encrypted_seed_phrase,
                 path,
                 curve,
             } => {
@@ -852,7 +833,7 @@ impl NitroEnclave {
 
                 match self
                     .seed_generator
-                    .derive_key(&seed_phrase, &path, &curve)
+                    .derive_key(&encrypted_seed_phrase, &path, &curve)
                     .await
                 {
                     Ok(key_result) => {
@@ -876,7 +857,7 @@ impl NitroEnclave {
             }
 
             EnclaveOperation::DeriveAddress {
-                seed_phrase,
+                encrypted_seed_phrase,
                 path,
                 curve,
             } => {
@@ -884,7 +865,7 @@ impl NitroEnclave {
 
                 match self
                     .seed_generator
-                    .derive_address(&seed_phrase, &path, &curve)
+                    .derive_address(&encrypted_seed_phrase, &path, &curve)
                     .await
                 {
                     Ok(address_result) => {
@@ -2142,8 +2123,6 @@ impl NitroEnclave {
         seed_phrase: &str,
         encrypted_entropy: &str,
     ) -> anyhow::Result<(bool, String)> {
-        info!("🔍 DEBUG: Starting entropy validation");
-
         // Get quorum key for decryption
         let quorum_key_available = {
             let state_manager = self.state_manager.lock().unwrap();
@@ -2176,8 +2155,6 @@ impl NitroEnclave {
         let decrypted_entropy = String::from_utf8(decrypted_entropy_bytes)
             .map_err(|e| anyhow::anyhow!("Failed to convert decrypted entropy to string: {}", e))?;
 
-        info!("🔍 DEBUG: Decrypted entropy: {}", decrypted_entropy);
-
         // Derive entropy from the seed phrase using BIP39
         let derived_entropy = self
             .seed_generator
@@ -2185,11 +2162,8 @@ impl NitroEnclave {
             .await
             .map_err(|e| anyhow::anyhow!("Failed to derive entropy from seed: {}", e))?;
 
-        info!("🔍 DEBUG: Derived entropy: {}", derived_entropy);
-
         // Compare entropies
         let matches = decrypted_entropy == derived_entropy;
-        info!("🔍 DEBUG: Entropy match: {}", matches);
 
         Ok((matches, derived_entropy))
     }

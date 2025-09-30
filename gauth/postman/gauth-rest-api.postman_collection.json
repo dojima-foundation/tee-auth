@@ -998,7 +998,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"seed_phrase\": \"{{encrypted_seed_phrase}}\",\n  \"path\": \"m/44'/60'/0'/0/0\",\n  \"curve\": \"CURVE_SECP256K1\"\n}",
+                            "raw": "{\n  \"encrypted_seed_phrase\": \"{{encrypted_seed_phrase}}\",\n  \"path\": \"m/44'/60'/0'/0/0\",\n  \"curve\": \"CURVE_SECP256K1\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1034,7 +1034,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"seed_phrase\": \"{{encrypted_seed_phrase}}\",\n  \"path\": \"m/44'/60'/0'/0/0\",\n  \"curve\": \"CURVE_SECP256K1\"\n}",
+                            "raw": "{\n  \"encrypted_seed_phrase\": \"{{encrypted_seed_phrase}}\",\n  \"path\": \"m/44'/60'/0'/0/0\",\n  \"curve\": \"CURVE_SECP256K1\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1054,7 +1054,7 @@
                                 "key"
                             ]
                         },
-                        "description": "Derive a private key from an encrypted seed phrase using BIP32 derivation path"
+                        "description": "Derive a private key from an encrypted seed phrase using BIP32 derivation path. Returns encrypted private key."
                     },
                     "response": []
                 }

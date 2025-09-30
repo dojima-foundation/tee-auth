@@ -275,7 +275,6 @@ mod tests {
     use super::*;
     use crate::quorum::{shares_generate, P256Pair};
     use renclave_shared::QuorumMember;
-    use tempfile::tempdir;
 
     fn create_test_storage() -> TeeStorage {
         TeeStorage::new_for_testing() // Use unique test paths

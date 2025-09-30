@@ -215,7 +215,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\",\n  \"path\": \"{{test_derivation_path}}\",\n  \"curve\": \"{{test_curve}}\"\n}",
+                            "raw": "{\n  \"encrypted_seed_phrase\": \"{{test_encrypted_seed_phrase}}\",\n  \"path\": \"{{test_derivation_path}}\",\n  \"curve\": \"{{test_curve}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -231,7 +231,7 @@
                                 "derive-key"
                             ]
                         },
-                        "description": "Derive a private key from a seed phrase using BIP32 derivation path"
+                        "description": "Derive a private key from an encrypted seed phrase using BIP32 derivation path. Returns encrypted private key."
                     },
                     "response": []
                 }
@@ -257,7 +257,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"seed_phrase\": \"{{test_seed_phrase}}\",\n  \"path\": \"{{test_derivation_path}}\",\n  \"curve\": \"{{test_curve}}\"\n}",
+                            "raw": "{\n  \"encrypted_seed_phrase\": \"{{test_encrypted_seed_phrase}}\",\n  \"path\": \"{{test_derivation_path}}\",\n  \"curve\": \"{{test_curve}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -273,7 +273,7 @@
                                 "derive-address"
                             ]
                         },
-                        "description": "Derive a public address from a seed phrase using BIP32 derivation path"
+                        "description": "Derive a public address from an encrypted seed phrase using BIP32 derivation path"
                     },
                     "response": []
                 }

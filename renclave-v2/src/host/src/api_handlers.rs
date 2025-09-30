@@ -392,12 +392,12 @@ pub async fn derive_key(
     info!("🔑 Key derivation requested (ID: {})", request_id);
 
     // Validate request
-    if request.seed_phrase.trim().is_empty() {
-        warn!("❌ Empty seed phrase provided");
+    if request.encrypted_seed_phrase.trim().is_empty() {
+        warn!("❌ Empty encrypted seed phrase provided");
         return Err((
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse {
-                error: "Seed phrase cannot be empty".to_string(),
+                error: "Encrypted seed phrase cannot be empty".to_string(),
                 code: 400,
                 request_id: Some(request_id),
             }),
@@ -436,7 +436,7 @@ pub async fn derive_key(
     // Send request to enclave
     match state
         .enclave_client
-        .derive_key(request.seed_phrase, request.path, request.curve)
+        .derive_key(request.encrypted_seed_phrase, request.path, request.curve)
         .await
     {
         Ok(enclave_response) => match enclave_response.result {
@@ -502,12 +502,12 @@ pub async fn derive_address(
     info!("📍 Address derivation requested (ID: {})", request_id);
 
     // Validate request
-    if request.seed_phrase.trim().is_empty() {
-        warn!("❌ Empty seed phrase provided");
+    if request.encrypted_seed_phrase.trim().is_empty() {
+        warn!("❌ Empty encrypted seed phrase provided");
         return Err((
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse {
-                error: "Seed phrase cannot be empty".to_string(),
+                error: "Encrypted seed phrase cannot be empty".to_string(),
                 code: 400,
                 request_id: Some(request_id),
             }),
@@ -546,7 +546,7 @@ pub async fn derive_address(
     // Send request to enclave
     match state
         .enclave_client
-        .derive_address(request.seed_phrase, request.path, request.curve)
+        .derive_address(request.encrypted_seed_phrase, request.path, request.curve)
         .await
     {
         Ok(enclave_response) => match enclave_response.result {
@@ -1101,6 +1101,8 @@ mod tests {
                 EnclaveResult::SeedValidated {
                     valid: true,
                     word_count: 24,
+                    entropy_match: None,
+                    derived_entropy: None,
                 },
             ))
         }

@@ -143,6 +143,7 @@ The gRPC collection provides the same functionality as the HTTP collection but u
 ### Renclave-v2 Variables
 - `renclave_base_url` - Enclave service URL (default: `http://localhost:3000`)
 - `test_seed_phrase` - Sample BIP39 seed phrase for testing
+- `test_encrypted_seed_phrase` - Sample encrypted seed phrase (hex-encoded) for testing
 - `test_derivation_path` - Sample BIP32 derivation path
 - `test_curve` - Sample cryptographic curve
 - `test_passphrase` - Sample passphrase for seed generation
@@ -174,15 +175,48 @@ The gRPC collection provides the same functionality as the HTTP collection but u
 5. **List Private Keys** → View available keys
 
 ### Cryptographic Operations
-1. **Generate Seed** → Create new seed phrase via Renclave-v2
-2. **Validate Seed** → Verify seed phrase validity
-3. **Derive Address** → Generate addresses from seed
-4. **Derive Key** → Generate private keys from seed
+1. **Generate Seed** → Create new encrypted seed phrase via Renclave-v2
+2. **Validate Seed** → Verify seed phrase validity (supports both encrypted and plain seeds)
+3. **Derive Address** → Generate addresses from encrypted seed phrase
+4. **Derive Key** → Generate encrypted private keys from encrypted seed phrase
 
 ### Authentication Flow
 1. **Authenticate** → Get session token
 2. **Authorize** → Verify permissions
 3. **Create Activity** → Log audit trail
+
+## 🔐 Encrypted API Structure
+
+The Renclave-v2 API now uses encrypted seed phrases and private keys for enhanced security:
+
+### Key Changes
+- **Derive Key API**: Now accepts `encrypted_seed_phrase` and returns encrypted `private_key`
+- **Derive Address API**: Now accepts `encrypted_seed_phrase` for address derivation
+- **Enhanced Security**: All sensitive data is encrypted using quorum keys
+
+### API Request Format
+```json
+{
+  "encrypted_seed_phrase": "hex_encoded_encrypted_seed_phrase",
+  "path": "m/44'/60'/0'/0/0",
+  "curve": "CURVE_SECP256K1"
+}
+```
+
+### API Response Format (Derive Key)
+```json
+{
+  "private_key": "hex_encoded_encrypted_private_key",
+  "public_key": "hex_encoded_public_key",
+  "address": "derived_address",
+  "path": "m/44'/60'/0'/0/0",
+  "curve": "CURVE_SECP256K1"
+}
+```
+
+### Environment Variables
+- `test_encrypted_seed_phrase`: Use this variable for testing with encrypted seed phrases
+- `test_seed_phrase`: Keep for backward compatibility with validate-seed API
 
 ## 🔄 Continuous Integration
 

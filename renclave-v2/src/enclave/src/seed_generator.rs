@@ -1,8 +1,7 @@
 use anyhow::{anyhow, Result};
 use bip39::{Language, Mnemonic};
 use bitcoin::bip32::{DerivationPath, Xpriv, Xpub};
-use hex;
-use log::{debug, info, warn};
+use log::{info, warn};
 use rand::{RngCore, SeedableRng};
 use secp256k1::Secp256k1;
 use std::str::FromStr;
@@ -41,7 +40,6 @@ impl SeedGenerator {
 
         // Initialize with hardware entropy
         let rng = rand::rngs::StdRng::from_entropy();
-        debug!("🔐 Initialized RNG with hardware entropy");
 
         Ok(Self {
             rng: Arc::new(Mutex::new(rng)),
@@ -61,21 +59,15 @@ impl SeedGenerator {
 
         // Validate strength
         let word_count = self.validate_strength(strength)?;
-        debug!("📊 Word count for strength {}: {}", strength, word_count);
 
         // Generate entropy
         let entropy = self.generate_entropy(strength).await?;
-        debug!("🎲 Generated {} bytes of entropy", entropy.len());
 
         // Create BIP39 mnemonic
         let mnemonic = Mnemonic::from_entropy_in(Language::English, &entropy)
             .map_err(|e| anyhow!("Failed to create mnemonic: {}", e))?;
 
         let phrase = mnemonic.to_string();
-        debug!(
-            "📝 Generated mnemonic with {} words",
-            phrase.split_whitespace().count()
-        );
 
         // Validate word count
         let actual_word_count = phrase.split_whitespace().count();
@@ -127,30 +119,39 @@ impl SeedGenerator {
             return Ok(false);
         }
 
-        debug!("🔍 Validating {} words", words.len());
-
         // Try to parse as BIP39 mnemonic
         match Mnemonic::parse_in_normalized(Language::English, seed_phrase) {
             Ok(_) => {
                 info!("✅ Seed phrase is valid BIP39 mnemonic");
                 Ok(true)
             }
-            Err(e) => {
-                debug!("❌ Invalid seed phrase: {}", e);
-
-                // If it fails, try without the last word (might be passphrase)
+            Err(_e) => {
+                // If it fails, try without the last word(s) (might be passphrase)
                 if words.len() > 12 {
-                    let without_last = words[..words.len() - 1].join(" ");
-                    match Mnemonic::parse_in_normalized(Language::English, &without_last) {
-                        Ok(_) => {
-                            info!("✅ Seed phrase is valid BIP39 mnemonic (with passphrase)");
-                            Ok(true)
-                        }
-                        Err(_) => {
-                            info!("❌ Seed phrase is not a valid BIP39 mnemonic");
-                            Ok(false)
+                    // Try different standard BIP39 lengths from largest to smallest
+                    let standard_lengths = vec![24, 21, 18, 15, 12];
+
+                    for &length in &standard_lengths {
+                        if words.len() > length {
+                            let without_passphrase = words[..length].join(" ");
+                            match Mnemonic::parse_in_normalized(
+                                Language::English,
+                                &without_passphrase,
+                            ) {
+                                Ok(_) => {
+                                    info!("✅ Seed phrase is valid BIP39 mnemonic (with passphrase, {} words)", length);
+                                    return Ok(true);
+                                }
+                                Err(_) => {
+                                    // Continue trying other lengths
+                                    continue;
+                                }
+                            }
                         }
                     }
+
+                    info!("❌ Seed phrase is not a valid BIP39 mnemonic");
+                    Ok(false)
                 } else {
                     info!("❌ Seed phrase is not a valid BIP39 mnemonic");
                     Ok(false)
@@ -175,7 +176,6 @@ impl SeedGenerator {
             }
         };
 
-        debug!("✅ Strength {} validated -> {} words", strength, word_count);
         Ok(word_count)
     }
 
@@ -183,11 +183,6 @@ impl SeedGenerator {
     async fn generate_entropy(&self, strength: u32) -> Result<Vec<u8>> {
         let entropy_bytes = (strength / 8) as usize;
         let mut entropy = vec![0u8; entropy_bytes];
-
-        debug!(
-            "🎲 Generating {} bytes of entropy for {} bits",
-            entropy_bytes, strength
-        );
 
         // Use secure RNG to generate entropy
         {
@@ -202,7 +197,6 @@ impl SeedGenerator {
             rng.fill_bytes(&mut entropy);
         }
 
-        debug!("✅ Generated {} bytes of secure entropy", entropy.len());
         Ok(entropy)
     }
 
@@ -308,16 +302,49 @@ impl SeedGenerator {
 
     /// Derive entropy from a seed phrase using BIP39
     pub async fn derive_entropy_from_seed(&self, seed_phrase: &str) -> Result<String> {
-        info!("🔍 Deriving entropy from seed phrase");
-        
-        // Parse the mnemonic
-        let mnemonic = Mnemonic::parse(seed_phrase)
+        info!(
+            "🔍 Deriving entropy from seed phrase: {}",
+            &seed_phrase[..seed_phrase.len().min(100)]
+        );
+
+        // Split the seed phrase into words to handle potential passphrase
+        let words: Vec<&str> = seed_phrase.split_whitespace().collect();
+
+        // Determine the mnemonic part (without passphrase)
+        let mnemonic_phrase = if words.len() > 12 && !matches!(words.len(), 12 | 15 | 18 | 21 | 24)
+        {
+            // Non-standard word count likely means passphrase was added
+            // Try to extract the mnemonic part by removing the last word(s)
+            let potential_mnemonic_len = if words.len() > 24 {
+                24
+            } else if words.len() > 21 {
+                21
+            } else if words.len() > 18 {
+                18
+            } else if words.len() > 15 {
+                15
+            } else {
+                12
+            };
+
+            if words.len() > potential_mnemonic_len {
+                words[..potential_mnemonic_len].join(" ")
+            } else {
+                seed_phrase.to_string()
+            }
+        } else {
+            // Standard BIP39 word counts (12, 15, 18, 21, 24)
+            seed_phrase.to_string()
+        };
+
+        // Parse the mnemonic using normalized parsing (same as validation)
+        let mnemonic = Mnemonic::parse_in_normalized(Language::English, &mnemonic_phrase)
             .map_err(|e| anyhow::anyhow!("Failed to parse mnemonic: {}", e))?;
-        
+
         // Get the entropy from the mnemonic
         let entropy = mnemonic.to_entropy();
         let entropy_hex = hex::encode(entropy);
-        
+
         info!("✅ Entropy derived successfully: {}", entropy_hex);
         Ok(entropy_hex)
     }

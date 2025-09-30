@@ -188,10 +188,10 @@ impl EnclaveClient {
         self.send_request(operation).await
     }
 
-    /// Derive key from seed phrase via enclave
+    /// Derive key from encrypted seed phrase via enclave
     pub async fn derive_key(
         &self,
-        seed_phrase: String,
+        encrypted_seed_phrase: String,
         path: String,
         curve: String,
     ) -> Result<EnclaveResponse> {
@@ -201,17 +201,17 @@ impl EnclaveClient {
         );
 
         let operation = EnclaveOperation::DeriveKey {
-            seed_phrase,
+            encrypted_seed_phrase,
             path,
             curve,
         };
         self.send_request(operation).await
     }
 
-    /// Derive address from seed phrase via enclave
+    /// Derive address from encrypted seed phrase via enclave
     pub async fn derive_address(
         &self,
-        seed_phrase: String,
+        encrypted_seed_phrase: String,
         path: String,
         curve: String,
     ) -> Result<EnclaveResponse> {
@@ -221,7 +221,7 @@ impl EnclaveClient {
         );
 
         let operation = EnclaveOperation::DeriveAddress {
-            seed_phrase,
+            encrypted_seed_phrase,
             path,
             curve,
         };
@@ -391,7 +391,6 @@ impl EnclaveClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::time::sleep;
 
     #[tokio::test]
     async fn test_enclave_client_creation() {

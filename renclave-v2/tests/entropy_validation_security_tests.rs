@@ -1,7 +1,7 @@
 /// Security tests for entropy validation in validate-seed API
 /// These tests verify the critical security fix that prevents acceptance
 /// of mismatched entropy in the validate-seed API
-
+/// Also includes tests for passphrase handling bug fixes
 #[allow(unused_imports)]
 use renclave_enclave::seed_generator::SeedGenerator;
 #[allow(unused_imports)]
@@ -277,7 +277,231 @@ async fn test_entropy_validation_concurrency() {
     }
 }
 
+/// Test passphrase handling bug fix - 25-word seed phrases (24 mnemonic + 1 passphrase)
+/// This test verifies that the fix for entropy derivation from 25-word seed phrases works correctly
+#[tokio::test]
+async fn test_passphrase_entropy_derivation_fix() {
+    let seed_generator = SeedGenerator::new().await.unwrap();
+
+    // Test with different passphrases
+    let test_passphrases = vec![
+        "testpass",
+        "mypassword123",
+        "secure_pass_2024",
+        "a",
+        "very_long_passphrase_with_special_chars_!@#$%",
+    ];
+
+    for passphrase in test_passphrases {
+        // Generate a seed with passphrase (creates 25 words: 24 mnemonic + 1 passphrase)
+        let seed_result = seed_generator
+            .generate_seed(256, Some(passphrase))
+            .await
+            .unwrap();
+
+        // Verify it has 25 words
+        let words: Vec<&str> = seed_result.phrase.split_whitespace().collect();
+        assert_eq!(
+            words.len(),
+            25,
+            "Should have 25 words (24 mnemonic + 1 passphrase)"
+        );
+
+        // Test entropy derivation from 25-word seed phrase (should work now)
+        let derived_entropy = seed_generator
+            .derive_entropy_from_seed(&seed_result.phrase)
+            .await
+            .unwrap();
+
+        // The derived entropy should match the original entropy
+        assert_eq!(
+            derived_entropy, seed_result.entropy,
+            "Derived entropy should match original entropy for passphrase: {}",
+            passphrase
+        );
+
+        // Test validation: the 25-word phrase should be valid
+        let is_valid = seed_generator
+            .validate_seed(&seed_result.phrase)
+            .await
+            .unwrap();
+        assert!(
+            is_valid,
+            "25-word seed phrase should be valid with passphrase: {}",
+            passphrase
+        );
+
+        // Test with just the mnemonic part (24 words) - should also work
+        let mnemonic_only = words[..24].join(" ");
+        let derived_entropy_mnemonic = seed_generator
+            .derive_entropy_from_seed(&mnemonic_only)
+            .await
+            .unwrap();
+        assert_eq!(
+            derived_entropy_mnemonic, seed_result.entropy,
+            "Entropy from mnemonic only should match original entropy for passphrase: {}",
+            passphrase
+        );
+    }
+}
+
+/// Test passphrase handling with different word counts
+/// This test ensures the fix works for various BIP39 word counts with passphrases
+#[tokio::test]
+async fn test_passphrase_entropy_different_word_counts() {
+    let seed_generator = SeedGenerator::new().await.unwrap();
+
+    // Test different BIP39 strengths with passphrases
+    let test_cases = vec![
+        (128, 12, "test128"),
+        (160, 15, "test160"),
+        (192, 18, "test192"),
+        (224, 21, "test224"),
+        (256, 24, "test256"),
+    ];
+
+    for (strength, expected_words, passphrase) in test_cases {
+        // Generate seed with passphrase
+        let seed_result = seed_generator
+            .generate_seed(strength, Some(passphrase))
+            .await
+            .unwrap();
+
+        // Should have expected_words + 1 (for passphrase)
+        let total_words = seed_result.phrase.split_whitespace().count();
+        assert_eq!(
+            total_words,
+            expected_words + 1,
+            "Should have {} words ({} mnemonic + 1 passphrase) for strength {}",
+            expected_words + 1,
+            expected_words,
+            strength
+        );
+
+        // Test entropy derivation - this should work for all cases now
+        let derived_entropy = seed_generator
+            .derive_entropy_from_seed(&seed_result.phrase)
+            .await
+            .unwrap();
+        assert_eq!(
+            derived_entropy, seed_result.entropy,
+            "Entropy derivation should work for strength {} with passphrase",
+            strength
+        );
+
+        // Test validation
+        let is_valid = seed_generator
+            .validate_seed(&seed_result.phrase)
+            .await
+            .unwrap();
+        assert!(
+            is_valid,
+            "Seed validation should work for strength {} with passphrase",
+            strength
+        );
+    }
+}
+
+/// Test edge cases for passphrase handling
+/// This test covers edge cases that could break the passphrase handling fix
+#[tokio::test]
+async fn test_passphrase_entropy_edge_cases() {
+    let seed_generator = SeedGenerator::new().await.unwrap();
+
+    // Test with empty passphrase - this should behave like no passphrase
+    let seed_result_empty = seed_generator.generate_seed(256, Some("")).await.unwrap();
+    let words_empty: Vec<&str> = seed_result_empty.phrase.split_whitespace().collect();
+    // Empty passphrase doesn't add extra word, so it should be 24 words
+    assert_eq!(
+        words_empty.len(),
+        24,
+        "Empty passphrase should create 24 words (same as no passphrase)"
+    );
+
+    // Test entropy derivation with empty passphrase
+    let derived_entropy_empty = seed_generator
+        .derive_entropy_from_seed(&seed_result_empty.phrase)
+        .await
+        .unwrap();
+    assert_eq!(derived_entropy_empty, seed_result_empty.entropy);
+
+    // Test with passphrase containing spaces
+    let seed_result_spaces = seed_generator
+        .generate_seed(256, Some("pass with spaces"))
+        .await
+        .unwrap();
+    let words_spaces: Vec<&str> = seed_result_spaces.phrase.split_whitespace().collect();
+    // Note: This will create more than 25 words due to spaces in passphrase
+    assert!(
+        words_spaces.len() > 25,
+        "Passphrase with spaces should create more than 25 words"
+    );
+
+    // Test entropy derivation with spaced passphrase
+    let derived_entropy_spaces = seed_generator
+        .derive_entropy_from_seed(&seed_result_spaces.phrase)
+        .await
+        .unwrap();
+    assert_eq!(derived_entropy_spaces, seed_result_spaces.entropy);
+
+    // Test validation with spaced passphrase - this should work with our enhanced validation
+    let is_valid_spaces = seed_generator
+        .validate_seed(&seed_result_spaces.phrase)
+        .await
+        .unwrap();
+    // Note: The validation logic tries to parse without the last word(s) if initial parsing fails
+    // So this should succeed
+    assert!(
+        is_valid_spaces,
+        "Seed with spaced passphrase should be valid due to fallback validation logic"
+    );
+}
+
+/// Test backward compatibility - standard BIP39 word counts without passphrases
+/// This test ensures the fix doesn't break existing functionality
+#[tokio::test]
+async fn test_backward_compatibility_standard_word_counts() {
+    let seed_generator = SeedGenerator::new().await.unwrap();
+
+    // Test standard BIP39 word counts without passphrases
+    let test_cases = vec![(128, 12), (160, 15), (192, 18), (224, 21), (256, 24)];
+
+    for (strength, expected_words) in test_cases {
+        // Generate seed without passphrase
+        let seed_result = seed_generator.generate_seed(strength, None).await.unwrap();
+
+        // Should have exactly expected_words
+        let actual_words = seed_result.phrase.split_whitespace().count();
+        assert_eq!(
+            actual_words, expected_words,
+            "Should have exactly {} words for strength {} without passphrase",
+            expected_words, strength
+        );
+
+        // Test entropy derivation (should work as before)
+        let derived_entropy = seed_generator
+            .derive_entropy_from_seed(&seed_result.phrase)
+            .await
+            .unwrap();
+        assert_eq!(
+            derived_entropy, seed_result.entropy,
+            "Entropy derivation should work for strength {} without passphrase",
+            strength
+        );
+
+        // Test validation (should work as before)
+        let is_valid = seed_generator
+            .validate_seed(&seed_result.phrase)
+            .await
+            .unwrap();
+        assert!(
+            is_valid,
+            "Seed validation should work for strength {} without passphrase",
+            strength
+        );
+    }
+}
+
 fn main() {
-    // This is a test binary, run tests with cargo test
-    println!("This is a test binary. Run with: cargo test entropy_validation_security_tests");
+    // This is a test binary, main function is not needed for tests
 }

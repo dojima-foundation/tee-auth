@@ -86,13 +86,13 @@ type InfoResponse struct {
 
 // New request/response types for key derivation
 type DeriveKeyRequest struct {
-	SeedPhrase string `json:"seed_phrase"` // Now contains encrypted seed data (hex-encoded)
-	Path       string `json:"path"`        // BIP32 derivation path (e.g., "m/44'/60'/0'/0/0")
-	Curve      string `json:"curve"`       // CURVE_SECP256K1, CURVE_ED25519
+	EncryptedSeedPhrase string `json:"encrypted_seed_phrase"` // Contains encrypted seed data (hex-encoded)
+	Path                string `json:"path"`                  // BIP32 derivation path (e.g., "m/44'/60'/0'/0/0")
+	Curve               string `json:"curve"`                 // CURVE_SECP256K1, CURVE_ED25519
 }
 
 type DeriveKeyResponse struct {
-	PrivateKey string `json:"private_key"` // Hex-encoded private key
+	PrivateKey string `json:"private_key"` // Encrypted private key (hex-encoded)
 	PublicKey  string `json:"public_key"`  // Hex-encoded public key
 	Address    string `json:"address"`     // Derived address
 	Path       string `json:"path"`        // The derivation path used
@@ -100,9 +100,9 @@ type DeriveKeyResponse struct {
 }
 
 type DeriveAddressRequest struct {
-	SeedPhrase string `json:"seed_phrase"` // Now contains encrypted seed data (hex-encoded)
-	Path       string `json:"path"`        // BIP32 derivation path
-	Curve      string `json:"curve"`       // CURVE_SECP256K1, CURVE_ED25519
+	EncryptedSeedPhrase string `json:"encrypted_seed_phrase"` // Contains encrypted seed data (hex-encoded)
+	Path                string `json:"path"`                  // BIP32 derivation path
+	Curve               string `json:"curve"`                 // CURVE_SECP256K1, CURVE_ED25519
 }
 
 type DeriveAddressResponse struct {
@@ -175,12 +175,12 @@ func (c *RenclaveClient) GetInfo(ctx context.Context) (*InfoResponse, error) {
 	return &resp, nil
 }
 
-// DeriveKey derives a private key and public key from a seed phrase using BIP32
-func (c *RenclaveClient) DeriveKey(ctx context.Context, seedPhrase, path, curve string) (*DeriveKeyResponse, error) {
+// DeriveKey derives a private key and public key from an encrypted seed phrase using BIP32
+func (c *RenclaveClient) DeriveKey(ctx context.Context, encryptedSeedPhrase, path, curve string) (*DeriveKeyResponse, error) {
 	req := DeriveKeyRequest{
-		SeedPhrase: seedPhrase,
-		Path:       path,
-		Curve:      curve,
+		EncryptedSeedPhrase: encryptedSeedPhrase,
+		Path:                path,
+		Curve:               curve,
 	}
 
 	var resp DeriveKeyResponse
@@ -191,12 +191,12 @@ func (c *RenclaveClient) DeriveKey(ctx context.Context, seedPhrase, path, curve 
 	return &resp, nil
 }
 
-// DeriveAddress derives an address from a seed phrase using BIP32
-func (c *RenclaveClient) DeriveAddress(ctx context.Context, seedPhrase, path, curve string) (*DeriveAddressResponse, error) {
+// DeriveAddress derives an address from an encrypted seed phrase using BIP32
+func (c *RenclaveClient) DeriveAddress(ctx context.Context, encryptedSeedPhrase, path, curve string) (*DeriveAddressResponse, error) {
 	req := DeriveAddressRequest{
-		SeedPhrase: seedPhrase,
-		Path:       path,
-		Curve:      curve,
+		EncryptedSeedPhrase: encryptedSeedPhrase,
+		Path:                path,
+		Curve:               curve,
 	}
 
 	var resp DeriveAddressResponse

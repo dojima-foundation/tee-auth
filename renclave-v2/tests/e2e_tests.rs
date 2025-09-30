@@ -240,7 +240,7 @@ async fn test_seed_derivation_workflow() {
 
     // Simulate key derivation request
     let operation = EnclaveOperation::DeriveKey {
-        seed_phrase: base_seed.phrase.clone(),
+        encrypted_seed_phrase: base_seed.phrase.clone(), // Note: In real usage, this would be encrypted
         path: "m/44'/0'/0'/0/0".to_string(),
         curve: "secp256k1".to_string(),
     };
@@ -350,7 +350,7 @@ async fn test_attestation_workflow() {
     // Simulate attestation request - this operation doesn't exist in the current API
     // We'll test a different operation instead
     let operation = EnclaveOperation::DeriveKey {
-        seed_phrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(),
+        encrypted_seed_phrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".to_string(), // Note: In real usage, this would be encrypted
         path: "m/44'/0'/0'/0/0".to_string(),
         curve: "secp256k1".to_string(),
     };
