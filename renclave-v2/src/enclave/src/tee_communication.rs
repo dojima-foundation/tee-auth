@@ -122,10 +122,6 @@ impl TeeCommunicationManager {
     pub fn handle_export_key(&self, request: ExportKeyRequest) -> Result<ExportKeyResponse> {
         info!("🔍 TEE_COMMUNICATION: handle_export_key called");
         info!("📤 Handling export key request (Original Node)");
-        debug!(
-            "📄 Request attestation document size: {} bytes",
-            request.cose_sign1_attestation_doc.len()
-        );
 
         // Check if this TEE has a quorum key
         let quorum_key_guard = self.quorum_key.lock().unwrap();
@@ -142,10 +138,6 @@ impl TeeCommunicationManager {
                 anyhow!("Failed to deserialize attestation document: {}", e)
             })?;
         info!("✅ Attestation document deserialized successfully");
-        debug!(
-            "📄 Attestation doc timestamp: {}",
-            attestation_doc.timestamp_ms
-        );
         debug!(
             "📄 Attestation doc user_data: {} bytes",
             attestation_doc.user_data.len()

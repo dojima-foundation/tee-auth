@@ -34,7 +34,6 @@ impl EnclaveClient {
 
         while start_time.elapsed() < max_wait {
             attempt += 1;
-            debug!("🔍 Attempt {} to connect to enclave", attempt);
 
             match self.test_connection().await {
                 Ok(_) => {
@@ -73,7 +72,6 @@ impl EnclaveClient {
             "📤 Sending request to enclave: {} (operation: {:?})",
             request.id, operation_discriminant
         );
-        debug!("🔍 Socket path: {}", self.socket_path);
 
         // Connect to enclave with timeout
         info!("🔗 Connecting to enclave socket...");
@@ -96,10 +94,6 @@ impl EnclaveClient {
         .context("Timeout waiting for enclave response")??;
 
         info!("📨 Received response from enclave: {}", response.id);
-        debug!(
-            "🔍 Response result: {:?}",
-            std::mem::discriminant(&response.result)
-        );
         Ok(response)
     }
 
@@ -122,7 +116,6 @@ impl EnclaveClient {
             .await
             .context("Failed to write newline to socket")?;
 
-        debug!("✅ Request sent to enclave");
 
         // Read response
         let mut reader = BufReader::new(stream);
@@ -137,13 +130,11 @@ impl EnclaveClient {
             return Err(anyhow!("Received empty response from enclave"));
         }
 
-        debug!("📥 Raw response from enclave: {}", response_line.trim());
 
         // Deserialize response
         let response: EnclaveResponse = serde_json::from_str(response_line.trim())
             .context("Failed to deserialize response from enclave")?;
 
-        debug!("✅ Response deserialized successfully");
         Ok(response)
     }
 
@@ -182,7 +173,6 @@ impl EnclaveClient {
 
     /// Get enclave information
     pub async fn get_info(&self) -> Result<EnclaveResponse> {
-        debug!("ℹ️  Requesting enclave information");
 
         let operation = EnclaveOperation::GetInfo;
         self.send_request(operation).await
@@ -292,19 +282,6 @@ impl EnclaveClient {
         dr_key: Option<Vec<u8>>,
     ) -> Result<EnclaveResponse> {
         info!("🌱 Requesting Genesis Boot flow execution");
-        debug!("🔍 Genesis Boot parameters:");
-        debug!("  - namespace_name: {}", namespace_name);
-        debug!("  - namespace_nonce: {}", namespace_nonce);
-        debug!("  - manifest_members: {} members", manifest_members.len());
-        debug!("  - manifest_threshold: {}", manifest_threshold);
-        debug!("  - share_members: {} members", share_members.len());
-        debug!("  - share_threshold: {}", share_threshold);
-        debug!("  - pivot_hash: {:?}", pivot_hash);
-        debug!("  - pivot_args: {:?}", pivot_args);
-        debug!(
-            "  - dr_key: {}",
-            if dr_key.is_some() { "provided" } else { "none" }
-        );
 
         let operation = EnclaveOperation::GenesisBoot {
             namespace_name,
@@ -343,10 +320,6 @@ impl EnclaveClient {
         shares: Vec<DecryptedShare>,
     ) -> Result<EnclaveResponse> {
         info!("🔐 Requesting share injection for Genesis Boot completion");
-        debug!("🔍 Share injection parameters:");
-        debug!("  - namespace_name: {}", namespace_name);
-        debug!("  - namespace_nonce: {}", namespace_nonce);
-        debug!("  - shares: {} shares", shares.len());
 
         let operation = EnclaveOperation::InjectShares {
             namespace_name,
@@ -359,10 +332,6 @@ impl EnclaveClient {
         match &result {
             Ok(response) => {
                 info!("✅ Share injection operation completed successfully");
-                debug!(
-                    "🔍 Response result type: {:?}",
-                    std::mem::discriminant(&response.result)
-                );
             }
             Err(e) => {
                 error!("❌ Share injection operation failed: {}", e);
@@ -373,11 +342,9 @@ impl EnclaveClient {
 
     /// Check enclave health
     pub async fn health_check(&self) -> Result<bool> {
-        debug!("🏥 Performing enclave health check");
 
         match self.test_connection().await {
             Ok(_) => {
-                debug!("✅ Enclave health check passed");
                 Ok(true)
             }
             Err(e) => {

@@ -13,7 +13,6 @@ use renclave_shared::*;
 
 /// Health check endpoint
 pub async fn health_check() -> StatusCode {
-    debug!("🏥 Health check endpoint called");
     StatusCode::OK
 }
 
@@ -59,7 +58,6 @@ pub async fn get_info(
         network_status: network_status_str,
     };
 
-    debug!("✅ Service info response prepared");
     Ok(Json(info))
 }
 
@@ -85,11 +83,6 @@ pub async fn generate_seed(
         ));
     }
 
-    debug!(
-        "📋 Request validated - strength: {}, passphrase: {}",
-        strength,
-        request.passphrase.is_some()
-    );
 
     // Send request to enclave
     match state
@@ -170,11 +163,6 @@ pub async fn validate_seed(
         ));
     }
 
-    debug!(
-        "📋 Request validated - seed phrase length: {}, encrypted_entropy: {:?}",
-        request.seed_phrase.len(),
-        request.encrypted_entropy
-    );
 
     // Send request to enclave
     match state
@@ -239,7 +227,6 @@ pub async fn validate_seed(
 
 /// Get network status
 pub async fn network_status(State(state): State<AppState>) -> Json<serde_json::Value> {
-    debug!("🌐 Network status requested");
 
     let status = state.network_manager.get_status().await;
 
@@ -255,7 +242,6 @@ pub async fn network_status(State(state): State<AppState>) -> Json<serde_json::V
         }
     });
 
-    debug!("✅ Network status response prepared");
     Json(response)
 }
 
@@ -311,7 +297,6 @@ pub async fn test_connectivity(State(state): State<AppState>) -> Json<serde_json
 pub async fn enclave_info(
     State(state): State<AppState>,
 ) -> std::result::Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    debug!("🔒 Enclave info requested");
 
     // Check enclave health first
     let is_healthy = state.enclave_client.health_check().await.unwrap_or(false);
@@ -343,7 +328,6 @@ pub async fn enclave_info(
                     "capabilities": capabilities,
                 });
 
-                debug!("✅ Enclave info response prepared");
                 Ok(Json(response))
             }
             EnclaveResult::Error { message, code } => {
@@ -390,9 +374,6 @@ pub async fn derive_key(
 ) -> std::result::Result<Json<DeriveKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
     let request_id = Uuid::new_v4().to_string();
     info!("🔑 Key derivation requested (ID: {})", request_id);
-    debug!("🔍 DEBUG: derive_key - seed phrase length: {}", request.encrypted_seed_phrase.len());
-    debug!("🔍 DEBUG: derive_key - word count: {}", request.encrypted_seed_phrase.split_whitespace().count());
-    debug!("🔍 DEBUG: derive_key - first 100 chars: {}", &request.encrypted_seed_phrase[..request.encrypted_seed_phrase.len().min(100)]);
 
     // Validate request
     if request.encrypted_seed_phrase.trim().is_empty() {
@@ -431,10 +412,6 @@ pub async fn derive_key(
         ));
     }
 
-    debug!(
-        "📋 Request validated - path: {}, curve: {}",
-        request.path, request.curve
-    );
 
     // Send request to enclave
     match state
@@ -541,10 +518,6 @@ pub async fn derive_address(
         ));
     }
 
-    debug!(
-        "📋 Request validated - path: {}, curve: {}",
-        request.path, request.curve
-    );
 
     // Send request to enclave
     match state
@@ -636,11 +609,6 @@ pub async fn generate_quorum_key(
         ));
     }
 
-    debug!(
-        "📋 Request validated - members: {}, threshold: {}",
-        request.members.len(),
-        request.threshold
-    );
 
     // Send request to enclave
     match state
@@ -838,16 +806,6 @@ pub async fn genesis_boot(
 ) -> std::result::Result<Json<GenesisBootResponse>, (StatusCode, Json<ErrorResponse>)> {
     let request_id = Uuid::new_v4().to_string();
     info!("🌱 Genesis Boot flow requested (ID: {})", request_id);
-    debug!("🔍 Genesis Boot request details:");
-    debug!("  - namespace_name: {}", request.namespace_name);
-    debug!("  - namespace_nonce: {}", request.namespace_nonce);
-    debug!(
-        "  - manifest_members: {} members",
-        request.manifest_members.len()
-    );
-    debug!("  - manifest_threshold: {}", request.manifest_threshold);
-    debug!("  - share_members: {} members", request.share_members.len());
-    debug!("  - share_threshold: {}", request.share_threshold);
 
     // Validate request
     if request.manifest_members.is_empty() {
@@ -906,7 +864,6 @@ pub async fn genesis_boot(
 
     // Send Genesis Boot request to enclave
     info!("📡 Sending Genesis Boot request to enclave...");
-    debug!("🔍 Enclave client state: {:?}", state.enclave_client);
 
     match state
         .enclave_client
@@ -987,10 +944,6 @@ pub async fn inject_shares(
 ) -> std::result::Result<Json<ShareInjectionResponse>, (StatusCode, Json<ErrorResponse>)> {
     let request_id = Uuid::new_v4().to_string();
     info!("🔐 Share injection requested (ID: {})", request_id);
-    debug!("🔍 Share injection request details:");
-    debug!("  - namespace_name: {}", request.namespace_name);
-    debug!("  - namespace_nonce: {}", request.namespace_nonce);
-    debug!("  - shares: {} shares", request.shares.len());
 
     // Validate request
     if request.shares.is_empty() {
@@ -1007,7 +960,6 @@ pub async fn inject_shares(
 
     // Send share injection request to enclave
     info!("📡 Sending share injection request to enclave...");
-    debug!("🔍 Enclave client state: {:?}", state.enclave_client);
 
     match state
         .enclave_client

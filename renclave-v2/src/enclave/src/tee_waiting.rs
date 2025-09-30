@@ -74,10 +74,6 @@ impl TeeWaitingManager {
     /// Start the waiting process for share reconstruction
     pub async fn start_waiting(&mut self) -> Result<WaitingState> {
         info!("⏳ Starting TEE waiting for share reconstruction");
-        debug!(
-            "⏳ Config: max_wait_time={}s, check_interval={}ms, min_shares={}",
-            self.config.max_wait_time, self.config.check_interval_ms, self.config.min_shares
-        );
 
         self.state = WaitingState::WaitingForShares;
         self.start_time = Some(Instant::now());
@@ -89,7 +85,6 @@ impl TeeWaitingManager {
         let mut iteration = 0;
         loop {
             iteration += 1;
-            debug!("⏳ Waiting iteration {}: checking for shares...", iteration);
 
             // Check if we've exceeded the maximum wait time
             if let Some(start) = self.start_time {
@@ -102,16 +97,10 @@ impl TeeWaitingManager {
                     self.state = WaitingState::Timeout;
                     break;
                 }
-                debug!("⏳ Elapsed time: {:?} / {:?}", elapsed, max_duration);
             }
 
             // Check for new shares (this would typically come from external sources)
             // For now, we'll simulate this by checking if we have enough shares
-            debug!(
-                "⏳ Current shares: {} / {} required",
-                self.received_shares.len(),
-                self.config.min_shares
-            );
             if self.received_shares.len() >= self.config.min_shares {
                 info!("🔧 Sufficient shares received, attempting reconstruction");
                 self.state = WaitingState::Reconstructing;
@@ -131,16 +120,8 @@ impl TeeWaitingManager {
             }
 
             // Wait before next check
-            debug!("⏳ Sleeping for {:?} before next check...", check_interval);
             sleep(check_interval).await;
 
-            debug!(
-                "⏳ Waiting for shares... (received: {}, required: {}, elapsed: {}s, iteration: {})",
-                self.received_shares.len(),
-                self.config.min_shares,
-                self.start_time.map(|s| s.elapsed().as_secs()).unwrap_or(0),
-                iteration
-            );
         }
 
         info!(
@@ -167,17 +148,12 @@ impl TeeWaitingManager {
         }
 
         self.received_shares.push(share);
-        debug!("📊 Total shares received: {}", self.received_shares.len());
 
         Ok(())
     }
 
     /// Attempt to reconstruct the quorum key from received shares
     async fn attempt_reconstruction(&self) -> Result<P256Pair> {
-        debug!(
-            "🔧 Attempting quorum key reconstruction from {} shares",
-            self.received_shares.len()
-        );
 
         if self.received_shares.len() < self.config.min_shares {
             return Err(anyhow::anyhow!(
@@ -215,7 +191,6 @@ impl TeeWaitingManager {
         // Store the reconstructed quorum key
         self.storage.put_quorum_key(&quorum_pair)?;
 
-        debug!("✅ Quorum key successfully reconstructed and stored");
         Ok(quorum_pair)
     }
 

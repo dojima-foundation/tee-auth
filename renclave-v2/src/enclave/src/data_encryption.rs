@@ -164,23 +164,11 @@ impl P256EncryptPair {
         let ephemeral_sender_public = PublicKey::from_sec1_bytes(&ephemeral_sender_public_bytes)
             .map_err(|_| anyhow!("Failed to deserialize public key"))?;
         info!("🔓 DEBUG: Successfully parsed ephemeral sender public key");
-        debug!(
-            "🔓 DEBUG: Ephemeral sender public key (first 10 bytes): {:?}",
-            &ephemeral_sender_public_bytes[..10]
-        );
 
         let sender_public_typed = SenderPublic(&ephemeral_sender_public_bytes);
         let receiver_encoded_point = self.private.public_key().to_encoded_point(false);
         let receiver_public_typed = ReceiverPublic(receiver_encoded_point.as_ref());
         info!("🔓 DEBUG: Created sender and receiver public types");
-        debug!(
-            "🔓 DEBUG: Receiver private key (first 10 bytes): {:?}",
-            &self.private.to_be_bytes()[..10]
-        );
-        debug!(
-            "🔓 DEBUG: Receiver public key (first 10 bytes): {:?}",
-            &receiver_encoded_point.as_bytes()[..10]
-        );
 
         info!("🔓 DEBUG: Creating cipher with ECDH...");
         info!(
@@ -303,10 +291,6 @@ impl P256EncryptPublic {
 
         let ephemeral_sender_private = SecretKey::random(&mut OsRng);
         info!("🔐 DEBUG: Generated ephemeral sender private key");
-        debug!(
-            "🔐 DEBUG: Ephemeral sender private key (first 10 bytes): {:?}",
-            &ephemeral_sender_private.to_be_bytes()[..10]
-        );
 
         let ephemeral_sender_public: [u8; PUB_KEY_LEN_UNCOMPRESSED] = ephemeral_sender_private
             .public_key()
@@ -315,19 +299,11 @@ impl P256EncryptPublic {
             .try_into()
             .map_err(|_| anyhow!("Failed to coerce public key to intended length"))?;
         info!("🔐 DEBUG: Generated ephemeral sender public key");
-        debug!(
-            "🔐 DEBUG: Ephemeral sender public (first 10 bytes): {:?}",
-            &ephemeral_sender_public[..10]
-        );
 
         let sender_public_typed = SenderPublic(&ephemeral_sender_public);
         let receiver_encoded_point = self.public.to_encoded_point(false);
         let receiver_public_typed = ReceiverPublic(receiver_encoded_point.as_ref());
         info!("🔐 DEBUG: Created sender and receiver public types");
-        debug!(
-            "🔐 DEBUG: Receiver public key (first 10 bytes): {:?}",
-            &receiver_encoded_point.as_bytes()[..10]
-        );
 
         info!("🔐 DEBUG: Creating cipher with ECDH...");
         info!(
@@ -671,19 +647,11 @@ fn create_cipher(
     let shared_secret = match shared_secret {
         PrivPubOrSharedSecret::PrivPub { private, public } => {
             info!("🔐 DEBUG: Using PrivPub mode for ECDH");
-            debug!(
-                "🔐 DEBUG: Private key (first 10 bytes): {:?}",
-                &private.to_be_bytes()[..10]
-            );
 
             // Real ECDH implementation using p256
             // Use the public key from the PrivPubOrSharedSecret, not receiver_public
             let public_key = public;
             info!("🔐 DEBUG: Successfully parsed public key from PrivPubOrSharedSecret");
-            debug!(
-                "🔐 DEBUG: Public key (first 10 bytes): {:?}",
-                &public_key.to_encoded_point(false).as_bytes()[..10]
-            );
 
             // ECDH implementation matching QoS exactly
             // Use proper ECDH key agreement as in QoS

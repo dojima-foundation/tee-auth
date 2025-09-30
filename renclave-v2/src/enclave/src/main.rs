@@ -91,11 +91,9 @@ impl NitroEnclave {
             if metadata.is_dir() {
                 // If it's a directory, remove it recursively
                 fs::remove_dir_all(socket_path).await?;
-                debug!("🗑️  Removed existing directory at socket path");
             } else {
                 // If it's a file (including socket), remove it
                 fs::remove_file(socket_path).await?;
-                debug!("🗑️  Removed existing file at socket path");
             }
 
             // Small delay to ensure cleanup is complete
@@ -121,7 +119,6 @@ impl NitroEnclave {
                             if let Err(e) = tokio::fs::set_permissions(socket_path, perms).await {
                                 warn!("⚠️  Failed to set socket permissions: {}", e);
                             } else {
-                                debug!("🔐 Set socket permissions to 666");
                             }
                         }
                     }
@@ -185,8 +182,6 @@ impl NitroEnclave {
 
     /// Handle client connection
     async fn handle_client(&self, stream: UnixStream) -> anyhow::Result<()> {
-        debug!("🔍 Handling client connection");
-
         let mut reader = BufReader::new(stream);
         let mut buffer = String::new();
 
@@ -195,15 +190,12 @@ impl NitroEnclave {
 
             match reader.read_line(&mut buffer).await {
                 Ok(0) => {
-                    debug!("🔌 Client disconnected");
                     break;
                 }
                 Ok(_) => {
                     let request_json = buffer.trim();
-                    debug!("📨 Received request: {}", request_json);
 
                     // Parse request
-                    debug!("🔍 ABOUT TO PARSE JSON: {}", request_json);
                     match serde_json::from_str::<EnclaveRequest>(request_json) {
                         Ok(request) => {
                             info!("🔍 JSON PARSED SUCCESSFULLY");
@@ -215,8 +207,6 @@ impl NitroEnclave {
                             // Send response
                             match serde_json::to_string(&response) {
                                 Ok(response_json) => {
-                                    debug!("📤 Sending response: {}", response_json);
-
                                     let mut stream = reader.into_inner();
                                     if let Err(e) = stream.write_all(response_json.as_bytes()).await
                                     {
@@ -270,19 +260,13 @@ impl NitroEnclave {
             }
         }
 
-        debug!("🔌 Client connection closed");
         Ok(())
     }
 
     /// Process enclave request
     async fn process_request(&self, request: EnclaveRequest) -> EnclaveResponse {
         info!("🔍 PROCESS_REQUEST FUNCTION CALLED");
-        debug!("⚙️  Processing request: {:?}", request.operation);
 
-        debug!(
-            "🔍 Processing request operation: {:?}",
-            std::mem::discriminant(&request.operation)
-        );
         info!("🔍 ABOUT TO MATCH ON REQUEST OPERATION");
         info!("🔍 REQUEST OPERATION TYPE: {:?}", request.operation);
         let result = match request.operation {
@@ -428,10 +412,6 @@ impl NitroEnclave {
                 encrypted_entropy,
             } => {
                 info!("🔍 Validating seed phrase");
-                debug!(
-                    "🔍 DEBUG: Seed phrase first 50 chars: {}",
-                    &seed_phrase[..seed_phrase.len().min(50)]
-                );
 
                 // First, try to validate as plain BIP39 mnemonic
                 match self.seed_generator.validate_seed(&seed_phrase).await {
@@ -476,9 +456,6 @@ impl NitroEnclave {
 
                             if !quorum_key_available {
                                 info!("❌ Quorum key not available, treating as invalid encrypted seed");
-                                debug!(
-                                    "🔍 DEBUG: No quorum key available, returning invalid result"
-                                );
                                 EnclaveResult::SeedValidated {
                                     valid: false,
                                     word_count: seed_phrase.split_whitespace().count(),
@@ -498,10 +475,6 @@ impl NitroEnclave {
                                         // Try to decode the seed phrase as hex (assuming it's encrypted data)
                                         match hex::decode(&seed_phrase) {
                                             Ok(encrypted_bytes) => {
-                                                debug!(
-                                                    "🔍 DEBUG: Hex decode successful, length: {}",
-                                                    encrypted_bytes.len()
-                                                );
                                                 match encryption_service
                                                     .decrypt_data(&encrypted_bytes)
                                                 {
@@ -764,20 +737,14 @@ impl NitroEnclave {
                                                             }
                                                         }
                                                     }
-                                                    Err(e) => {
-                                                        debug!(
-                                                            "🔍 Raw bytes decryption failed: {}",
-                                                            e
-                                                        );
-                                                        EnclaveResult::SeedValidated {
-                                                            valid: false,
-                                                            word_count: seed_phrase
-                                                                .split_whitespace()
-                                                                .count(),
-                                                            entropy_match: None,
-                                                            derived_entropy: None,
-                                                        }
-                                                    }
+                                                    Err(_e) => EnclaveResult::SeedValidated {
+                                                        valid: false,
+                                                        word_count: seed_phrase
+                                                            .split_whitespace()
+                                                            .count(),
+                                                        entropy_match: None,
+                                                        derived_entropy: None,
+                                                    },
                                                 }
                                             }
                                         }
@@ -794,15 +761,12 @@ impl NitroEnclave {
                             }
                         }
                     }
-                    Err(e) => {
-                        debug!("🔍 Plain BIP39 validation failed: {}", e);
-                        EnclaveResult::SeedValidated {
-                            valid: false,
-                            word_count: seed_phrase.split_whitespace().count(),
-                            entropy_match: None,
-                            derived_entropy: None,
-                        }
-                    }
+                    Err(_e) => EnclaveResult::SeedValidated {
+                        valid: false,
+                        word_count: seed_phrase.split_whitespace().count(),
+                        entropy_match: None,
+                        derived_entropy: None,
+                    },
                 }
             }
 
@@ -832,21 +796,8 @@ impl NitroEnclave {
                 curve,
             } => {
                 info!("🔑 Deriving key (path: {}, curve: {})", path, curve);
-                debug!(
-                    "🔍 DEBUG: DeriveKey - seed phrase length: {}",
-                    encrypted_seed_phrase.len()
-                );
-                debug!(
-                    "🔍 DEBUG: DeriveKey - word count: {}",
-                    encrypted_seed_phrase.split_whitespace().count()
-                );
-                debug!(
-                    "🔍 DEBUG: DeriveKey - first 100 chars: {}",
-                    &encrypted_seed_phrase[..encrypted_seed_phrase.len().min(100)]
-                );
 
                 // Use the common decrypt function
-                debug!("🔍 DEBUG: DeriveKey - calling decrypt_seed_phrase");
                 match self.decrypt_seed_phrase(&encrypted_seed_phrase, None).await {
                     Ok(decrypted_result) => {
                         info!("✅ Successfully decrypted seed phrase");
@@ -859,21 +810,11 @@ impl NitroEnclave {
                         {
                             Ok(key_result) => {
                                 info!("✅ Key derivation successful");
-                                debug!(
-                                    "🔍 DEBUG: DeriveKey - raw private key length: {}",
-                                    key_result.private_key.len()
-                                );
-                                debug!(
-                                    "🔍 DEBUG: DeriveKey - raw private key first 20 chars: {}",
-                                    &key_result.private_key[..key_result.private_key.len().min(20)]
-                                );
 
                                 // Encrypt the private key for security
                                 match self.encrypt_private_key(&key_result.private_key).await {
                                     Ok(encrypted_private_key) => {
                                         info!("🔐 Successfully encrypted private key");
-                                        debug!("🔍 DEBUG: DeriveKey - encrypted private key length: {}", encrypted_private_key.len());
-                                        debug!("🔍 DEBUG: DeriveKey - encrypted private key first 20 chars: {}", &encrypted_private_key[..encrypted_private_key.len().min(20)]);
 
                                         EnclaveResult::KeyDerived {
                                             private_key: encrypted_private_key,
@@ -973,14 +914,6 @@ impl NitroEnclave {
                     "🌱 Starting Genesis Boot flow (namespace: {}, nonce: {})",
                     namespace_name, namespace_nonce
                 );
-                debug!("🔍 Genesis Boot parameters:");
-                debug!("  - manifest_members: {} members", manifest_members.len());
-                debug!("  - manifest_threshold: {}", manifest_threshold);
-                debug!("  - share_members: {} members", share_members.len());
-                debug!("  - share_threshold: {}", share_threshold);
-                debug!("  - pivot_hash: {:?}", pivot_hash);
-                debug!("  - pivot_args: {:?}", pivot_args);
-                debug!("  - dr_key provided: {}", dr_key.is_some());
 
                 let genesis_set = GenesisSet {
                     members: share_members.clone(),
@@ -990,13 +923,6 @@ impl NitroEnclave {
                 match boot_genesis(&genesis_set, dr_key, None).await {
                     Ok(genesis_output) => {
                         info!("✅ Genesis Boot completed successfully");
-                        debug!("🔍 Genesis Boot results:");
-                        debug!("  - quorum_key: {} bytes", genesis_output.quorum_key.len());
-                        debug!(
-                            "  - member_outputs: {} members",
-                            genesis_output.member_outputs.len()
-                        );
-                        debug!("  - threshold: {}", genesis_output.threshold);
 
                         // Create a simple manifest for now
                         let manifest_envelope = renclave_shared::ManifestEnvelope {
@@ -1067,18 +993,6 @@ impl NitroEnclave {
                     "🔐 Share injection requested (namespace: {}, nonce: {})",
                     namespace_name, namespace_nonce
                 );
-                debug!("🔍 Share injection parameters:");
-                debug!("  - namespace_name: {}", namespace_name);
-                debug!("  - namespace_nonce: {}", namespace_nonce);
-                debug!("  - shares: {} shares", shares.len());
-                for (i, share) in shares.iter().enumerate() {
-                    debug!(
-                        "  - share[{}]: {} bytes (member: {})",
-                        i,
-                        share.decrypted_share.len(),
-                        share.member_alias
-                    );
-                }
 
                 info!("🔐 Processing share injection...");
 
@@ -1109,7 +1023,6 @@ impl NitroEnclave {
                     "🔧 Reconstructing master seed from {} member shares (QoS pattern)",
                     member_shares.len()
                 );
-                debug!("🧩 Starting Shamir Secret Sharing reconstruction");
 
                 match crate::quorum::shares_reconstruct(&member_shares) {
                     Ok(reconstructed_seed) => {
@@ -1824,7 +1737,6 @@ impl NitroEnclave {
             } => {
                 info!("🔍 MATCHED: ExportKey");
                 info!("📤 MAIN.RS - Handling export key request");
-                debug!("🔍 ExportKey handler reached");
 
                 // Parse manifest envelope from request
                 let parsed_manifest = match serde_json::from_value(manifest_envelope) {
@@ -1846,10 +1758,6 @@ impl NitroEnclave {
 
                 // Parse attestation document from request
                 info!("✅ Successfully parsed attestation document from request");
-                debug!(
-                    "📄 Attestation document size: {} bytes",
-                    attestation_doc.as_array().map(|arr| arr.len()).unwrap_or(0)
-                );
 
                 // Convert attestation document from JSON array to bytes
                 let attestation_doc_bytes = match attestation_doc.as_array() {
@@ -2249,24 +2157,12 @@ impl NitroEnclave {
         encrypted_entropy: Option<&str>,
     ) -> anyhow::Result<DecryptedSeedResult> {
         info!("🔓 Decrypting seed phrase with validations");
-        debug!(
-            "🔍 DEBUG: Seed phrase first 50 chars: {}",
-            &seed_phrase[..seed_phrase.len().min(50)]
-        );
-        debug!("🔍 DEBUG: Full seed phrase length: {}", seed_phrase.len());
-        debug!(
-            "🔍 DEBUG: Word count: {}",
-            seed_phrase.split_whitespace().count()
-        );
 
         // First, try to validate as plain BIP39 mnemonic
-        debug!("🔍 DEBUG: Attempting to validate as plain BIP39 mnemonic");
         match self.seed_generator.validate_seed(seed_phrase).await {
             Ok(is_valid) => {
-                debug!("🔍 DEBUG: Validation result: {}", is_valid);
                 if is_valid {
                     info!("✅ Seed phrase is valid plain BIP39 mnemonic");
-                    debug!("🔍 DEBUG: Processing as plain mnemonic (no decryption needed)");
 
                     // Handle entropy validation if provided
                     let (entropy_match, derived_entropy) =
@@ -2294,7 +2190,6 @@ impl NitroEnclave {
                         derived_entropy,
                     });
                 } else {
-                    debug!("🔍 DEBUG: Plain validation failed, attempting decryption path");
                     // Plain validation failed, try to decrypt using quorum key
                     let quorum_key_available = {
                         let state_manager = self.state_manager.lock().unwrap();
@@ -2302,10 +2197,8 @@ impl NitroEnclave {
                         status.has_quorum_key
                     };
 
-                    debug!("🔍 DEBUG: Quorum key available: {}", quorum_key_available);
                     if !quorum_key_available {
                         info!("❌ Quorum key not available, treating as invalid encrypted seed");
-                        debug!("🔍 DEBUG: Cannot decrypt - no quorum key available");
                         return Err(anyhow::anyhow!("Quorum key not available for decryption"));
                     }
 
@@ -2316,14 +2209,8 @@ impl NitroEnclave {
                             info!("🔓 Attempting to decrypt seed phrase using quorum key");
 
                             // Try to decode the seed phrase as hex (assuming it's encrypted data)
-                            debug!("🔍 DEBUG: Attempting hex decode of seed phrase");
                             match hex::decode(seed_phrase) {
                                 Ok(encrypted_bytes) => {
-                                    debug!(
-                                        "🔍 DEBUG: Hex decode successful, length: {}",
-                                        encrypted_bytes.len()
-                                    );
-                                    debug!("🔍 DEBUG: Attempting decryption with quorum key");
                                     match encryption_service.decrypt_data(&encrypted_bytes) {
                                         Ok(decrypted_seed) => {
                                             // Convert decrypted bytes to string
@@ -2439,30 +2326,16 @@ impl NitroEnclave {
     /// Encrypt private key using quorum key for secure storage
     async fn encrypt_private_key(&self, private_key_hex: &str) -> anyhow::Result<String> {
         info!("🔐 Encrypting private key for secure storage");
-        debug!(
-            "🔍 DEBUG: encrypt_private_key - input length: {}",
-            private_key_hex.len()
-        );
-        debug!(
-            "🔍 DEBUG: encrypt_private_key - input first 20 chars: {}",
-            &private_key_hex[..private_key_hex.len().min(20)]
-        );
 
         // Convert hex string to bytes
         let private_key_bytes = hex::decode(private_key_hex)
             .map_err(|e| anyhow::anyhow!("Invalid hex private key: {}", e))?;
-
-        debug!(
-            "🔍 DEBUG: encrypt_private_key - decoded bytes length: {}",
-            private_key_bytes.len()
-        );
 
         // Get encryption service
         let encryption_service = self.data_encryption.lock().unwrap().clone();
         match encryption_service {
             Some(encryption_service) => {
                 info!("🔐 Encrypting private key using quorum key");
-                debug!("🔍 DEBUG: encrypt_private_key - encryption service available");
 
                 // Encrypt the private key
                 // Note: recipient_public is not used by the encryption method but required by signature
@@ -2471,14 +2344,6 @@ impl NitroEnclave {
                     Ok(encrypted_bytes) => {
                         let encrypted_hex = hex::encode(encrypted_bytes);
                         info!("✅ Successfully encrypted private key");
-                        debug!(
-                            "🔍 DEBUG: encrypt_private_key - encrypted length: {}",
-                            encrypted_hex.len()
-                        );
-                        debug!(
-                            "🔍 DEBUG: encrypt_private_key - encrypted first 20 chars: {}",
-                            &encrypted_hex[..encrypted_hex.len().min(20)]
-                        );
                         Ok(encrypted_hex)
                     }
                     Err(e) => {
