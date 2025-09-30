@@ -33,7 +33,7 @@ COPY --from=builder /workspace/target/release/enclave /app/bin/
 COPY --from=builder /workspace/target/release/host /app/bin/
 
 # Copy scripts
-COPY docker/scripts/ /app/scripts/
+COPY scripts/ /app/scripts/
 
 # Set executable permissions
 RUN chmod +x /app/bin/* /app/scripts/* || true

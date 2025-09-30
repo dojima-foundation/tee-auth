@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use bip39::{Language, Mnemonic};
 use bitcoin::bip32::{DerivationPath, Xpriv, Xpub};
-use log::{info, warn};
+use log::{debug, info, warn};
 use rand::{RngCore, SeedableRng};
 use secp256k1::Secp256k1;
 use std::str::FromStr;
@@ -106,6 +106,18 @@ impl SeedGenerator {
     /// Validate existing seed phrase
     pub async fn validate_seed(&self, seed_phrase: &str) -> Result<bool> {
         info!("🔍 Validating seed phrase");
+        debug!(
+            "🔍 DEBUG: validate_seed - input length: {}",
+            seed_phrase.len()
+        );
+        debug!(
+            "🔍 DEBUG: validate_seed - word count: {}",
+            seed_phrase.split_whitespace().count()
+        );
+        debug!(
+            "🔍 DEBUG: validate_seed - first 100 chars: {}",
+            &seed_phrase[..seed_phrase.len().min(100)]
+        );
 
         if seed_phrase.trim().is_empty() {
             warn!("⚠️  Empty seed phrase provided");
@@ -120,29 +132,48 @@ impl SeedGenerator {
         }
 
         // Try to parse as BIP39 mnemonic
+        debug!("🔍 DEBUG: validate_seed - attempting BIP39 parse of full phrase");
         match Mnemonic::parse_in_normalized(Language::English, seed_phrase) {
             Ok(_) => {
                 info!("✅ Seed phrase is valid BIP39 mnemonic");
+                debug!("🔍 DEBUG: validate_seed - full phrase is valid BIP39");
                 Ok(true)
             }
-            Err(_e) => {
+            Err(e) => {
+                debug!(
+                    "🔍 DEBUG: validate_seed - full phrase BIP39 parse failed: {}",
+                    e
+                );
                 // If it fails, try without the last word(s) (might be passphrase)
                 if words.len() > 12 {
+                    debug!(
+                        "🔍 DEBUG: validate_seed - word count > 12, trying passphrase extraction"
+                    );
                     // Try different standard BIP39 lengths from largest to smallest
                     let standard_lengths = vec![24, 21, 18, 15, 12];
 
                     for &length in &standard_lengths {
                         if words.len() > length {
                             let without_passphrase = words[..length].join(" ");
+                            debug!(
+                                "🔍 DEBUG: validate_seed - trying length {}: {}",
+                                length,
+                                &without_passphrase[..without_passphrase.len().min(50)]
+                            );
                             match Mnemonic::parse_in_normalized(
                                 Language::English,
                                 &without_passphrase,
                             ) {
                                 Ok(_) => {
                                     info!("✅ Seed phrase is valid BIP39 mnemonic (with passphrase, {} words)", length);
+                                    debug!("🔍 DEBUG: validate_seed - valid with passphrase, mnemonic length: {}", length);
                                     return Ok(true);
                                 }
-                                Err(_) => {
+                                Err(e) => {
+                                    debug!(
+                                        "🔍 DEBUG: validate_seed - length {} failed: {}",
+                                        length, e
+                                    );
                                     // Continue trying other lengths
                                     continue;
                                 }
@@ -209,6 +240,65 @@ impl SeedGenerator {
         Ok(mnemonic_obj.to_entropy().to_vec())
     }
 
+    /// Extract mnemonic and passphrase from seed phrase
+    /// Handles both plain mnemonics and mnemonics with passphrases
+    fn extract_mnemonic_and_passphrase(
+        &self,
+        seed_phrase: &str,
+    ) -> Result<(String, Option<String>)> {
+        debug!(
+            "🔍 DEBUG: extract_mnemonic_and_passphrase - input: {}",
+            &seed_phrase[..seed_phrase.len().min(50)]
+        );
+
+        let words: Vec<&str> = seed_phrase.split_whitespace().collect();
+        if words.is_empty() {
+            return Err(anyhow!("Empty seed phrase"));
+        }
+
+        // Try to parse as BIP39 mnemonic first
+        match Mnemonic::parse_in_normalized(Language::English, seed_phrase) {
+            Ok(_) => {
+                debug!("🔍 DEBUG: extract_mnemonic_and_passphrase - full phrase is valid BIP39");
+                return Ok((seed_phrase.to_string(), None));
+            }
+            Err(_) => {
+                debug!("🔍 DEBUG: extract_mnemonic_and_passphrase - full phrase not valid, trying passphrase extraction");
+                // Try different standard BIP39 lengths from largest to smallest
+                let standard_lengths = vec![24, 21, 18, 15, 12];
+
+                for &length in &standard_lengths {
+                    if words.len() > length {
+                        let mnemonic_part = words[..length].join(" ");
+                        let passphrase_part = words[length..].join(" ");
+
+                        debug!(
+                            "🔍 DEBUG: extract_mnemonic_and_passphrase - trying length {}: {}",
+                            length,
+                            &mnemonic_part[..mnemonic_part.len().min(50)]
+                        );
+
+                        match Mnemonic::parse_in_normalized(Language::English, &mnemonic_part) {
+                            Ok(_) => {
+                                debug!("🔍 DEBUG: extract_mnemonic_and_passphrase - valid mnemonic found with length {}", length);
+                                return Ok((mnemonic_part, Some(passphrase_part)));
+                            }
+                            Err(_) => {
+                                debug!(
+                                    "🔍 DEBUG: extract_mnemonic_and_passphrase - length {} failed",
+                                    length
+                                );
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                Err(anyhow!("Invalid mnemonic: mnemonic has an invalid word count: {}. Word count must be 12, 15, 18, 21, or 24", words.len()))
+            }
+        }
+    }
+
     /// Derive seed from mnemonic and passphrase
     pub async fn derive_seed(&self, mnemonic: &str, passphrase: Option<&str>) -> Result<Vec<u8>> {
         info!("🌱 Deriving seed from mnemonic");
@@ -242,13 +332,33 @@ impl SeedGenerator {
         curve: &str,
     ) -> Result<KeyDerivationResult> {
         info!("🔑 Deriving key (path: {}, curve: {})", path, curve);
+        debug!(
+            "🔍 DEBUG: derive_key - input seed phrase length: {}",
+            seed_phrase.len()
+        );
+        debug!(
+            "🔍 DEBUG: derive_key - input word count: {}",
+            seed_phrase.split_whitespace().count()
+        );
 
         // Parse derivation path
         let derivation_path = DerivationPath::from_str(path)
             .map_err(|e| anyhow!("Invalid derivation path: {}", e))?;
 
+        // Extract mnemonic and passphrase if needed
+        let (mnemonic, passphrase) = self.extract_mnemonic_and_passphrase(seed_phrase)?;
+        debug!(
+            "🔍 DEBUG: derive_key - extracted mnemonic length: {}",
+            mnemonic.len()
+        );
+        debug!(
+            "🔍 DEBUG: derive_key - extracted mnemonic word count: {}",
+            mnemonic.split_whitespace().count()
+        );
+        debug!("🔍 DEBUG: derive_key - passphrase: {:?}", passphrase);
+
         // Derive seed from mnemonic
-        let seed = self.derive_seed(seed_phrase, None).await?;
+        let seed = self.derive_seed(&mnemonic, passphrase.as_deref()).await?;
 
         // Create extended private key
         let secp = Secp256k1::new();

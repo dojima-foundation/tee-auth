@@ -200,7 +200,7 @@
             "name": "Key Derivation",
             "item": [
                 {
-                    "name": "Derive Key",
+                    "name": "Derive Key - Secp256k1",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -215,7 +215,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"encrypted_seed_phrase\": \"{{test_encrypted_seed_phrase}}\",\n  \"path\": \"{{test_derivation_path}}\",\n  \"curve\": \"{{test_curve}}\"\n}",
+                            "raw": "{\n  \"encrypted_seed_phrase\": \"{{test_encrypted_seed_phrase}}\",\n  \"path\": \"m/44'/60'/0'/0/0\",\n  \"curve\": \"CURVE_SECP256K1\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -231,12 +231,120 @@
                                 "derive-key"
                             ]
                         },
-                        "description": "Derive a private key from an encrypted seed phrase using BIP32 derivation path. Returns encrypted private key."
+                        "description": "Derive a private key from an encrypted seed phrase using BIP32 derivation path for Ethereum (m/44'/60'/0'/0/0). Returns private key, public key, and address."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Derive Key - Bitcoin",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"encrypted_seed_phrase\": \"{{test_encrypted_seed_phrase}}\",\n  \"path\": \"m/44'/0'/0'/0/0\",\n  \"curve\": \"CURVE_SECP256K1\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{renclave_base_url}}/derive-key",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "derive-key"
+                            ]
+                        },
+                        "description": "Derive a private key from an encrypted seed phrase using BIP32 derivation path for Bitcoin (m/44'/0'/0'/0/0). Returns private key, public key, and address."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Derive Key - Test Invalid Path",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"encrypted_seed_phrase\": \"{{test_encrypted_seed_phrase}}\",\n  \"path\": \"invalid/path\",\n  \"curve\": \"CURVE_SECP256K1\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{renclave_base_url}}/derive-key",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "derive-key"
+                            ]
+                        },
+                        "description": "Test error handling with invalid derivation path. Should return 400 error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Derive Key - Test Invalid Seed",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"encrypted_seed_phrase\": \"invalid_hex_string\",\n  \"path\": \"m/44'/60'/0'/0/0\",\n  \"curve\": \"CURVE_SECP256K1\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{renclave_base_url}}/derive-key",
+                            "host": [
+                                "{{renclave_base_url}}"
+                            ],
+                            "path": [
+                                "derive-key"
+                            ]
+                        },
+                        "description": "Test error handling with invalid encrypted seed phrase. Should return 500 error."
                     },
                     "response": []
                 }
             ],
-            "description": "Private key derivation endpoints"
+            "description": "Private key derivation endpoints with comprehensive test cases including valid paths, error scenarios, and different curve types"
         },
         {
             "name": "Address Derivation",
@@ -423,8 +531,40 @@
                     "        const response = pm.response.json();",
                     "        pm.expect(response).to.have.property('private_key');",
                     "        pm.expect(response).to.have.property('public_key');",
+                    "        pm.expect(response).to.have.property('address');",
                     "        pm.expect(response).to.have.property('path');",
                     "        pm.expect(response).to.have.property('curve');",
+                    "    });",
+                    "    ",
+                    "    pm.test(\"Key derivation response has valid key formats\", function () {",
+                    "        const response = pm.response.json();",
+                    "        ",
+                    "        // Check private key is hex string",
+                    "        pm.expect(response.private_key).to.match(/^[0-9a-fA-F]+$/);",
+                    "        pm.expect(response.private_key.length).to.be.above(0);",
+                    "        ",
+                    "        // Check public key is hex string",
+                    "        pm.expect(response.public_key).to.match(/^[0-9a-fA-F]+$/);",
+                    "        pm.expect(response.public_key.length).to.be.above(0);",
+                    "        ",
+                    "        // Check address format (should start with 0x)",
+                    "        pm.expect(response.address).to.match(/^0x[0-9a-fA-F]+$/);",
+                    "        pm.expect(response.address.length).to.be.above(2);",
+                    "        ",
+                    "        // Check path format",
+                    "        pm.expect(response.path).to.match(/^m\\/\\d+'?(\\/\\d+'?)*$/);",
+                    "        ",
+                    "        // Check curve is valid",
+                    "        pm.expect(['CURVE_SECP256K1', 'CURVE_P256', 'CURVE_ED25519']).to.include(response.curve);",
+                    "    });",
+                    "    ",
+                    "    pm.test(\"Key derivation response has consistent data\", function () {",
+                    "        const response = pm.response.json();",
+                    "        ",
+                    "        // Check that the path in response matches the requested path",
+                    "        const requestBody = JSON.parse(pm.request.body.raw);",
+                    "        pm.expect(response.path).to.equal(requestBody.path);",
+                    "        pm.expect(response.curve).to.equal(requestBody.curve);",
                     "    });",
                     "}"
                 ]

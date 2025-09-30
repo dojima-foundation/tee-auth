@@ -390,6 +390,9 @@ pub async fn derive_key(
 ) -> std::result::Result<Json<DeriveKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
     let request_id = Uuid::new_v4().to_string();
     info!("🔑 Key derivation requested (ID: {})", request_id);
+    debug!("🔍 DEBUG: derive_key - seed phrase length: {}", request.encrypted_seed_phrase.len());
+    debug!("🔍 DEBUG: derive_key - word count: {}", request.encrypted_seed_phrase.split_whitespace().count());
+    debug!("🔍 DEBUG: derive_key - first 100 chars: {}", &request.encrypted_seed_phrase[..request.encrypted_seed_phrase.len().min(100)]);
 
     // Validate request
     if request.encrypted_seed_phrase.trim().is_empty() {

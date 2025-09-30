@@ -1,3 +1,4 @@
+use hex;
 use log::{debug, error, info, warn};
 use std::sync::{Arc, Mutex};
 use tokio::fs;
@@ -19,7 +20,8 @@ use renclave_enclave::storage::TeeStorage;
 use renclave_enclave::tee_communication::TeeCommunicationManager;
 use renclave_network::{NetworkConfig, NetworkManager};
 use renclave_shared::{
-    ApplicationMetadata, EnclaveOperation, EnclaveRequest, EnclaveResponse, EnclaveResult,
+    ApplicationMetadata, DecryptedSeedResult, EnclaveOperation, EnclaveRequest, EnclaveResponse,
+    EnclaveResult,
 };
 use seed_generator::SeedGenerator;
 use transaction_signing::TransactionSigner;
@@ -830,26 +832,82 @@ impl NitroEnclave {
                 curve,
             } => {
                 info!("🔑 Deriving key (path: {}, curve: {})", path, curve);
+                debug!(
+                    "🔍 DEBUG: DeriveKey - seed phrase length: {}",
+                    encrypted_seed_phrase.len()
+                );
+                debug!(
+                    "🔍 DEBUG: DeriveKey - word count: {}",
+                    encrypted_seed_phrase.split_whitespace().count()
+                );
+                debug!(
+                    "🔍 DEBUG: DeriveKey - first 100 chars: {}",
+                    &encrypted_seed_phrase[..encrypted_seed_phrase.len().min(100)]
+                );
 
-                match self
-                    .seed_generator
-                    .derive_key(&encrypted_seed_phrase, &path, &curve)
-                    .await
-                {
-                    Ok(key_result) => {
-                        info!("✅ Key derivation successful");
-                        EnclaveResult::KeyDerived {
-                            private_key: key_result.private_key,
-                            public_key: key_result.public_key,
-                            address: key_result.address,
-                            path,
-                            curve,
+                // Use the common decrypt function
+                debug!("🔍 DEBUG: DeriveKey - calling decrypt_seed_phrase");
+                match self.decrypt_seed_phrase(&encrypted_seed_phrase, None).await {
+                    Ok(decrypted_result) => {
+                        info!("✅ Successfully decrypted seed phrase");
+
+                        // Now derive key from the decrypted mnemonic
+                        match self
+                            .seed_generator
+                            .derive_key(&decrypted_result.mnemonic, &path, &curve)
+                            .await
+                        {
+                            Ok(key_result) => {
+                                info!("✅ Key derivation successful");
+                                debug!(
+                                    "🔍 DEBUG: DeriveKey - raw private key length: {}",
+                                    key_result.private_key.len()
+                                );
+                                debug!(
+                                    "🔍 DEBUG: DeriveKey - raw private key first 20 chars: {}",
+                                    &key_result.private_key[..key_result.private_key.len().min(20)]
+                                );
+
+                                // Encrypt the private key for security
+                                match self.encrypt_private_key(&key_result.private_key).await {
+                                    Ok(encrypted_private_key) => {
+                                        info!("🔐 Successfully encrypted private key");
+                                        debug!("🔍 DEBUG: DeriveKey - encrypted private key length: {}", encrypted_private_key.len());
+                                        debug!("🔍 DEBUG: DeriveKey - encrypted private key first 20 chars: {}", &encrypted_private_key[..encrypted_private_key.len().min(20)]);
+
+                                        EnclaveResult::KeyDerived {
+                                            private_key: encrypted_private_key,
+                                            public_key: key_result.public_key,
+                                            address: key_result.address,
+                                            path,
+                                            curve,
+                                        }
+                                    }
+                                    Err(e) => {
+                                        error!("❌ Failed to encrypt private key: {}", e);
+                                        EnclaveResult::Error {
+                                            message: format!(
+                                                "Failed to encrypt private key: {}",
+                                                e
+                                            ),
+                                            code: 500,
+                                        }
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                error!("❌ Failed to derive key from decrypted seed: {}", e);
+                                EnclaveResult::Error {
+                                    message: format!("Key derivation failed: {}", e),
+                                    code: 500,
+                                }
+                            }
                         }
                     }
                     Err(e) => {
-                        error!("❌ Failed to derive key: {}", e);
+                        error!("❌ Failed to decrypt seed phrase: {}", e);
                         EnclaveResult::Error {
-                            message: format!("Key derivation failed: {}", e),
+                            message: format!("Failed to decrypt seed phrase: {}", e),
                             code: 500,
                         }
                     }
@@ -863,23 +921,38 @@ impl NitroEnclave {
             } => {
                 info!("📍 Deriving address (path: {}, curve: {})", path, curve);
 
-                match self
-                    .seed_generator
-                    .derive_address(&encrypted_seed_phrase, &path, &curve)
-                    .await
-                {
-                    Ok(address_result) => {
-                        info!("✅ Address derivation successful");
-                        EnclaveResult::AddressDerived {
-                            address: address_result.address,
-                            path,
-                            curve,
+                // Use the common decrypt function
+                match self.decrypt_seed_phrase(&encrypted_seed_phrase, None).await {
+                    Ok(decrypted_result) => {
+                        info!("✅ Successfully decrypted seed phrase");
+
+                        // Now derive address from the decrypted mnemonic
+                        match self
+                            .seed_generator
+                            .derive_address(&decrypted_result.mnemonic, &path, &curve)
+                            .await
+                        {
+                            Ok(address_result) => {
+                                info!("✅ Address derivation successful");
+                                EnclaveResult::AddressDerived {
+                                    address: address_result.address,
+                                    path,
+                                    curve,
+                                }
+                            }
+                            Err(e) => {
+                                error!("❌ Failed to derive address: {}", e);
+                                EnclaveResult::Error {
+                                    message: format!("Address derivation failed: {}", e),
+                                    code: 500,
+                                }
+                            }
                         }
                     }
                     Err(e) => {
-                        error!("❌ Failed to derive address: {}", e);
+                        error!("❌ Failed to decrypt seed phrase: {}", e);
                         EnclaveResult::Error {
-                            message: format!("Address derivation failed: {}", e),
+                            message: format!("Failed to decrypt seed phrase: {}", e),
                             code: 500,
                         }
                     }
@@ -2166,6 +2239,259 @@ impl NitroEnclave {
         let matches = decrypted_entropy == derived_entropy;
 
         Ok((matches, derived_entropy))
+    }
+
+    /// Common function to decrypt seed phrase using quorum key with proper validations
+    /// This function handles both plain and encrypted seed phrases
+    async fn decrypt_seed_phrase(
+        &self,
+        seed_phrase: &str,
+        encrypted_entropy: Option<&str>,
+    ) -> anyhow::Result<DecryptedSeedResult> {
+        info!("🔓 Decrypting seed phrase with validations");
+        debug!(
+            "🔍 DEBUG: Seed phrase first 50 chars: {}",
+            &seed_phrase[..seed_phrase.len().min(50)]
+        );
+        debug!("🔍 DEBUG: Full seed phrase length: {}", seed_phrase.len());
+        debug!(
+            "🔍 DEBUG: Word count: {}",
+            seed_phrase.split_whitespace().count()
+        );
+
+        // First, try to validate as plain BIP39 mnemonic
+        debug!("🔍 DEBUG: Attempting to validate as plain BIP39 mnemonic");
+        match self.seed_generator.validate_seed(seed_phrase).await {
+            Ok(is_valid) => {
+                debug!("🔍 DEBUG: Validation result: {}", is_valid);
+                if is_valid {
+                    info!("✅ Seed phrase is valid plain BIP39 mnemonic");
+                    debug!("🔍 DEBUG: Processing as plain mnemonic (no decryption needed)");
+
+                    // Handle entropy validation if provided
+                    let (entropy_match, derived_entropy) =
+                        if let Some(enc_entropy) = encrypted_entropy {
+                            info!("🔍 DEBUG: Encrypted entropy provided, attempting validation");
+                            match self.validate_entropy(seed_phrase, enc_entropy).await {
+                                Ok((matches, derived)) => {
+                                    info!("✅ Entropy validation completed: match={}", matches);
+                                    (Some(matches), Some(derived))
+                                }
+                                Err(e) => {
+                                    error!("❌ Entropy validation failed: {}", e);
+                                    (Some(false), None)
+                                }
+                            }
+                        } else {
+                            (None, None)
+                        };
+
+                    return Ok(DecryptedSeedResult {
+                        mnemonic: seed_phrase.to_string(),
+                        is_encrypted: false,
+                        word_count: seed_phrase.split_whitespace().count(),
+                        entropy_match,
+                        derived_entropy,
+                    });
+                } else {
+                    debug!("🔍 DEBUG: Plain validation failed, attempting decryption path");
+                    // Plain validation failed, try to decrypt using quorum key
+                    let quorum_key_available = {
+                        let state_manager = self.state_manager.lock().unwrap();
+                        let status = state_manager.get_status();
+                        status.has_quorum_key
+                    };
+
+                    debug!("🔍 DEBUG: Quorum key available: {}", quorum_key_available);
+                    if !quorum_key_available {
+                        info!("❌ Quorum key not available, treating as invalid encrypted seed");
+                        debug!("🔍 DEBUG: Cannot decrypt - no quorum key available");
+                        return Err(anyhow::anyhow!("Quorum key not available for decryption"));
+                    }
+
+                    // Try to decrypt the seed phrase using quorum key
+                    let encryption_service = self.data_encryption.lock().unwrap().clone();
+                    match encryption_service {
+                        Some(encryption_service) => {
+                            info!("🔓 Attempting to decrypt seed phrase using quorum key");
+
+                            // Try to decode the seed phrase as hex (assuming it's encrypted data)
+                            debug!("🔍 DEBUG: Attempting hex decode of seed phrase");
+                            match hex::decode(seed_phrase) {
+                                Ok(encrypted_bytes) => {
+                                    debug!(
+                                        "🔍 DEBUG: Hex decode successful, length: {}",
+                                        encrypted_bytes.len()
+                                    );
+                                    debug!("🔍 DEBUG: Attempting decryption with quorum key");
+                                    match encryption_service.decrypt_data(&encrypted_bytes) {
+                                        Ok(decrypted_seed) => {
+                                            // Convert decrypted bytes to string
+                                            match String::from_utf8(decrypted_seed) {
+                                                Ok(decrypted_seed_str) => {
+                                                    info!("🔓 Successfully decrypted seed phrase");
+
+                                                    // Validate the decrypted seed phrase
+                                                    match self
+                                                        .seed_generator
+                                                        .validate_seed(&decrypted_seed_str)
+                                                        .await
+                                                    {
+                                                        Ok(is_valid) => {
+                                                            if is_valid {
+                                                                info!("✅ Decrypted seed phrase is valid BIP39 mnemonic");
+
+                                                                // Handle entropy validation for decrypted seed if provided
+                                                                let (
+                                                                    entropy_match,
+                                                                    derived_entropy,
+                                                                ) = if let Some(enc_entropy) =
+                                                                    encrypted_entropy
+                                                                {
+                                                                    match self
+                                                                        .validate_entropy(
+                                                                            &decrypted_seed_str,
+                                                                            enc_entropy,
+                                                                        )
+                                                                        .await
+                                                                    {
+                                                                        Ok((matches, derived)) => {
+                                                                            info!("✅ Entropy validation completed for decrypted seed: match={}", matches);
+                                                                            (
+                                                                                Some(matches),
+                                                                                Some(derived),
+                                                                            )
+                                                                        }
+                                                                        Err(e) => {
+                                                                            error!("❌ Entropy validation failed for decrypted seed: {}", e);
+                                                                            (Some(false), None)
+                                                                        }
+                                                                    }
+                                                                } else {
+                                                                    (None, None)
+                                                                };
+
+                                                                let word_count = decrypted_seed_str
+                                                                    .split_whitespace()
+                                                                    .count();
+                                                                Ok(DecryptedSeedResult {
+                                                                    mnemonic: decrypted_seed_str,
+                                                                    is_encrypted: true,
+                                                                    word_count,
+                                                                    entropy_match,
+                                                                    derived_entropy,
+                                                                })
+                                                            } else {
+                                                                error!("❌ Decrypted seed phrase is not a valid BIP39 mnemonic");
+                                                                Err(anyhow::anyhow!("Decrypted seed phrase is not a valid BIP39 mnemonic"))
+                                                            }
+                                                        }
+                                                        Err(e) => {
+                                                            error!("❌ Failed to validate decrypted seed phrase: {}", e);
+                                                            Err(anyhow::anyhow!("Failed to validate decrypted seed phrase: {}", e))
+                                                        }
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    error!(
+                                                        "❌ Invalid UTF-8 in decrypted seed: {}",
+                                                        e
+                                                    );
+                                                    Err(anyhow::anyhow!(
+                                                        "Invalid UTF-8 in decrypted seed: {}",
+                                                        e
+                                                    ))
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            error!("❌ Failed to decrypt seed phrase: {}", e);
+                                            Err(anyhow::anyhow!(
+                                                "Failed to decrypt seed phrase: {}",
+                                                e
+                                            ))
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    error!("❌ Failed to decode seed phrase as hex: {}", e);
+                                    Err(anyhow::anyhow!(
+                                        "Invalid hex encoding in seed phrase: {}",
+                                        e
+                                    ))
+                                }
+                            }
+                        }
+                        None => {
+                            error!("❌ Encryption service not available");
+                            Err(anyhow::anyhow!("Encryption service not available"))
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                error!("❌ Failed to validate seed phrase: {}", e);
+                Err(anyhow::anyhow!("Failed to validate seed phrase: {}", e))
+            }
+        }
+    }
+
+    /// Encrypt private key using quorum key for secure storage
+    async fn encrypt_private_key(&self, private_key_hex: &str) -> anyhow::Result<String> {
+        info!("🔐 Encrypting private key for secure storage");
+        debug!(
+            "🔍 DEBUG: encrypt_private_key - input length: {}",
+            private_key_hex.len()
+        );
+        debug!(
+            "🔍 DEBUG: encrypt_private_key - input first 20 chars: {}",
+            &private_key_hex[..private_key_hex.len().min(20)]
+        );
+
+        // Convert hex string to bytes
+        let private_key_bytes = hex::decode(private_key_hex)
+            .map_err(|e| anyhow::anyhow!("Invalid hex private key: {}", e))?;
+
+        debug!(
+            "🔍 DEBUG: encrypt_private_key - decoded bytes length: {}",
+            private_key_bytes.len()
+        );
+
+        // Get encryption service
+        let encryption_service = self.data_encryption.lock().unwrap().clone();
+        match encryption_service {
+            Some(encryption_service) => {
+                info!("🔐 Encrypting private key using quorum key");
+                debug!("🔍 DEBUG: encrypt_private_key - encryption service available");
+
+                // Encrypt the private key
+                // Note: recipient_public is not used by the encryption method but required by signature
+                let recipient_public = &[];
+                match encryption_service.encrypt_data(&private_key_bytes, recipient_public) {
+                    Ok(encrypted_bytes) => {
+                        let encrypted_hex = hex::encode(encrypted_bytes);
+                        info!("✅ Successfully encrypted private key");
+                        debug!(
+                            "🔍 DEBUG: encrypt_private_key - encrypted length: {}",
+                            encrypted_hex.len()
+                        );
+                        debug!(
+                            "🔍 DEBUG: encrypt_private_key - encrypted first 20 chars: {}",
+                            &encrypted_hex[..encrypted_hex.len().min(20)]
+                        );
+                        Ok(encrypted_hex)
+                    }
+                    Err(e) => {
+                        error!("❌ Failed to encrypt private key: {}", e);
+                        Err(anyhow::anyhow!("Failed to encrypt private key: {}", e))
+                    }
+                }
+            }
+            None => {
+                error!("❌ Encryption service not available");
+                Err(anyhow::anyhow!("Encryption service not available"))
+            }
+        }
     }
 }
 

@@ -781,6 +781,15 @@ pub struct ConnectivityResult {
     pub dns: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DecryptedSeedResult {
+    pub mnemonic: String,
+    pub is_encrypted: bool,
+    pub word_count: usize,
+    pub entropy_match: Option<bool>,
+    pub derived_entropy: Option<String>,
+}
+
 impl EnclaveRequest {
     pub fn new(operation: EnclaveOperation) -> Self {
         Self {

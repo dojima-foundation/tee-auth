@@ -396,6 +396,74 @@ async fn test_key_derivation() {
     assert!(!key_result.address.is_empty());
     assert_eq!(key_result.path, "m/44'/0'/0'/0/0");
     assert_eq!(key_result.curve, "secp256k1");
+
+    // Note: private_key is now encrypted in the actual implementation
+    // This test verifies the basic structure, but the private key will be encrypted
+    // when used through the main enclave interface
+}
+
+#[tokio::test]
+async fn test_key_derivation_with_passphrase() {
+    let generator = test_utils::create_test_generator().await;
+
+    // Generate a seed with passphrase
+    let seed_result = generator
+        .generate_seed(256, Some("test-passphrase"))
+        .await
+        .unwrap();
+
+    // Test that the derive_key method properly handles seed phrases with passphrases
+    // This test verifies that the method can extract mnemonic and passphrase correctly
+    let key_result = generator
+        .derive_key(&seed_result.phrase, "m/44'/0'/0'/0/0", "secp256k1")
+        .await
+        .unwrap();
+
+    assert!(!key_result.private_key.is_empty());
+    assert!(!key_result.public_key.is_empty());
+    assert!(!key_result.address.is_empty());
+    assert_eq!(key_result.path, "m/44'/0'/0'/0/0");
+    assert_eq!(key_result.curve, "secp256k1");
+
+    // Verify that the seed phrase has the expected structure (24 words + passphrase)
+    let words: Vec<&str> = seed_result.phrase.split_whitespace().collect();
+    assert_eq!(words.len(), 25); // 24 words + 1 passphrase
+    assert_eq!(words[24], "test-passphrase"); // Last word should be the passphrase
+}
+
+#[tokio::test]
+async fn test_mnemonic_and_passphrase_extraction() {
+    let generator = test_utils::create_test_generator().await;
+
+    // Test with a 25-word phrase (24 words + passphrase)
+    let test_phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about test";
+
+    // This should work with the new extract_mnemonic_and_passphrase method
+    let key_result = generator
+        .derive_key(test_phrase, "m/44'/0'/0'/0/0", "secp256k1")
+        .await
+        .unwrap();
+
+    assert!(!key_result.private_key.is_empty());
+    assert!(!key_result.public_key.is_empty());
+    assert!(!key_result.address.is_empty());
+
+    // Test with a plain 24-word phrase (no passphrase)
+    let plain_phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
+    let key_result_plain = generator
+        .derive_key(plain_phrase, "m/44'/0'/0'/0/0", "secp256k1")
+        .await
+        .unwrap();
+
+    assert!(!key_result_plain.private_key.is_empty());
+    assert!(!key_result_plain.public_key.is_empty());
+    assert!(!key_result_plain.address.is_empty());
+
+    // The results should be different because one has a passphrase and one doesn't
+    assert_ne!(key_result.private_key, key_result_plain.private_key);
+    assert_ne!(key_result.public_key, key_result_plain.public_key);
+    assert_ne!(key_result.address, key_result_plain.address);
 }
 
 #[tokio::test]
