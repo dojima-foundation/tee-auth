@@ -26,10 +26,12 @@ import (
 
 type GRPCIntegrationTestSuite struct {
 	suite.Suite
-	server *grpcServer.Server
-	client pb.GAuthServiceClient
-	conn   *grpc.ClientConn
-	config *config.Config
+	server   *grpcServer.Server
+	client   pb.GAuthServiceClient
+	conn     *grpc.ClientConn
+	config   *config.Config
+	database *db.PostgresDB
+	redis    *db.RedisClient
 }
 
 func (suite *GRPCIntegrationTestSuite) SetupSuite() {
@@ -42,7 +44,7 @@ func (suite *GRPCIntegrationTestSuite) SetupSuite() {
 	suite.config = &config.Config{
 		Database: config.DatabaseConfig{
 			Host:         testhelpers.GetEnvOrDefault("TEST_DB_HOST", "localhost"),
-			Port:         5432,
+			Port:         testhelpers.GetEnvOrDefaultInt("TEST_DB_PORT", 5432),
 			Username:     testhelpers.GetEnvOrDefault("TEST_DB_USER", "gauth"),
 			Password:     testhelpers.GetEnvOrDefault("TEST_DB_PASSWORD", "password"),
 			Database:     testhelpers.GetEnvOrDefault("TEST_DB_NAME", "gauth_test"),
@@ -53,7 +55,7 @@ func (suite *GRPCIntegrationTestSuite) SetupSuite() {
 		},
 		Redis: config.RedisConfig{
 			Host:         testhelpers.GetEnvOrDefault("TEST_REDIS_HOST", "localhost"),
-			Port:         6379,
+			Port:         testhelpers.GetEnvOrDefaultInt("TEST_REDIS_PORT", 6379),
 			Password:     testhelpers.GetEnvOrDefault("TEST_REDIS_PASSWORD", ""),
 			Database:     2, // Different database for gRPC tests
 			PoolSize:     10,
@@ -85,16 +87,23 @@ func (suite *GRPCIntegrationTestSuite) SetupSuite() {
 	}
 
 	// Initialize dependencies
-	database, err := db.NewPostgresDB(&suite.config.Database)
+	var err error
+	suite.database, err = db.NewPostgresDB(&suite.config.Database)
 	require.NoError(suite.T(), err)
 
-	redis, err := db.NewRedisClient(&suite.config.Redis)
+	suite.redis, err = db.NewRedisClient(&suite.config.Redis)
 	require.NoError(suite.T(), err)
+
+	// Clean up any leftover data from previous test suites
+	ctx := context.Background()
+	gormDB := suite.database.GetDB()
+	gormDB.Exec("TRUNCATE activities, auth_methods, users, organizations CASCADE")
+	suite.redis.GetClient().FlushDB(ctx)
 
 	logger := logger.NewDefault()
 
 	// Initialize service
-	svc := service.NewGAuthService(suite.config, logger, database, redis)
+	svc := service.NewGAuthService(suite.config, logger, suite.database, suite.redis)
 
 	// Initialize telemetry (disabled for tests)
 	telemetry, err := telemetry.New(context.Background(), telemetry.Config{
@@ -137,6 +146,36 @@ func (suite *GRPCIntegrationTestSuite) TearDownSuite() {
 	}
 	if suite.server != nil {
 		suite.server.Stop()
+	}
+}
+
+func (suite *GRPCIntegrationTestSuite) SetupTest() {
+	// Clean up test data before each test to ensure clean state
+	ctx := context.Background()
+	if suite.database != nil {
+		gormDB := suite.database.GetDB()
+		// Use TRUNCATE CASCADE for thorough cleanup
+		gormDB.Exec("TRUNCATE activities, auth_methods, users, organizations CASCADE")
+	}
+
+	// Clear Redis
+	if suite.redis != nil {
+		suite.redis.GetClient().FlushDB(ctx)
+	}
+}
+
+func (suite *GRPCIntegrationTestSuite) TearDownTest() {
+	// Clean up test data after each test to avoid conflicts
+	ctx := context.Background()
+	if suite.database != nil {
+		gormDB := suite.database.GetDB()
+		// Use TRUNCATE CASCADE for thorough cleanup
+		gormDB.Exec("TRUNCATE activities, auth_methods, users, organizations CASCADE")
+	}
+
+	// Clear Redis
+	if suite.redis != nil {
+		suite.redis.GetClient().FlushDB(ctx)
 	}
 }
 
@@ -593,7 +632,7 @@ func BenchmarkGRPCOperations(b *testing.B) {
 	config := &config.Config{
 		Database: config.DatabaseConfig{
 			Host:         testhelpers.GetEnvOrDefault("TEST_DB_HOST", "localhost"),
-			Port:         5432,
+			Port:         testhelpers.GetEnvOrDefaultInt("TEST_DB_PORT", 5432),
 			Username:     testhelpers.GetEnvOrDefault("TEST_DB_USER", "gauth"),
 			Password:     testhelpers.GetEnvOrDefault("TEST_DB_PASSWORD", "password"),
 			Database:     testhelpers.GetEnvOrDefault("TEST_DB_NAME", "gauth_test"),
@@ -604,7 +643,7 @@ func BenchmarkGRPCOperations(b *testing.B) {
 		},
 		Redis: config.RedisConfig{
 			Host:         testhelpers.GetEnvOrDefault("TEST_REDIS_HOST", "localhost"),
-			Port:         6379,
+			Port:         testhelpers.GetEnvOrDefaultInt("TEST_REDIS_PORT", 6379),
 			Database:     3,
 			PoolSize:     25,
 			MinIdleConns: 10,

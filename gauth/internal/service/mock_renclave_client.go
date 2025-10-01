@@ -90,10 +90,27 @@ func (m *MockRenclaveClient) GetEnclaveInfo(ctx context.Context) (*EnclaveInfoRe
 
 // DeriveKey returns a mock key derivation response
 func (m *MockRenclaveClient) DeriveKey(ctx context.Context, encryptedSeedPhrase, path, curve string) (*DeriveKeyResponse, error) {
+	// Generate a deterministic but unique address based on the path and curve
+	// This ensures different paths/curves get different addresses
+	addressSuffix := ""
+	for _, char := range path {
+		if char >= '0' && char <= '9' {
+			addressSuffix += string(char)
+		}
+	}
+	if addressSuffix == "" {
+		addressSuffix = "0"
+	}
+
+	// Create unique mock values that vary based on the path and curve
+	privateKey := fmt.Sprintf("mock_private_key_%s_%s", curve, addressSuffix)
+	publicKey := fmt.Sprintf("mock_public_key_%s_%s", curve, addressSuffix)
+	address := fmt.Sprintf("mock_address_%s_%s", curve, addressSuffix)
+
 	return &DeriveKeyResponse{
-		PrivateKey: "mock_private_key_1234567890abcdef",
-		PublicKey:  "mock_public_key_1234567890abcdef",
-		Address:    "mock_address_1234567890abcdef",
+		PrivateKey: privateKey,
+		PublicKey:  publicKey,
+		Address:    address,
 		Path:       path,
 		Curve:      curve,
 	}, nil

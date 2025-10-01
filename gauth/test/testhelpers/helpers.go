@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -39,7 +40,7 @@ func NewTestDatabase(t *testing.T) *TestDatabase {
 
 	config := &config.DatabaseConfig{
 		Host:         GetEnvOrDefault("TEST_DB_HOST", "localhost"),
-		Port:         5432,
+		Port:         GetEnvOrDefaultInt("TEST_DB_PORT", 5432),
 		Username:     GetEnvOrDefault("TEST_DB_USER", "gauth"),
 		Password:     GetEnvOrDefault("TEST_DB_PASSWORD", "password"),
 		Database:     GetEnvOrDefault("TEST_DB_NAME", "gauth_test"),
@@ -71,7 +72,7 @@ func NewTestRedis(t *testing.T) *TestRedis {
 
 	config := &config.RedisConfig{
 		Host:         GetEnvOrDefault("TEST_REDIS_HOST", "localhost"),
-		Port:         6379,
+		Port:         GetEnvOrDefaultInt("TEST_REDIS_PORT", 6379),
 		Password:     GetEnvOrDefault("TEST_REDIS_PASSWORD", ""),
 		Database:     getTestRedisDB(),
 		PoolSize:     10,
@@ -201,7 +202,6 @@ func (td *TestDatabase) CreateTestWallet(ctx context.Context, orgID uuid.UUID, a
 		ID:             uuid.New(),
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
-		PublicKey:      "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8",
 		IsActive:       true,
 	}
 
@@ -449,6 +449,16 @@ func SkipIfNotE2E(t *testing.T) {
 func GetEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+// GetEnvOrDefaultInt returns the environment variable as an integer or a default value
+func GetEnvOrDefaultInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
 	}
 	return defaultValue
 }

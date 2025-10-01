@@ -62,7 +62,7 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 	cfg := &config.Config{
 		GRPC: config.GRPCConfig{
 			Host:                "0.0.0.0",
-			Port:                9092,             // Use different port to avoid conflicts
+			Port:                9093,             // Use different port to avoid conflicts with WalletGRPCTestSuite
 			MaxRecvMsgSize:      10 * 1024 * 1024, // 10MB
 			MaxSendMsgSize:      10 * 1024 * 1024, // 10MB
 			ConnectionTimeout:   10 * time.Second,
@@ -119,7 +119,7 @@ func (suite *WalletRESTTestSuite) SetupSuite() {
 	suite.restServer.GetSessionManager().SetTestMode(true)
 
 	// Connect REST server to gRPC server
-	err = suite.restServer.ConnectToGRPCForTesting("localhost:9092")
+	err = suite.restServer.ConnectToGRPCForTesting("localhost:9093")
 	require.NoError(suite.T(), err)
 
 	// Set Gin to test mode

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ func (suite *DatabaseIntegrationTestSuite) SetupSuite() {
 	suite.config = &config.Config{
 		Database: config.DatabaseConfig{
 			Host:         getEnvOrDefault("TEST_DB_HOST", "localhost"),
-			Port:         5432,
+			Port:         getEnvOrDefaultInt("TEST_DB_PORT", 5432),
 			Username:     getEnvOrDefault("TEST_DB_USER", "gauth"),
 			Password:     getEnvOrDefault("TEST_DB_PASSWORD", "password"),
 			Database:     getEnvOrDefault("TEST_DB_NAME", "gauth_test"),
@@ -46,7 +47,7 @@ func (suite *DatabaseIntegrationTestSuite) SetupSuite() {
 		},
 		Redis: config.RedisConfig{
 			Host:         getEnvOrDefault("TEST_REDIS_HOST", "localhost"),
-			Port:         6379,
+			Port:         getEnvOrDefaultInt("TEST_REDIS_PORT", 6379),
 			Password:     getEnvOrDefault("TEST_REDIS_PASSWORD", ""),
 			Database:     1, // Use different database for tests
 			PoolSize:     10,
@@ -306,7 +307,6 @@ func (suite *DatabaseIntegrationTestSuite) TestWalletManagement() {
 		ID:             uuid.New(),
 		OrganizationID: org.ID,
 		Name:           "Test Wallet",
-		PublicKey:      "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8",
 		Tags:           []string{"bitcoin", "mainnet"},
 		IsActive:       true,
 	}
@@ -494,16 +494,8 @@ func (suite *DatabaseIntegrationTestSuite) cleanupTestData() {
 	db := suite.db.GetDB()
 	ctx := context.Background()
 
-	// Delete in reverse dependency order
-	tables := []string{
-		"proofs", "activities", "wallet_accounts", "wallets",
-		"private_keys", "tags", "policies", "invitations",
-		"auth_methods", "users", "organizations",
-	}
-
-	for _, table := range tables {
-		db.WithContext(ctx).Exec("DELETE FROM " + table)
-	}
+	// Use TRUNCATE CASCADE for thorough cleanup
+	db.WithContext(ctx).Exec("TRUNCATE activities, auth_methods, users, organizations, wallets, wallet_accounts, private_keys, proofs, invitations, policies, tags CASCADE")
 
 	// Clear Redis test database
 	suite.redis.GetClient().FlushDB(context.Background())
@@ -512,6 +504,15 @@ func (suite *DatabaseIntegrationTestSuite) cleanupTestData() {
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvOrDefaultInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
 	}
 	return defaultValue
 }
@@ -529,7 +530,7 @@ func BenchmarkDatabaseOperations(b *testing.B) {
 	cfg := &config.Config{
 		Database: config.DatabaseConfig{
 			Host:         getEnvOrDefault("TEST_DB_HOST", "localhost"),
-			Port:         5432,
+			Port:         getEnvOrDefaultInt("TEST_DB_PORT", 5432),
 			Username:     getEnvOrDefault("TEST_DB_USER", "gauth"),
 			Password:     getEnvOrDefault("TEST_DB_PASSWORD", "password"),
 			Database:     getEnvOrDefault("TEST_DB_NAME", "gauth_test"),

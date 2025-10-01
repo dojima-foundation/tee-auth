@@ -30,6 +30,8 @@ type RESTIntegrationTestSuite struct {
 	config     *config.Config
 	baseURL    string
 	httpClient *http.Client
+	database   *db.PostgresDB
+	redis      *db.RedisClient
 }
 
 func (suite *RESTIntegrationTestSuite) SetupSuite() {
@@ -42,7 +44,7 @@ func (suite *RESTIntegrationTestSuite) SetupSuite() {
 	suite.config = &config.Config{
 		Database: config.DatabaseConfig{
 			Host:         testhelpers.GetEnvOrDefault("TEST_DB_HOST", "localhost"),
-			Port:         5432,
+			Port:         testhelpers.GetEnvOrDefaultInt("TEST_DB_PORT", 5432),
 			Username:     testhelpers.GetEnvOrDefault("TEST_DB_USER", "gauth"),
 			Password:     testhelpers.GetEnvOrDefault("TEST_DB_PASSWORD", "password"),
 			Database:     testhelpers.GetEnvOrDefault("TEST_DB_NAME", "gauth_test"),
@@ -53,7 +55,7 @@ func (suite *RESTIntegrationTestSuite) SetupSuite() {
 		},
 		Redis: config.RedisConfig{
 			Host:         testhelpers.GetEnvOrDefault("TEST_REDIS_HOST", "localhost"),
-			Port:         6379,
+			Port:         testhelpers.GetEnvOrDefaultInt("TEST_REDIS_PORT", 6379),
 			Password:     testhelpers.GetEnvOrDefault("TEST_REDIS_PASSWORD", ""),
 			Database:     5, // Different database for REST tests
 			PoolSize:     10,
@@ -99,16 +101,23 @@ func (suite *RESTIntegrationTestSuite) SetupSuite() {
 	}
 
 	// Initialize dependencies
-	database, err := db.NewPostgresDB(&suite.config.Database)
+	var err error
+	suite.database, err = db.NewPostgresDB(&suite.config.Database)
 	require.NoError(suite.T(), err)
 
-	redis, err := db.NewRedisClient(&suite.config.Redis)
+	suite.redis, err = db.NewRedisClient(&suite.config.Redis)
 	require.NoError(suite.T(), err)
+
+	// Clean up any leftover data from previous test suites
+	ctx := context.Background()
+	gormDB := suite.database.GetDB()
+	gormDB.Exec("TRUNCATE activities, auth_methods, users, organizations CASCADE")
+	suite.redis.GetClient().FlushDB(ctx)
 
 	logger := logger.NewDefault()
 
 	// Initialize service
-	svc := service.NewGAuthService(suite.config, logger, database, redis)
+	svc := service.NewGAuthService(suite.config, logger, suite.database, suite.redis)
 
 	// Initialize telemetry (disabled for tests)
 	telemetry, err := telemetry.New(context.Background(), telemetry.Config{
@@ -149,6 +158,34 @@ func (suite *RESTIntegrationTestSuite) TearDownSuite() {
 	}
 	if suite.grpcServer != nil {
 		suite.grpcServer.Stop()
+	}
+}
+
+func (suite *RESTIntegrationTestSuite) SetupTest() {
+	// Clean up test data before each test to ensure clean state
+	ctx := context.Background()
+	if suite.database != nil {
+		gormDB := suite.database.GetDB()
+		gormDB.Exec("TRUNCATE activities, auth_methods, users, organizations CASCADE")
+	}
+
+	// Clear Redis
+	if suite.redis != nil {
+		suite.redis.GetClient().FlushDB(ctx)
+	}
+}
+
+func (suite *RESTIntegrationTestSuite) TearDownTest() {
+	// Clean up test data after each test to avoid conflicts
+	ctx := context.Background()
+	if suite.database != nil {
+		gormDB := suite.database.GetDB()
+		gormDB.Exec("TRUNCATE activities, auth_methods, users, organizations CASCADE")
+	}
+
+	// Clear Redis
+	if suite.redis != nil {
+		suite.redis.GetClient().FlushDB(ctx)
 	}
 }
 

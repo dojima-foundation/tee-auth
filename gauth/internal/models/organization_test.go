@@ -337,7 +337,6 @@ func TestWallet_BIP44Paths(t *testing.T) {
 		ID:             uuid.New(),
 		OrganizationID: uuid.New(),
 		Name:           "Test Wallet",
-		PublicKey:      "xpub...",
 		Accounts: []WalletAccount{
 			{
 				ID:            uuid.New(),

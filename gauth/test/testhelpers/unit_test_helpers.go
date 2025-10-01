@@ -252,7 +252,6 @@ func (wf *WalletFixtures) CreateTestWallet(orgID, name string, accountCount int)
 		ID:             generateUUID(),
 		OrganizationID: parseUUID(orgID),
 		Name:           name,
-		PublicKey:      "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),

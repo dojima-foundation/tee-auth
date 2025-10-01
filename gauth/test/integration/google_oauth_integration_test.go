@@ -42,7 +42,7 @@ func (suite *GoogleOAuthIntegrationTestSuite) SetupSuite() {
 	suite.config = &config.Config{
 		Database: config.DatabaseConfig{
 			Host:         testhelpers.GetEnvOrDefault("TEST_DB_HOST", "localhost"),
-			Port:         5432,
+			Port:         testhelpers.GetEnvOrDefaultInt("TEST_DB_PORT", 5432),
 			Username:     testhelpers.GetEnvOrDefault("TEST_DB_USER", "gauth"),
 			Password:     testhelpers.GetEnvOrDefault("TEST_DB_PASSWORD", "password"),
 			Database:     testhelpers.GetEnvOrDefault("TEST_DB_NAME", "gauth_test"),
@@ -53,7 +53,7 @@ func (suite *GoogleOAuthIntegrationTestSuite) SetupSuite() {
 		},
 		Redis: config.RedisConfig{
 			Host:         testhelpers.GetEnvOrDefault("TEST_REDIS_HOST", "localhost"),
-			Port:         6379,
+			Port:         testhelpers.GetEnvOrDefaultInt("TEST_REDIS_PORT", 6379),
 			Password:     testhelpers.GetEnvOrDefault("TEST_REDIS_PASSWORD", ""),
 			Database:     3, // Different database for Google OAuth tests
 			PoolSize:     10,

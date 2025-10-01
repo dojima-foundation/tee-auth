@@ -87,6 +87,9 @@ func (suite *WalletGRPCTestSuite) SetupSuite() {
 }
 
 func (suite *WalletGRPCTestSuite) TearDownSuite() {
+	if suite.server != nil {
+		suite.server.Stop()
+	}
 	if suite.db != nil {
 		suite.db.Cleanup(suite.ctx)
 		suite.db.Close()
