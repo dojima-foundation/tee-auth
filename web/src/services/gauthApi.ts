@@ -1,5 +1,5 @@
 // GAuth API Service
-const GAUTH_BASE_URL = process.env.NEXT_PUBLIC_GAUTH_API_URL || 'http://localhost:8082';
+const GAUTH_BASE_URL = process.env.NEXT_PUBLIC_GAUTH_API_URL || 'http://localhost:8083';
 
 export interface CreateOrganizationRequest {
     name: string;
@@ -125,12 +125,27 @@ export interface GoogleOAuthRefreshResponse {
 }
 
 // Wallet Types
+export interface WalletAccount {
+    id: string;
+    wallet_id: string;
+    name: string;
+    path: string;
+    public_key: string;
+    address: string;
+    curve: string;
+    address_format: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface Wallet {
     id: string;
     organization_id: string;
     name: string;
-    public_key: string;
+    entropy: string;
     seed_phrase?: string;
+    accounts?: WalletAccount[];
     is_active: boolean;
     created_at: string;
     updated_at: string;

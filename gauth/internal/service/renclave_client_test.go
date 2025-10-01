@@ -197,7 +197,7 @@ func TestRenclaveClient_ValidateSeed(t *testing.T) {
 			ctx := context.Background()
 
 			// Make request
-			response, err := client.ValidateSeed(ctx, tt.seedPhrase)
+			response, err := client.ValidateSeed(ctx, tt.seedPhrase, nil)
 
 			if tt.expectError {
 				assert.Error(t, err)

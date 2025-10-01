@@ -72,8 +72,8 @@ func (s *EnclaveService) RequestSeedGeneration(ctx context.Context, organization
 func (s *EnclaveService) ValidateSeed(ctx context.Context, seedPhrase string) (*SeedValidationResponse, error) {
 	s.logger.Info("Validating seed phrase")
 
-	// Request seed validation from enclave
-	validateResp, err := s.renclave.ValidateSeed(ctx, seedPhrase)
+	// Request seed validation from enclave (without entropy validation for now)
+	validateResp, err := s.renclave.ValidateSeed(ctx, seedPhrase, nil)
 	if err != nil {
 		s.logger.Error("Failed to validate seed from enclave", "error", err)
 		return nil, fmt.Errorf("failed to validate seed: %w", err)

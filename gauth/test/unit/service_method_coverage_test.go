@@ -73,7 +73,7 @@ func (m *mockEnclaveClient) GenerateSeed(ctx context.Context, strength int, pass
 	}, nil
 }
 
-func (m *mockEnclaveClient) ValidateSeed(ctx context.Context, seedPhrase string) (*service.ValidateSeedResponse, error) {
+func (m *mockEnclaveClient) ValidateSeed(ctx context.Context, seedPhrase string, encryptedEntropy *string) (*service.ValidateSeedResponse, error) {
 	return &service.ValidateSeedResponse{
 		IsValid:   true,
 		Strength:  128,

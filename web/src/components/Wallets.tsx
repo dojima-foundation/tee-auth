@@ -33,11 +33,12 @@ export default function Wallets() {
     const { showSnackbar } = useSnackbar();
 
     useEffect(() => {
-
+        console.log('🔍 [Wallets] useEffect triggered:', { organizationId, isAuthenticated });
         if (organizationId && isAuthenticated) {
+            console.log('🚀 [Wallets] Dispatching fetchWallets...');
             dispatch(fetchWallets({}));
         } else {
-
+            console.log('⏸️ [Wallets] Not fetching wallets - missing orgId or not authenticated');
         }
     }, [dispatch, organizationId, isAuthenticated]);
 
@@ -174,59 +175,67 @@ export default function Wallets() {
                                     </td>
                                 </tr>
                             ) : (
-                                wallets.map((wallet) => (
-                                    <tr key={wallet.id} className="hover:bg-accent/50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                                                    <Wallet className="h-4 w-4 text-primary" />
-                                                </div>
-                                                <div>
-                                                    <div className="text-sm font-medium text-foreground">
-                                                        {wallet.name}
+                                wallets.filter(wallet => wallet && wallet.accounts && Array.isArray(wallet.accounts)).map((wallet, index) => {
+                                    console.log(`🔍 [Wallets] Rendering wallet ${index}:`, {
+                                        id: wallet.id,
+                                        name: wallet.name,
+                                        hasAccounts: !!wallet.accounts,
+                                        accountsLength: wallet.accounts?.length || 0,
+                                        firstAccount: wallet.accounts?.[0] ? {
+                                            id: wallet.accounts[0].id,
+                                            hasPublicKey: !!wallet.accounts[0].public_key,
+                                            publicKeyLength: wallet.accounts[0].public_key?.length || 0,
+                                            publicKeyPreview: wallet.accounts[0].public_key?.substring(0, 20) + '...' || 'undefined'
+                                        } : null
+                                    });
+                                    return (
+                                        <tr key={wallet.id} className="hover:bg-accent/50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                                                        <Wallet className="h-4 w-4 text-primary" />
                                                     </div>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        ID: {wallet.id}
+                                                    <div>
+                                                        <div className="text-sm font-medium text-foreground">
+                                                            {wallet.name}
+                                                        </div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            ID: {wallet.id}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center space-x-2">
-                                                <div className="text-sm font-mono text-foreground">
-                                                    {wallet.public_key.slice(0, 8)}...{wallet.public_key.slice(-6)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="text-sm font-mono text-foreground">
+                                                        N/A
+                                                    </div>
                                                 </div>
-                                                <button
-                                                    onClick={() => copyToClipboard(wallet.public_key)}
-                                                    className="text-muted-foreground hover:text-foreground transition-colors"
-                                                >
-                                                    <Copy className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                            {new Date(wallet.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${wallet.is_active
-                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                                }`}>
-                                                {wallet.is_active ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                                            <div className="flex space-x-2">
-                                                <button className="text-primary hover:text-primary/80 transition-colors">
-                                                    View
-                                                </button>
-                                                <button className="text-destructive hover:text-destructive/80 transition-colors">
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                                {new Date(wallet.created_at).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${wallet.is_active
+                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                    }`}>
+                                                    {wallet.is_active ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                                                <div className="flex space-x-2">
+                                                    <button className="text-primary hover:text-primary/80 transition-colors">
+                                                        View
+                                                    </button>
+                                                    <button className="text-destructive hover:text-destructive/80 transition-colors">
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

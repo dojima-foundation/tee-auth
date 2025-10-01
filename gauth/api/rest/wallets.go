@@ -209,7 +209,7 @@ func convertProtoWalletToREST(wallet *pb.Wallet) map[string]interface{} {
 		"id":              wallet.Id,
 		"organization_id": wallet.OrganizationId,
 		"name":            wallet.Name,
-		"public_key":      wallet.PublicKey,
+		"entropy":         wallet.Entropy,
 		"tags":            wallet.Tags,
 		"is_active":       wallet.IsActive,
 	}

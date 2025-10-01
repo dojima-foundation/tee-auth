@@ -61,20 +61,25 @@ type GenerateSeedResponse struct {
 }
 
 type ValidateSeedRequest struct {
-	SeedPhrase string `json:"seed_phrase"`
+	SeedPhrase       string  `json:"seed_phrase"`
+	EncryptedEntropy *string `json:"encrypted_entropy,omitempty"`
 }
 
 // RawValidateSeedResponse represents the actual response from renclave-v2
 type RawValidateSeedResponse struct {
-	Valid     bool `json:"valid"`
-	WordCount int  `json:"word_count"`
+	Valid          bool    `json:"valid"`
+	WordCount      int     `json:"word_count"`
+	EntropyMatch   *bool   `json:"entropy_match,omitempty"`
+	DerivedEntropy *string `json:"derived_entropy,omitempty"`
 }
 
 type ValidateSeedResponse struct {
-	IsValid   bool     `json:"is_valid"`
-	Strength  int      `json:"strength"`
-	WordCount int      `json:"word_count"`
-	Errors    []string `json:"errors"`
+	IsValid        bool     `json:"is_valid"`
+	Strength       int      `json:"strength"`
+	WordCount      int      `json:"word_count"`
+	Errors         []string `json:"errors"`
+	EntropyMatch   *bool    `json:"entropy_match,omitempty"`
+	DerivedEntropy *string  `json:"derived_entropy,omitempty"`
 }
 
 type InfoResponse struct {
@@ -111,6 +116,27 @@ type DeriveAddressResponse struct {
 	Curve   string `json:"curve"`   // The curve used
 }
 
+// Network management types
+type NetworkStatusResponse struct {
+	Status        string                 `json:"status"`
+	Connectivity  map[string]bool        `json:"connectivity"`
+	Configuration map[string]interface{} `json:"configuration"`
+}
+
+type NetworkTestRequest struct {
+	TargetHost     string `json:"target_host"`
+	TargetPort     int    `json:"target_port"`
+	TimeoutSeconds int    `json:"timeout_seconds"`
+}
+
+type NetworkTestResponse struct {
+	Success      bool    `json:"success"`
+	ResponseTime float64 `json:"response_time_ms"`
+	Error        *string `json:"error,omitempty"`
+}
+
+// Note: EnclaveInfoResponse is defined in service.go
+
 // GenerateSeed requests seed generation from renclave-v2
 func (c *RenclaveClient) GenerateSeed(ctx context.Context, strength int, passphrase *string) (*GenerateSeedResponse, error) {
 	req := GenerateSeedRequest{
@@ -127,8 +153,8 @@ func (c *RenclaveClient) GenerateSeed(ctx context.Context, strength int, passphr
 }
 
 // ValidateSeed requests seed validation from renclave-v2
-// Handles both encrypted seeds and plaintext mnemonics
-func (c *RenclaveClient) ValidateSeed(ctx context.Context, seedPhrase string) (*ValidateSeedResponse, error) {
+// Handles both encrypted seeds and plaintext mnemonics with optional entropy validation
+func (c *RenclaveClient) ValidateSeed(ctx context.Context, seedPhrase string, encryptedEntropy *string) (*ValidateSeedResponse, error) {
 	// Check if the seed phrase is encrypted (hex-encoded) or plaintext mnemonic
 	// Encrypted seeds are typically long hex strings, while mnemonics are words separated by spaces
 	isEncrypted := len(seedPhrase) > 100 && !strings.Contains(seedPhrase, " ")
@@ -146,7 +172,8 @@ func (c *RenclaveClient) ValidateSeed(ctx context.Context, seedPhrase string) (*
 
 	// For plaintext mnemonics, proceed with normal validation
 	req := ValidateSeedRequest{
-		SeedPhrase: seedPhrase,
+		SeedPhrase:       seedPhrase,
+		EncryptedEntropy: encryptedEntropy,
 	}
 
 	var rawResp RawValidateSeedResponse
@@ -156,10 +183,12 @@ func (c *RenclaveClient) ValidateSeed(ctx context.Context, seedPhrase string) (*
 
 	// Map the raw response to the expected format
 	resp := &ValidateSeedResponse{
-		IsValid:   rawResp.Valid,
-		Strength:  256, // Default strength for 24-word phrases
-		WordCount: rawResp.WordCount,
-		Errors:    []string{},
+		IsValid:        rawResp.Valid,
+		Strength:       256, // Default strength for 24-word phrases
+		WordCount:      rawResp.WordCount,
+		Errors:         []string{},
+		EntropyMatch:   rawResp.EntropyMatch,
+		DerivedEntropy: rawResp.DerivedEntropy,
 	}
 
 	return resp, nil
@@ -170,6 +199,16 @@ func (c *RenclaveClient) GetInfo(ctx context.Context) (*InfoResponse, error) {
 	var resp InfoResponse
 	if err := c.makeRequest(ctx, "GET", "/info", nil, &resp); err != nil {
 		return nil, fmt.Errorf("failed to get info: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// GetEnclaveInfo requests detailed enclave information from renclave-v2
+func (c *RenclaveClient) GetEnclaveInfo(ctx context.Context) (*EnclaveInfoResponse, error) {
+	var resp EnclaveInfoResponse
+	if err := c.makeRequest(ctx, "GET", "/enclave/info", nil, &resp); err != nil {
+		return nil, fmt.Errorf("failed to get enclave info: %w", err)
 	}
 
 	return &resp, nil
@@ -202,6 +241,32 @@ func (c *RenclaveClient) DeriveAddress(ctx context.Context, encryptedSeedPhrase,
 	var resp DeriveAddressResponse
 	if err := c.makeRequest(ctx, "POST", "/derive-address", req, &resp); err != nil {
 		return nil, fmt.Errorf("failed to derive address: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// GetNetworkStatus gets network connectivity status and configuration
+func (c *RenclaveClient) GetNetworkStatus(ctx context.Context) (*NetworkStatusResponse, error) {
+	var resp NetworkStatusResponse
+	if err := c.makeRequest(ctx, "GET", "/network/status", nil, &resp); err != nil {
+		return nil, fmt.Errorf("failed to get network status: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// TestNetworkConnectivity tests network connectivity to a specific host and port
+func (c *RenclaveClient) TestNetworkConnectivity(ctx context.Context, targetHost string, targetPort int, timeoutSeconds int) (*NetworkTestResponse, error) {
+	req := NetworkTestRequest{
+		TargetHost:     targetHost,
+		TargetPort:     targetPort,
+		TimeoutSeconds: timeoutSeconds,
+	}
+
+	var resp NetworkTestResponse
+	if err := c.makeRequest(ctx, "POST", "/network/test", req, &resp); err != nil {
+		return nil, fmt.Errorf("failed to test network connectivity: %w", err)
 	}
 
 	return &resp, nil

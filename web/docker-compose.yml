@@ -4,9 +4,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_GAUTH_API_URL: ${NEXT_PUBLIC_GAUTH_API_URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_GRPC_URL: ${NEXT_PUBLIC_GRPC_URL}
     container_name: gauth-web
     ports:
-      - "3003:3000"
+      - "3004:3000"
     environment:
       # Next.js Configuration
       NODE_ENV: production
@@ -14,11 +18,13 @@ services:
 
       # API Configuration - Connect to external gauth service
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8083}
-      NEXT_PUBLIC_GRPC_URL: ${NEXT_PUBLIC_GRPC_URL:-http://localhost:9091}
+      NEXT_PUBLIC_GRPC_URL: ${NEXT_PUBLIC_GRPC_URL:-localhost:9092}
       NEXT_PUBLIC_GAUTH_API_URL: ${NEXT_PUBLIC_GAUTH_API_URL:-http://localhost:8083}
+      GAUTH_API_URL: ${GAUTH_API_URL:-http://localhost:8083}
+      GAUTH_GRPC_URL: ${GAUTH_GRPC_URL:-localhost:9092}
 
       # Authentication Configuration
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3003}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3004}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-development-nextauth-secret-change-in-production}
 
       # OAuth Configuration (Google)

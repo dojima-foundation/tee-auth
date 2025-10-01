@@ -143,10 +143,12 @@ type SeedValidationResponse struct {
 }
 
 type EnclaveInfoResponse struct {
-	Version      string   `json:"version"`
-	EnclaveID    string   `json:"enclave_id"`
-	Capabilities []string `json:"capabilities"`
-	Healthy      bool     `json:"healthy"`
+	Version      string                 `json:"version"`
+	EnclaveID    string                 `json:"enclave_id"`
+	Capabilities []string               `json:"capabilities"`
+	Healthy      bool                   `json:"healthy"`
+	Status       string                 `json:"status,omitempty"`
+	Details      map[string]interface{} `json:"details,omitempty"`
 }
 
 type AuthenticationResponse struct {

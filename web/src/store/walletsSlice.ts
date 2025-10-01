@@ -36,9 +36,20 @@ export const fetchWallets = createAsyncThunk(
                 walletsCount: response.data?.wallets?.length || 0
             });
 
+
             if (response.success) {
+                // Sanitize wallet data to ensure it has the expected structure
+                const sanitizedWallets = (response.data.wallets || []).map(wallet => ({
+                    ...wallet,
+                    accounts: Array.isArray(wallet.accounts) ? wallet.accounts.map(account => ({
+                        ...account,
+                        public_key: typeof account.public_key === 'string' ? account.public_key : ''
+                    })) : []
+                }));
+
+
                 return {
-                    wallets: response.data.wallets || [],
+                    wallets: sanitizedWallets,
                     currentPage: page,
                     totalWallets: response.data.wallets?.length || 0,
                     totalPages: Math.ceil((response.data.wallets?.length || 0) / pageSize),

@@ -152,7 +152,7 @@ message Wallet {
   string id = 1;
   string organization_id = 2;
   string name = 3;
-  string public_key = 4;
+  string entropy = 4;  // Raw entropy (hex-encoded)
   repeated WalletAccount accounts = 5;
   repeated string tags = 6;
   bool is_active = 7;
@@ -165,13 +165,14 @@ message WalletAccount {
   string wallet_id = 2;
   string name = 3;
   string path = 4; // BIP44 derivation path
-  string public_key = 5;
-  string address = 6;
-  string curve = 7;
-  string address_format = 8;
-  bool is_active = 9;
-  google.protobuf.Timestamp created_at = 10;
-  google.protobuf.Timestamp updated_at = 11;
+  string private_key = 5; // Encrypted private key (hex-encoded)
+  string public_key = 6;
+  string address = 7;
+  string curve = 8;
+  string address_format = 9;
+  bool is_active = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
 }
 
 message Activity {

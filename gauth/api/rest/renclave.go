@@ -18,7 +18,8 @@ type SeedGenerationRequest struct {
 
 // SeedValidationRequest represents the request payload for seed validation
 type SeedValidationRequest struct {
-	SeedPhrase string `json:"seed_phrase" binding:"required"`
+	SeedPhrase      string  `json:"seed_phrase" binding:"required"`
+	EncryptedEntropy *string `json:"encrypted_entropy,omitempty"`
 }
 
 // handleGetEnclaveInfo returns information about the enclave

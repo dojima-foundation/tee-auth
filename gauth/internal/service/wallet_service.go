@@ -54,13 +54,13 @@ func (s *WalletService) CreateWallet(ctx context.Context, organizationID, name s
 
 	s.logger.Info("Seed generated successfully", "strength", seedResp.Strength, "word_count", seedResp.WordCount)
 
-	// Create wallet with the encrypted seed phrase
+	// Create wallet with the encrypted seed phrase and entropy
 	wallet := &models.Wallet{
 		ID:             uuid.New(),
 		OrganizationID: orgID,
 		Name:           name,
 		SeedPhrase:     seedResp.SeedPhrase, // Store the encrypted seed phrase (hex-encoded)
-		PublicKey:      "",                  // Will be set after deriving the first account
+		Entropy:        seedResp.Entropy,    // Store the raw entropy (hex-encoded)
 		Tags:           tags,
 		IsActive:       true,
 		CreatedAt:      time.Now(),
@@ -89,26 +89,22 @@ func (s *WalletService) CreateWallet(ctx context.Context, organizationID, name s
 			derivationPath = fmt.Sprintf("m/44'/60'/0'/0/%d", i) // Default to Ethereum
 		}
 
-		// Derive address from encrypted seed using enclave
-		addressResp, err := s.renclave.DeriveAddress(ctx, seedResp.SeedPhrase, derivationPath, accounts[i].Curve)
+		// Derive key and address from encrypted seed using enclave
+		keyResp, err := s.renclave.DeriveKey(ctx, seedResp.SeedPhrase, derivationPath, accounts[i].Curve)
 		if err != nil {
-			s.logger.Error("Failed to derive address from enclave", "error", err, "path", derivationPath)
-			return nil, nil, fmt.Errorf("failed to derive address: %w", err)
+			s.logger.Error("Failed to derive key from enclave", "error", err, "path", derivationPath)
+			return nil, nil, fmt.Errorf("failed to derive key: %w", err)
 		}
 
 		accounts[i].Path = derivationPath
-		accounts[i].Address = addressResp.Address
-		accounts[i].PublicKey = addressResp.Address // For now, use address as public key
+		accounts[i].PrivateKey = keyResp.PrivateKey // Store the encrypted private key
+		accounts[i].PublicKey = keyResp.PublicKey   // Store the actual public key
+		accounts[i].Address = keyResp.Address       // Store the derived address
 		// Keep the original AddressFormat from the input
 		if accounts[i].AddressFormat == "" {
 			accounts[i].AddressFormat = "standard"
 		}
-		addresses[i] = addressResp.Address
-
-		// Set wallet's public key to the first account's public key
-		if i == 0 {
-			wallet.PublicKey = addressResp.Address
-		}
+		addresses[i] = keyResp.Address
 	}
 
 	err = s.db.Transaction(func(tx *gorm.DB) error {

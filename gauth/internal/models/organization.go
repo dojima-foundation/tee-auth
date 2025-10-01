@@ -112,7 +112,7 @@ type Wallet struct {
 	OrganizationID uuid.UUID       `json:"organizationId" db:"organization_id" gorm:"type:uuid;not null"`
 	Name           string          `json:"name" db:"name" gorm:"not null"`
 	SeedPhrase     string          `json:"seedPhrase" db:"seed_phrase" gorm:"type:text;not null"` // Encrypted seed phrase (hex-encoded)
-	PublicKey      string          `json:"publicKey" db:"public_key" gorm:"not null"`
+	Entropy        string          `json:"entropy" db:"entropy" gorm:"type:text"`                 // Raw entropy (hex-encoded)
 	Accounts       []WalletAccount `json:"accounts" db:"-" gorm:"foreignKey:WalletID"`
 	Tags           []string        `json:"tags" db:"-" gorm:"-"`
 	IsActive       bool            `json:"isActive" db:"is_active" gorm:"default:true"`
@@ -125,7 +125,8 @@ type WalletAccount struct {
 	ID            uuid.UUID `json:"id" db:"id" gorm:"type:uuid;primary_key"`
 	WalletID      uuid.UUID `json:"walletId" db:"wallet_id" gorm:"type:uuid;not null"`
 	Name          string    `json:"name" db:"name" gorm:"not null"`
-	Path          string    `json:"path" db:"path" gorm:"not null"` // BIP44 derivation path
+	Path          string    `json:"path" db:"path" gorm:"not null"`               // BIP44 derivation path
+	PrivateKey    string    `json:"privateKey" db:"private_key" gorm:"type:text"` // Encrypted private key (hex-encoded)
 	PublicKey     string    `json:"publicKey" db:"public_key" gorm:"not null"`
 	Address       string    `json:"address" db:"address" gorm:"not null"`
 	Curve         string    `json:"curve" db:"curve" gorm:"not null"`

@@ -22,6 +22,14 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Set environment variables for build time (needed for client-side code)
+ARG NEXT_PUBLIC_GAUTH_API_URL
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_GRPC_URL
+ENV NEXT_PUBLIC_GAUTH_API_URL=$NEXT_PUBLIC_GAUTH_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_GRPC_URL=$NEXT_PUBLIC_GRPC_URL
+
 RUN npm run build
 
 # Production image, copy all the files and run next

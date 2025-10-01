@@ -34,14 +34,27 @@ func (m *MockRenclaveClient) GenerateSeed(ctx context.Context, strength int, pas
 }
 
 // ValidateSeed returns a mock seed validation response
-func (m *MockRenclaveClient) ValidateSeed(ctx context.Context, seedPhrase string) (*ValidateSeedResponse, error) {
+func (m *MockRenclaveClient) ValidateSeed(ctx context.Context, seedPhrase string, encryptedEntropy *string) (*ValidateSeedResponse, error) {
 	// Simple validation - consider valid if it contains "abandon"
 	isValid := len(seedPhrase) > 0 && len(seedPhrase) < 1000 // Basic sanity check
+
+	// Mock entropy validation if encrypted entropy is provided
+	var entropyMatch *bool
+	var derivedEntropy *string
+	if encryptedEntropy != nil {
+		match := true // Mock successful entropy match
+		entropyMatch = &match
+		derived := "mock_derived_entropy_1234567890abcdef"
+		derivedEntropy = &derived
+	}
+
 	return &ValidateSeedResponse{
-		IsValid:   isValid,
-		Strength:  256,
-		WordCount: 24,
-		Errors:    []string{},
+		IsValid:        isValid,
+		Strength:       256,
+		WordCount:      24,
+		Errors:         []string{},
+		EntropyMatch:   entropyMatch,
+		DerivedEntropy: derivedEntropy,
 	}, nil
 }
 
@@ -60,8 +73,23 @@ func (m *MockRenclaveClient) Health(ctx context.Context) error {
 	return nil // Always healthy
 }
 
+// GetEnclaveInfo returns mock detailed enclave information
+func (m *MockRenclaveClient) GetEnclaveInfo(ctx context.Context) (*EnclaveInfoResponse, error) {
+	return &EnclaveInfoResponse{
+		Version:      "1.0.0-mock",
+		EnclaveID:    "mock-enclave-id",
+		Capabilities: []string{"seed_generation", "bip39_compliance", "network_testing"},
+		Healthy:      true,
+		Status:       "active",
+		Details: map[string]interface{}{
+			"mock_field": "mock_value",
+			"uptime":     "24h",
+		},
+	}, nil
+}
+
 // DeriveKey returns a mock key derivation response
-func (m *MockRenclaveClient) DeriveKey(ctx context.Context, seedPhrase, path, curve string) (*DeriveKeyResponse, error) {
+func (m *MockRenclaveClient) DeriveKey(ctx context.Context, encryptedSeedPhrase, path, curve string) (*DeriveKeyResponse, error) {
 	return &DeriveKeyResponse{
 		PrivateKey: "mock_private_key_1234567890abcdef",
 		PublicKey:  "mock_public_key_1234567890abcdef",
@@ -72,7 +100,7 @@ func (m *MockRenclaveClient) DeriveKey(ctx context.Context, seedPhrase, path, cu
 }
 
 // DeriveAddress returns a mock address derivation response
-func (m *MockRenclaveClient) DeriveAddress(ctx context.Context, seedPhrase, path, curve string) (*DeriveAddressResponse, error) {
+func (m *MockRenclaveClient) DeriveAddress(ctx context.Context, encryptedSeedPhrase, path, curve string) (*DeriveAddressResponse, error) {
 	// Generate a deterministic but unique address based on the path
 	// This ensures different paths get different addresses
 	addressSuffix := ""
@@ -92,5 +120,29 @@ func (m *MockRenclaveClient) DeriveAddress(ctx context.Context, seedPhrase, path
 		Address: address,
 		Path:    path,
 		Curve:   curve,
+	}, nil
+}
+
+// GetNetworkStatus returns mock network status
+func (m *MockRenclaveClient) GetNetworkStatus(ctx context.Context) (*NetworkStatusResponse, error) {
+	return &NetworkStatusResponse{
+		Status: "connected",
+		Connectivity: map[string]bool{
+			"internet": true,
+			"dns":      true,
+		},
+		Configuration: map[string]interface{}{
+			"timeout": 30,
+			"retries": 3,
+		},
+	}, nil
+}
+
+// TestNetworkConnectivity returns mock network connectivity test result
+func (m *MockRenclaveClient) TestNetworkConnectivity(ctx context.Context, targetHost string, targetPort int, timeoutSeconds int) (*NetworkTestResponse, error) {
+	return &NetworkTestResponse{
+		Success:      true,
+		ResponseTime: 150.5,
+		Error:        nil,
 	}, nil
 }
