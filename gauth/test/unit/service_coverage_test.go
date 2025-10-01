@@ -319,7 +319,6 @@ func TestServiceCoverage_PrivateKeyService(t *testing.T) {
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
 		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
-		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),
@@ -513,7 +512,6 @@ func TestServiceCoverage_WalletService(t *testing.T) {
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
 		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
-		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),

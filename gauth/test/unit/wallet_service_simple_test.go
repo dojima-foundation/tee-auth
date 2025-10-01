@@ -165,7 +165,6 @@ func TestWalletService_WalletModelValidation(t *testing.T) {
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
 		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
-		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),
@@ -205,7 +204,6 @@ func TestWalletService_WalletAccountModelValidation(t *testing.T) {
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
 		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
-		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),
@@ -264,7 +262,6 @@ func TestWalletService_WalletAccountRelationship(t *testing.T) {
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
 		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
-		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),
@@ -324,7 +321,6 @@ func TestWalletService_PaginationLogic(t *testing.T) {
 			OrganizationID: orgID,
 			Name:           "Test Wallet " + string(rune(i)),
 			SeedPhrase:     "encrypted_test_seed_hex_data", // Mock encrypted seed data
-			PublicKey:      "test-public-key-" + string(rune(i)),
 			Tags:           []string{"test"},
 			IsActive:       true,
 			CreatedAt:      time.Now().Add(time.Duration(i) * time.Minute),
@@ -377,7 +373,6 @@ func TestWalletService_DeleteValidation(t *testing.T) {
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
 		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
-		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),

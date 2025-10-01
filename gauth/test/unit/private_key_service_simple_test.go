@@ -103,7 +103,6 @@ func TestPrivateKeyService_PrivateKeyModelValidation(t *testing.T) {
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
 		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
-		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),
@@ -162,7 +161,6 @@ func TestPrivateKeyService_WalletRelationship(t *testing.T) {
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
 		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
-		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),
@@ -221,7 +219,6 @@ func TestPrivateKeyService_PaginationLogic(t *testing.T) {
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
 		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
-		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),
@@ -293,7 +290,6 @@ func TestPrivateKeyService_DeleteValidation(t *testing.T) {
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
 		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
-		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),

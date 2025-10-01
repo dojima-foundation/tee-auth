@@ -87,6 +87,13 @@ func (m *mockEnclaveClient) GetInfo(ctx context.Context) (*service.InfoResponse,
 	}, nil
 }
 
+func (m *mockEnclaveClient) GetEnclaveInfo(ctx context.Context) (*service.EnclaveInfoResponse, error) {
+	return &service.EnclaveInfoResponse{
+		Version: "1.0.0",
+		Healthy: true,
+	}, nil
+}
+
 func (m *mockEnclaveClient) Health(ctx context.Context) error {
 	return nil
 }
@@ -101,6 +108,19 @@ func (m *mockEnclaveClient) DeriveKey(ctx context.Context, seedPhrase, path, cur
 func (m *mockEnclaveClient) DeriveAddress(ctx context.Context, seedPhrase, path, curve string) (*service.DeriveAddressResponse, error) {
 	return &service.DeriveAddressResponse{
 		Address: "0x742D35CC6Bf8B8E0b8F8F8F8F8F8F8F8F8F8F8F8",
+	}, nil
+}
+
+func (m *mockEnclaveClient) GetNetworkStatus(ctx context.Context) (*service.NetworkStatusResponse, error) {
+	return &service.NetworkStatusResponse{
+		Status: "connected",
+	}, nil
+}
+
+func (m *mockEnclaveClient) TestNetworkConnectivity(ctx context.Context, targetHost string, targetPort int, timeoutSeconds int) (*service.NetworkTestResponse, error) {
+	return &service.NetworkTestResponse{
+		Success:      true,
+		ResponseTime: 10.5,
 	}, nil
 }
 
@@ -421,7 +441,6 @@ func TestServiceMethodCoverage_PrivateKeyService(t *testing.T) {
 		OrganizationID: orgID,
 		Name:           "Test Wallet",
 		SeedPhrase:     "encrypted_seed_hex_data_placeholder", // Mock encrypted seed data
-		PublicKey:      "test-public-key",
 		Tags:           []string{"test"},
 		IsActive:       true,
 		CreatedAt:      time.Now(),

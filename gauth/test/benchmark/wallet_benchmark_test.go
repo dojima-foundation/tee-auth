@@ -371,7 +371,6 @@ func BenchmarkDatabaseOperations(b *testing.B) {
 				ID:             uuid.New(),
 				OrganizationID: org.ID,
 				Name:           fmt.Sprintf("DB Wallet %d", i),
-				PublicKey:      fmt.Sprintf("pub_%d", i),
 				Tags:           []string{"db-test"},
 				IsActive:       true,
 			}
